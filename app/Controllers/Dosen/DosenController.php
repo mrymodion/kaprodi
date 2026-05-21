@@ -128,6 +128,12 @@ class DosenController extends BaseController
         $db      = Database::connect();
         $prodiId = (int) session('active_prodi_id');
 
+        // Superadmin tanpa prodi aktif: pakai prodi pertama yang ada
+        if (!$prodiId && session('is_superadmin')) {
+            $firstProdi = $db->table('prodi')->where('status','aktif')->orderBy('nama')->get()->getRowArray();
+            $prodiId    = $firstProdi ? (int)$firstProdi['id'] : 0;
+        }
+
         $taList  = $db->table('tahun_akademik')->orderBy('tahun_mulai DESC')->get()->getResultArray();
         $taId    = (int) ($this->request->getGet('ta_id') ?: ($db->table('tahun_akademik')->where('is_ts', 1)->get()->getRowArray()['id'] ?? 0));
 

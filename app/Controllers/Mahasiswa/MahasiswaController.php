@@ -120,6 +120,11 @@ class MahasiswaController extends BaseController
     public function tracerIndex(): string
     {
         $prodiId = (int) session('active_prodi_id');
+        // Superadmin tanpa prodi aktif: gunakan prodi pertama
+        if (!$prodiId && session('is_superadmin')) {
+            $firstProdi = Database::connect()->table('prodi')->where('status','aktif')->orderBy('nama')->get()->getRowArray();
+            $prodiId    = $firstProdi ? (int)$firstProdi['id'] : 0;
+        }
         $tracer  = $prodiId ? $this->tracerModel->listByProdi($prodiId) : [];
         $summary = $prodiId ? $this->tracerModel->summaryByProdi($prodiId) : null;
         $belum   = $prodiId ? $this->tracerModel->lulusanBelumTracer($prodiId) : [];

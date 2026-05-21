@@ -29,9 +29,26 @@ class KurikulumController extends BaseController
 
     public function index(): string
     {
-        $prodiId    = (int) session('active_prodi_id');
-        $kurikulum  = $prodiId ? $this->kuriModel->listByProdi($prodiId) : [];
-        return view('kurikulum/index', compact('kurikulum', 'prodiId'));
+        $isSuperadmin = (bool) session('is_superadmin');
+        $prodiId      = (int) session('active_prodi_id');
+
+        if ($isSuperadmin) {
+            // Superadmin: tampilkan semua kurikulum dari semua prodi
+            $db        = Database::connect();
+            $kurikulum = $db->query("
+                SELECT k.*,
+                    p.nama AS nama_prodi,
+                    (SELECT COUNT(*) FROM cpl WHERE kurikulum_id = k.id) AS jml_cpl,
+                    (SELECT COUNT(*) FROM mata_kuliah WHERE kurikulum_id = k.id) AS jml_mk
+                FROM kurikulum k
+                JOIN prodi p ON p.id = k.prodi_id
+                ORDER BY p.nama, k.tahun_berlaku DESC
+            ")->getResultArray();
+        } else {
+            $kurikulum = $prodiId ? $this->kuriModel->listByProdi($prodiId) : [];
+        }
+
+        return view('kurikulum/index', compact('kurikulum', 'prodiId', 'isSuperadmin'));
     }
 
     public function create(): string
@@ -52,8 +69,8 @@ class KurikulumController extends BaseController
         $data = $this->request->getPost(['prodi_id','kode','nama','tahun_berlaku','aktif']);
         $data['aktif'] = $data['aktif'] ?? 1;
         $data['created_at'] = date('Y-m-d H:i:s');
-        $this->kuriModel->insert($data);
-        return redirect()->to(site_url('kurikulum'))->with('success', 'Kurikulum berhasil ditambahkan.');
+        $id = $this->kuriModel->insert($data, true);
+        return redirect()->to(site_url("kurikulum/{$id}"))->with('success', 'Kurikulum berhasil ditambahkan. Mulai tambahkan CPL dan Mata Kuliah.');
     }
 
     public function show(int $id): string
