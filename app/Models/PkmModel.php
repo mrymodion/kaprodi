@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\AppModel;
-
 class PkmModel extends AppModel
 {
     protected $table      = 'pkm';
@@ -18,9 +16,9 @@ class PkmModel extends AppModel
         'libatkan_mahasiswa', 'jumlah_mhs_terlibat', 'dampak',
     ];
 
+    // prodi_id dikecualikan — nilainya diset server-side, bukan dari form POST
     protected $validationRules = [
-        'judul'    => 'required|min_length[5]',
-        'prodi_id' => 'required|is_natural_no_zero',
+        'judul' => 'required|min_length[5]',
     ];
 
     public function listByProdi(int $prodiId, array $filter = []): array
@@ -49,13 +47,24 @@ class PkmModel extends AppModel
         return $row;
     }
 
+    /** Satu query agregat menggantikan 3 query terpisah sebelumnya. */
     public function summaryByProdi(int $prodiId): array
     {
         $db = \Config\Database::connect();
-        $total    = $this->where('prodi_id', $prodiId)->countAllResults();
-        $danaTotal = (int)$db->query("SELECT COALESCE(SUM(jumlah_dana),0) AS t FROM pkm WHERE prodi_id = ?", [$prodiId])->getRowArray()['t'];
-        $libatMhs = $this->where(['prodi_id' => $prodiId, 'libatkan_mahasiswa' => 1])->countAllResults();
-        return compact('total', 'danaTotal', 'libatMhs');
+
+        $agg = $db->query("
+            SELECT
+                COUNT(*) AS total,
+                COALESCE(SUM(jumlah_dana), 0) AS dana_total,
+                SUM(libatkan_mahasiswa) AS libat_mhs
+            FROM pkm WHERE prodi_id = ?
+        ", [$prodiId])->getRowArray();
+
+        return [
+            'total'     => (int)($agg['total'] ?? 0),
+            'danaTotal' => (int)($agg['dana_total'] ?? 0),
+            'libatMhs'  => (int)($agg['libat_mhs'] ?? 0),
+        ];
     }
 
     public function saveAnggota(int $pkmId, array $dosenIds): void
