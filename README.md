@@ -69,9 +69,10 @@ jangan timpa.
 
 ### 4. Migrate & seed
 ```bash
-php spark migrate
+php spark migrate --all
 php spark db:seed DatabaseSeeder
 ```
+> **Penting**: gunakan flag `--all`. Tanpa flag itu, hanya migration namespace `App\` yang jalan; tabel-tabel Shield (`users`, `auth_identities`, dll) tidak akan dibuat dan seeder demo user akan gagal.
 Demo akun yang dibuat (password semua: **`rahasia123`**):
 
 | Email | Role |

@@ -26,9 +26,65 @@ class Driver implements AccreditationDriver
     public function computeScores(int $prodiId, ?int $tahunAkademikId = null): array
     {
         $scores = [];
+        $db = Database::connect();
 
-        // Contoh implementasi awal: butir terkait kepuasan pengguna lulusan
-        // (skor rata-rata 7 aspek dibagi 1, sudah skala 1-4).
+        // ── C1: DTPR ──────────────────────────────────────────────────────────
+        $jumlahDosen = $db->table('dosen')
+            ->where(['prodi_id' => $prodiId, 'aktif' => 1])->countAllResults();
+
+        if ($jumlahDosen > 0) {
+            // % S3 → C1.x (ambang: ≥30% = 4, ≥20% = 3, ≥10% = 2, <10% = 1)
+            $s3 = $db->table('dosen')
+                ->where(['prodi_id' => $prodiId, 'aktif' => 1, 'pendidikan_terakhir' => 'S3'])
+                ->countAllResults();
+            $pctS3 = $s3 / $jumlahDosen * 100;
+            $scores['C1.3'] = $pctS3 >= 30 ? 4 : ($pctS3 >= 20 ? 3 : ($pctS3 >= 10 ? 2 : 1));
+
+            // % LK+GB → C1.x (ambang: ≥30%=4, ≥20%=3, ≥10%=2, <10%=1)
+            $lkGb = $db->table('dosen')
+                ->where(['prodi_id' => $prodiId, 'aktif' => 1])
+                ->whereIn('jabatan_akademik', ['Lektor Kepala', 'Guru Besar'])
+                ->countAllResults();
+            $pctLkGb = $lkGb / $jumlahDosen * 100;
+            $scores['C1.4'] = $pctLkGb >= 30 ? 4 : ($pctLkGb >= 20 ? 3 : ($pctLkGb >= 10 ? 2 : 1));
+
+            // % Serdos (≥80%=4, ≥60%=3, ≥40%=2, <40%=1)
+            $serdos = $db->table('dosen')
+                ->where(['prodi_id' => $prodiId, 'aktif' => 1, 'sertifikat_pendidik' => 1])
+                ->countAllResults();
+            $pctSerdos = $serdos / $jumlahDosen * 100;
+            $scores['C1.5'] = $pctSerdos >= 80 ? 4 : ($pctSerdos >= 60 ? 3 : ($pctSerdos >= 40 ? 2 : 1));
+
+            // % Linier (≥80%=4, ≥60%=3, ≥40%=2, <40%=1)
+            $linier = $db->table('dosen')
+                ->where(['prodi_id' => $prodiId, 'aktif' => 1, 'linieritas' => 'linier'])
+                ->countAllResults();
+            $pctLinier = $linier / $jumlahDosen * 100;
+            $scores['C1.6'] = $pctLinier >= 80 ? 4 : ($pctLinier >= 60 ? 3 : ($pctLinier >= 40 ? 2 : 1));
+        }
+
+        // Rasio Dosen:Mahasiswa (D3 ideal 1:20 → 4; 1:25→3; 1:30→2; >30→1)
+        $jumlahMhs = $db->table('mahasiswa')
+            ->where(['prodi_id' => $prodiId, 'status' => 'aktif'])->countAllResults();
+        if ($jumlahDosen > 0) {
+            $rasio = $jumlahMhs / $jumlahDosen;
+            $scores['C1.2'] = $rasio <= 20 ? 4 : ($rasio <= 25 ? 3 : ($rasio <= 30 ? 2 : 1));
+        }
+
+        // EWMP rata-rata total SKS (normal 12-16 → 4; 10-12 → 3; 8-10 → 2; <8 → 1)
+        if ($tahunAkademikId && $jumlahDosen > 0) {
+            $ewmpAvg = $db->table('dosen_ewmp e')
+                ->selectAvg('e.total_sks', 'avg_sks')
+                ->join('dosen d', 'd.id = e.dosen_id')
+                ->where(['d.prodi_id' => $prodiId, 'e.tahun_akademik_id' => $tahunAkademikId])
+                ->get()->getRowArray();
+            if ($ewmpAvg && $ewmpAvg['avg_sks']) {
+                $avg = (float)$ewmpAvg['avg_sks'];
+                $scores['C1.7'] = ($avg >= 12 && $avg <= 16) ? 4 : ($avg >= 10 ? 3 : ($avg >= 8 ? 2 : 1));
+            }
+        }
+
+        // ── C2: Kepuasan pengguna & Lulusan ───────────────────────────────────
         $db = Database::connect();
         $kpl = $db->table('kepuasan_pengguna_lulusan kpl')
             ->select('AVG((etika + keahlian + bahasa_asing + teknologi_info + komunikasi + kerjasama_tim + pengembangan_diri) / 7) AS rata')
