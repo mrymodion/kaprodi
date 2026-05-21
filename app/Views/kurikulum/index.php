@@ -1,9 +1,11 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
+<?php $canManage = auth()->user()->can('kurikulum.manage'); ?>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-book"></i> Kurikulum & OBE</h4>
-    <?php if (auth()->user()->can('kurikulum.manage')): ?>
+    <?php if ($canManage): ?>
         <a href="<?= site_url('kurikulum/create') ?>" class="btn btn-primary btn-sm">
             <i class="bi bi-plus-circle"></i> Tambah Kurikulum
         </a>
@@ -34,7 +36,10 @@
             </div>
             <div class="card-body">
                 <h6 class="card-title"><?= esc($k['nama']) ?></h6>
-                <div class="text-muted small mb-3">Berlaku sejak <?= esc($k['tahun_berlaku']) ?></div>
+                <div class="text-muted small mb-1">Berlaku sejak <?= esc($k['tahun_berlaku']) ?></div>
+                <?php if (!empty($k['nama_prodi'])): ?>
+                    <div class="text-muted small mb-3"><i class="bi bi-building"></i> <?= esc($k['nama_prodi']) ?></div>
+                <?php else: ?><div class="mb-3"></div><?php endif ?>
                 <div class="row text-center g-2">
                     <div class="col-6">
                         <div class="border rounded p-2">
