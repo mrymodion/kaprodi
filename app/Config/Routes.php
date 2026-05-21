@@ -25,6 +25,20 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('users/(:num)/delete','Admin\UserManagement::delete/$1');
     });
 
+    // Mahasiswa + Tracer Study
+    $routes->group('mahasiswa', ['filter' => 'permission:mahasiswa.manage'], function ($routes) {
+        $routes->get('/',                          'Mahasiswa\MahasiswaController::index');
+        $routes->get('create',                     'Mahasiswa\MahasiswaController::create');
+        $routes->post('store',                     'Mahasiswa\MahasiswaController::store');
+        $routes->get('(:num)',                     'Mahasiswa\MahasiswaController::show/$1');
+        $routes->get('(:num)/edit',               'Mahasiswa\MahasiswaController::edit/$1');
+        $routes->post('(:num)/update',            'Mahasiswa\MahasiswaController::update/$1');
+        $routes->post('(:num)/delete',            'Mahasiswa\MahasiswaController::delete/$1');
+        $routes->get('tracer',                     'Mahasiswa\MahasiswaController::tracerIndex');
+        $routes->get('tracer/(:num)',              'Mahasiswa\MahasiswaController::tracerForm/$1');
+        $routes->post('tracer/(:num)/store',       'Mahasiswa\MahasiswaController::tracerStore/$1');
+    });
+
     // DTPR — Dosen
     $routes->group('dosen', ['filter' => 'permission:dosen.manage'], function ($routes) {
         $routes->get('/',                        'Dosen\DosenController::index');
