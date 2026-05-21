@@ -1,14 +1,30 @@
 <?php
 $user = function_exists('auth') && auth()->loggedIn() ? auth()->user() : null;
 $role = $user ? implode(', ', $user->getGroups() ?: []) : 'guest';
-$can = fn($p) => $user && $user->can($p);
+
+// Precompute semua permission yang dipakai layout — 1× per request,
+// bukan 16× per call $user->can() yang masing-masing iterasi groups/permissions Shield.
+$perms = [];
+if ($user) {
+    foreach (['prodi.manage','dosen.manage','mahasiswa.manage','kurikulum.manage',
+              'tridharma.manage','tridharma.input_own','kerjasama.manage',
+              'penilaian.input','lkps.generate','led.generate',
+              'users.manage','instrumen.manage'] as $p) {
+        $perms[$p] = $user->can($p);
+    }
+}
+$can = fn($p) => $perms[$p] ?? false;
+
+// Cache env() — masing-masing call mem-parse .env file di CI4
+$appName = env('app.namaAplikasi', 'KAPRODI');
+$appPt   = env('app.namaPT', '');
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= esc($title ?? 'KAPRODI') ?> - <?= esc(env('app.namaAplikasi', 'KAPRODI')) ?></title>
+    <title><?= esc($title ?? 'KAPRODI') ?> - <?= esc($appName) ?></title>
     <link rel="icon" href="<?= base_url('assets/logo-utd.png') ?>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -29,8 +45,8 @@ $can = fn($p) => $user && $user->can($p);
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="<?= base_url('/') ?>">
             <img src="<?= base_url('assets/logo-utd.png') ?>" alt="UTD" onerror="this.style.display='none'">
-            <strong><?= esc(env('app.namaAplikasi', 'KAPRODI')) ?></strong>
-            <small class="ms-2 opacity-75"><?= esc(env('app.namaPT', '')) ?></small>
+            <strong><?= esc($appName) ?></strong>
+            <small class="ms-2 opacity-75"><?= esc($appPt) ?></small>
         </a>
         <div class="dropdown">
             <button class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown">
@@ -92,7 +108,7 @@ $can = fn($p) => $user && $user->can($p);
     </div>
 </div>
 <footer class="text-center text-muted small py-3">
-    &copy; <?= date('Y') ?> <?= esc(env('app.namaPT', '')) ?> &middot; KAPRODI v0.4
+    &copy; <?= date('Y') ?> <?= esc($appPt) ?> &middot; KAPRODI v0.4
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

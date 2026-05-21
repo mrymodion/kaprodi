@@ -8,33 +8,35 @@ use CodeIgniter\HTTP\ResponseInterface;
 use Config\Database;
 
 /**
- * Inject "active_prodi_id" ke session berdasarkan user login.
- * Aturan:
- * - Superadmin: prodi_id null (akses semua), bisa pilih prodi via switcher.
- * - User lain: ambil prodi default dari tabel user_prodi.
- * Modul CRUD selanjutnya WAJIB menyaring query berdasarkan session('active_prodi_id')
- * kecuali user superadmin.
+ * Inject "active_prodi_id" ke session.
+ * Optimasi: query DB hanya pada request pertama tiap login session;
+ * status superadmin & prodi default di-cache di session.
  */
 class ProdiScopeFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
         if (!function_exists('auth')) {
-            return; // Shield belum diinstall, skip
+            return;
         }
+        $session = session();
+
+        // Sudah pernah resolved untuk session ini — skip semua DB call
+        if ($session->has('scope_resolved')) {
+            return;
+        }
+
         $user = auth()->user();
         if (!$user) return;
 
-        $session = session();
+        // Tandai sudah resolved supaya request berikutnya skip filter ini total
+        $session->set('scope_resolved', true);
 
-        // Superadmin: bebas, hanya isi jika belum di-set
         if ($user->inGroup('superadmin')) {
             $session->set('is_superadmin', true);
             return;
         }
         $session->set('is_superadmin', false);
-
-        if ($session->has('active_prodi_id')) return;
 
         $db = Database::connect();
         $row = $db->table('user_prodi')
