@@ -61,7 +61,7 @@ $can = fn($p) => $user && $user->can($p);
                     <?php if ($can('mahasiswa.manage')): ?>
                         <a class="nav-link <?= str_starts_with(uri_string(), 'mahasiswa') ? 'active' : '' ?>" href="<?= site_url('mahasiswa') ?>"><i class="bi bi-person-badge"></i> Mahasiswa</a>
                     <?php endif ?>
-                    <?php if ($can('kurikulum.manage')): ?><a class="nav-link" href="#"><i class="bi bi-book"></i> Kurikulum & CPL</a><?php endif ?>
+                    <?php if ($can('kurikulum.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'kurikulum') ? 'active' : '' ?>" href="<?= site_url('kurikulum') ?>"><i class="bi bi-book"></i> Kurikulum & CPL</a><?php endif ?>
                     <?php if ($can('tridharma.manage') || $can('tridharma.input_own')): ?>
                         <a class="nav-link" href="#"><i class="bi bi-journal-text"></i> Penelitian</a>
                         <a class="nav-link" href="#"><i class="bi bi-megaphone"></i> PkM</a>
