@@ -86,7 +86,6 @@ $aspekColors = ['sikap'=>'success','pengetahuan'=>'primary','keterampilan_umum'=
                         <a href="<?= site_url("kurikulum/{$kuri['id']}/cpl/{$c['id']}/edit") ?>" class="btn btn-xs btn-outline-primary py-0 px-1"><i class="bi bi-pencil"></i></a>
                         <form method="post" action="<?= site_url("kurikulum/{$kuri['id']}/cpl/{$c['id']}/delete") ?>" class="d-inline" onsubmit="return confirm('Hapus CPL ini?')">
                             <?= csrf_field() ?>
-                            <input type="hidden" name="_method" value="DELETE">
                             <button class="btn btn-xs btn-outline-danger py-0 px-1"><i class="bi bi-trash"></i></button>
                         </form>
                     </div>
@@ -150,7 +149,7 @@ $aspekColors = ['sikap'=>'success','pengetahuan'=>'primary','keterampilan_umum'=
                             <td class="text-end">
                                 <a href="<?= site_url("kurikulum/{$kuri['id']}/mk/{$m['id']}/edit") ?>" class="btn btn-xs btn-outline-primary py-0 px-1"><i class="bi bi-pencil"></i></a>
                                 <form method="post" action="<?= site_url("kurikulum/{$kuri['id']}/mk/{$m['id']}/delete") ?>" class="d-inline" onsubmit="return confirm('Hapus MK ini?')">
-                                    <?= csrf_field() ?><input type="hidden" name="_method" value="DELETE">
+                                    <?= csrf_field() ?>
                                     <button class="btn btn-xs btn-outline-danger py-0 px-1"><i class="bi bi-trash"></i></button>
                                 </form>
                             </td>
