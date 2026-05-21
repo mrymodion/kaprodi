@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use CodeIgniter\Model;
+use App\Models\AppModel;
 
-class DosenEwmpModel extends Model
+class DosenEwmpModel extends AppModel
 {
     protected $table      = 'dosen_ewmp';
     protected $primaryKey = 'id';

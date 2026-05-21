@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use CodeIgniter\Model;
+use App\Models\AppModel;
 
-class CplKetercapaianModel extends Model
+class CplKetercapaianModel extends AppModel
 {
     protected $table      = 'cpl_ketercapaian';
     protected $primaryKey = 'id';
