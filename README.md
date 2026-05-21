@@ -58,20 +58,42 @@ groq.apiKey = gsk_xxxxxxxxxxxxxxxxxxxxx   # dari https://console.groq.com/keys
 encryption.key = $(php -r 'echo bin2hex(random_bytes(16));')
 ```
 
-### 3. Migrate & seed
+### 3. Install Shield (auth & RBAC) — WAJIB sebelum migrate
+```bash
+composer require codeigniter4/shield
+php spark shield:setup
+```
+Saat `shield:setup` ada konfirmasi, tekan `y` untuk menulis konfigurasi.
+File `app/Config/AuthGroups.php` sudah disertakan repo ini dengan 11 role akreditasi,
+jangan timpa.
+
+### 4. Migrate & seed
 ```bash
 php spark migrate
 php spark db:seed DatabaseSeeder
 ```
+Demo akun yang dibuat (password semua: **`rahasia123`**):
+
+| Email | Role |
+|---|---|
+| superadmin@utd.ac.id | Super Administrator |
+| kaprodi@utd.ac.id | Kaprodi MI D3 |
+| sekprodi@utd.ac.id | Sekretaris Prodi |
+| gkm@utd.ac.id | GKM |
+| dosen@utd.ac.id | Dosen DTPR |
+| tendik@utd.ac.id | Tendik |
+| mahasiswa@utd.ac.id | Mahasiswa |
+| asesor@utd.ac.id | Asesor |
+| auditor@utd.ac.id | Auditor |
 Setelah seeder berjalan, database berisi:
 - 1 PT (UTD), 1 UPPS, 11 prodi, 5 tahun akademik (TS-4 … TS)
 - 1 instrumen **LAM INFOKOM 2.0 D3** dengan 9 kriteria/bagian, **82 butir**, **31 tabel LKPS**, template LED 32 bagian
 - Mapping otomatis untuk prodi MI D3 (kode 57401 & 57472)
 
-### 4. Letakkan logo
+### 5. Letakkan logo
 Salin file logo UTD ke `public/assets/logo-utd.png`.
 
-### 5. Jalankan
+### 6. Jalankan
 ```bash
 php spark serve
 ```

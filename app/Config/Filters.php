@@ -34,6 +34,15 @@ class Filters extends BaseFilters
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
+        // Shield filters (otomatis tersedia setelah `composer require codeigniter4/shield && spark shield:setup`)
+        'session'       => \CodeIgniter\Shield\Filters\SessionAuth::class,
+        'tokens'        => \CodeIgniter\Shield\Filters\TokenAuth::class,
+        'chain'         => \CodeIgniter\Shield\Filters\ChainAuth::class,
+        'auth-rates'    => \CodeIgniter\Shield\Filters\AuthRates::class,
+        'group'         => \CodeIgniter\Shield\Filters\GroupFilter::class,
+        'permission'    => \CodeIgniter\Shield\Filters\PermissionFilter::class,
+        // App
+        'prodiScope'    => \App\Filters\ProdiScopeFilter::class,
     ];
 
     /**
