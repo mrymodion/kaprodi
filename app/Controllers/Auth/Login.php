@@ -55,7 +55,7 @@ class Login extends BaseController
         if (function_exists('auth')) {
             auth()->logout();
         }
-        session()->destroy();
+        session()->destroy(); // bersihkan scope_resolved, active_prodi_id, dll
         return redirect()->to('/login');
     }
 }
