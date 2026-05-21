@@ -156,6 +156,87 @@ class Driver implements AccreditationDriver
             $scores['C2.17'] = $persen >= 80 ? 4 : ($persen >= 60 ? 3 : ($persen >= 40 ? 2 : 1));
         }
 
+        // ── C3: Penelitian ────────────────────────────────────────────────────
+        $penelitian = $db->query("
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN sumber_dana IN ('dalam_negeri','luar_negeri') THEN 1 ELSE 0 END) AS eksternal,
+                SUM(CASE WHEN sumber_dana = 'luar_negeri' THEN 1 ELSE 0 END) AS luar_negeri,
+                SUM(CASE WHEN libatkan_mahasiswa = 1 THEN 1 ELSE 0 END) AS libat_mhs
+            FROM penelitian WHERE prodi_id = ?
+        ", [$prodiId])->getRowArray();
+
+        if ($penelitian && (int)$penelitian['total'] > 0) {
+            // C3.1 — Jumlah penelitian per dosen per tahun (≥1/thn/dosen=4, ≥0.5=3, ≥0.25=2, <0.25=1)
+            if ($jumlahDosen > 0) {
+                $penelitianPerDosen = (int)$penelitian['total'] / $jumlahDosen;
+                $scores['C3.1'] = $penelitianPerDosen >= 1 ? 4 : ($penelitianPerDosen >= 0.5 ? 3 : ($penelitianPerDosen >= 0.25 ? 2 : 1));
+            }
+            // C3.2 — % penelitian eksternal (≥50%=4, ≥30%=3, ≥15%=2, <15%=1)
+            $pctEksternal = (int)$penelitian['eksternal'] / (int)$penelitian['total'] * 100;
+            $scores['C3.2'] = $pctEksternal >= 50 ? 4 : ($pctEksternal >= 30 ? 3 : ($pctEksternal >= 15 ? 2 : 1));
+            // C3.3 — Keterlibatan mahasiswa (≥50% penelitian libatkan mhs=4, ≥30%=3, ≥10%=2, <10%=1)
+            $pctLibatMhs = (int)$penelitian['libat_mhs'] / (int)$penelitian['total'] * 100;
+            $scores['C3.3'] = $pctLibatMhs >= 50 ? 4 : ($pctLibatMhs >= 30 ? 3 : ($pctLibatMhs >= 10 ? 2 : 1));
+        }
+
+        // Publikasi dari penelitian (C3.4 — jurnal internasional bereputasi)
+        $pub = $db->query("
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN jenis = 'jurnal_internasional_bereputasi' THEN 1 ELSE 0 END) AS intl_bereputasi,
+                SUM(CASE WHEN jenis IN ('jurnal_internasional','jurnal_internasional_bereputasi') THEN 1 ELSE 0 END) AS intl
+            FROM publikasi WHERE prodi_id = ? AND kategori = 'penelitian'
+        ", [$prodiId])->getRowArray();
+
+        if ($pub && (int)$pub['total'] > 0 && $jumlahDosen > 0) {
+            $pubPerDosen = (int)$pub['total'] / $jumlahDosen;
+            $scores['C3.4'] = $pubPerDosen >= 2 ? 4 : ($pubPerDosen >= 1 ? 3 : ($pubPerDosen >= 0.5 ? 2 : 1));
+        }
+
+        // HKI dari penelitian (C3.5)
+        $hki = $db->query("
+            SELECT COUNT(*) AS total FROM hki WHERE prodi_id = ? AND kategori = 'penelitian'
+        ", [$prodiId])->getRowArray();
+
+        if ($hki && $jumlahDosen > 0) {
+            $hkiPerDosen = (int)$hki['total'] / $jumlahDosen;
+            $scores['C3.5'] = $hkiPerDosen >= 1 ? 4 : ($hkiPerDosen >= 0.5 ? 3 : ($hkiPerDosen >= 0.2 ? 2 : 1));
+        }
+
+        // ── C4: PkM ───────────────────────────────────────────────────────────
+        $pkm = $db->query("
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN sumber_dana IN ('dalam_negeri','luar_negeri') THEN 1 ELSE 0 END) AS eksternal,
+                SUM(CASE WHEN libatkan_mahasiswa = 1 THEN 1 ELSE 0 END) AS libat_mhs
+            FROM pkm WHERE prodi_id = ?
+        ", [$prodiId])->getRowArray();
+
+        if ($pkm && (int)$pkm['total'] > 0) {
+            // C4.1 — Jumlah PkM per dosen per tahun
+            if ($jumlahDosen > 0) {
+                $pkmPerDosen = (int)$pkm['total'] / $jumlahDosen;
+                $scores['C4.1'] = $pkmPerDosen >= 1 ? 4 : ($pkmPerDosen >= 0.5 ? 3 : ($pkmPerDosen >= 0.25 ? 2 : 1));
+            }
+            // C4.2 — % PkM eksternal
+            $pctEksternalPkm = (int)$pkm['eksternal'] / (int)$pkm['total'] * 100;
+            $scores['C4.2'] = $pctEksternalPkm >= 50 ? 4 : ($pctEksternalPkm >= 30 ? 3 : ($pctEksternalPkm >= 15 ? 2 : 1));
+            // C4.3 — Keterlibatan mahasiswa
+            $pctLibatMhsPkm = (int)$pkm['libat_mhs'] / (int)$pkm['total'] * 100;
+            $scores['C4.3'] = $pctLibatMhsPkm >= 50 ? 4 : ($pctLibatMhsPkm >= 30 ? 3 : ($pctLibatMhsPkm >= 10 ? 2 : 1));
+        }
+
+        // Kerjasama internasional (C4.5 — mendukung akreditasi internasional)
+        $ksIntl = $db->query("
+            SELECT COUNT(*) AS total FROM kerjasama
+            WHERE prodi_id = ? AND tingkat = 'internasional'
+        ", [$prodiId])->getRowArray();
+        if ($ksIntl) {
+            $n = (int)$ksIntl['total'];
+            $scores['C4.5'] = $n >= 5 ? 4 : ($n >= 3 ? 3 : ($n >= 1 ? 2 : 1));
+        }
+
         return $scores;
     }
 
@@ -165,6 +246,14 @@ class Driver implements AccreditationDriver
             '1.A.4' => $this->tabelEwmp($prodiId, $tahunAkademikId),
             '2.A.1' => $this->tabelDataMahasiswa($prodiId),
             '2.B.4' => $this->tabelMasaTunggu($prodiId),
+            '3.A.2' => $this->tabelPenelitian($prodiId),
+            '3.C.1' => $this->tabelKerjasama($prodiId, 'penelitian'),
+            '3.C.2' => $this->tabelPublikasi($prodiId, 'penelitian'),
+            '3.C.3' => $this->tabelHki($prodiId, 'penelitian'),
+            '4.A.2' => $this->tabelPkm($prodiId),
+            '4.C.1' => $this->tabelKerjasama($prodiId, 'pkm'),
+            '4.C.2' => $this->tabelPublikasi($prodiId, 'pkm'),
+            '4.C.3' => $this->tabelHki($prodiId, 'pkm'),
             default => [],
         };
     }
@@ -210,6 +299,67 @@ class Driver implements AccreditationDriver
             ->join('mahasiswa m', 'm.id = ts.mahasiswa_id')
             ->where('m.prodi_id', $prodiId)
             ->get()->getResultArray();
+    }
+
+    private function tabelPenelitian(int $prodiId): array
+    {
+        $db = Database::connect();
+        return $db->query("
+            SELECT p.judul, d.nama AS ketua, p.sumber_dana, p.nama_sumber_dana,
+                   p.jumlah_dana, p.tahun_pelaksanaan, p.libatkan_mahasiswa, p.jumlah_mhs_terlibat
+            FROM penelitian p
+            LEFT JOIN dosen d ON d.id = p.ketua_dosen_id
+            WHERE p.prodi_id = ?
+            ORDER BY p.tahun_pelaksanaan DESC
+        ", [$prodiId])->getResultArray();
+    }
+
+    private function tabelPkm(int $prodiId): array
+    {
+        $db = Database::connect();
+        return $db->query("
+            SELECT p.judul, d.nama AS ketua, p.sumber_dana, p.nama_sumber_dana,
+                   p.jumlah_dana, p.mitra, p.lokasi, p.tahun_pelaksanaan,
+                   p.libatkan_mahasiswa, p.jumlah_mhs_terlibat
+            FROM pkm p
+            LEFT JOIN dosen d ON d.id = p.ketua_dosen_id
+            WHERE p.prodi_id = ?
+            ORDER BY p.tahun_pelaksanaan DESC
+        ", [$prodiId])->getResultArray();
+    }
+
+    private function tabelPublikasi(int $prodiId, string $kategori): array
+    {
+        $db = Database::connect();
+        return $db->query("
+            SELECT jenis, judul, penulis, nama_media, tahun, volume, doi, sitasi, sinta_score
+            FROM publikasi
+            WHERE prodi_id = ? AND kategori = ?
+            ORDER BY tahun DESC
+        ", [$prodiId, $kategori])->getResultArray();
+    }
+
+    private function tabelHki(int $prodiId, string $kategori): array
+    {
+        $db = Database::connect();
+        return $db->query("
+            SELECT jenis, judul, no_hki, tahun, pemilik, status
+            FROM hki
+            WHERE prodi_id = ? AND kategori = ?
+            ORDER BY tahun DESC
+        ", [$prodiId, $kategori])->getResultArray();
+    }
+
+    private function tabelKerjasama(int $prodiId, string $bidang): array
+    {
+        $db = Database::connect();
+        return $db->query("
+            SELECT nama_mitra, tingkat, jenis_dokumen, no_dokumen,
+                   tgl_mulai, tgl_berakhir, manfaat, bukti_implementasi
+            FROM kerjasama
+            WHERE prodi_id = ? AND bidang IN (?, 'tridharma')
+            ORDER BY tgl_mulai DESC
+        ", [$prodiId, $bidang])->getResultArray();
     }
 
     private function clamp(float $v): float

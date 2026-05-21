@@ -43,7 +43,7 @@ $aspekColors = ['sikap'=>'success','pengetahuan'=>'primary','keterampilan_umum'=
 </div>
 
 <!-- Tabs -->
-<?php $activeTab = $this->request->getGet('tab') ?? 'cpl'; ?>
+<?php $activeTab = service('request')->getGet('tab') ?? 'cpl'; ?>
 <ul class="nav nav-tabs mb-3" id="kuriTab">
     <li class="nav-item"><a class="nav-link" href="#tab-cpl"  data-bs-toggle="tab">CPL <span class="badge bg-success"><?= count($cpl) ?></span></a></li>
     <li class="nav-item"><a class="nav-link" href="#tab-mk"   data-bs-toggle="tab">Mata Kuliah <span class="badge bg-primary"><?= count($mk) ?></span></a></li>
