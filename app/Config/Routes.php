@@ -67,6 +67,14 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('tracer/(:num)/store',       'Mahasiswa\MahasiswaController::tracerStore/$1');
     });
 
+    // LKPS Generator
+    $routes->group('lkps', ['filter' => 'permission:lkps.generate'], function ($routes) {
+        $routes->get('/',                   'Lkps\LkpsController::index');
+        $routes->post('generate-all',       'Lkps\LkpsController::generateAll');
+        $routes->post('generate/(:any)',    'Lkps\LkpsController::generateSingle/$1');
+        $routes->get('download/(:any)',     'Lkps\LkpsController::download/$1');
+    });
+
     // Penilaian LAM
     $routes->group('penilaian', ['filter' => 'permission:penilaian.input'], function ($routes) {
         $routes->get('/',                    'Penilaian\PenilaianController::index');
