@@ -66,7 +66,6 @@
                     <form method="post" action="<?= site_url("kurikulum/{$k['id']}/delete") ?>" class="d-inline"
                           onsubmit="return confirm('Nonaktifkan kurikulum ini?')">
                         <?= csrf_field() ?>
-                        <input type="hidden" name="_method" value="DELETE">
                         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-archive"></i></button>
                     </form>
                 <?php endif ?>

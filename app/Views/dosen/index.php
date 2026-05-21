@@ -137,7 +137,6 @@
                             <a href="<?= site_url("dosen/{$d['id']}/edit") ?>" class="btn btn-sm btn-outline-primary py-0 px-1" title="Edit"><i class="bi bi-pencil"></i></a>
                             <form method="post" action="<?= site_url("dosen/{$d['id']}/delete") ?>" class="d-inline" onsubmit="return confirm('Nonaktifkan dosen ini?')">
                                 <?= csrf_field() ?>
-                                <input type="hidden" name="_method" value="DELETE">
                                 <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="Nonaktifkan"><i class="bi bi-person-dash"></i></button>
                             </form>
                         <?php endif ?>
