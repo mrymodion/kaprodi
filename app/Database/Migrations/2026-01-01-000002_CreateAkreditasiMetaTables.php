@@ -86,7 +86,7 @@ class CreateAkreditasiMetaTables extends Migration
             'skor'         => ['type' => 'TINYINT', 'constraint' => 1],
             'label'        => ['type' => 'VARCHAR', 'constraint' => 30],
             'deskriptor'   => ['type' => 'TEXT'],
-            'syarat_json'  => ['type' => 'JSON', 'null' => true],
+            'syarat_json'  => ['type' => 'LONGTEXT', 'null' => true],
         ]);
         $this->forge->addPrimaryKey('id');
         $this->forge->addUniqueKey(['lam_butir_id','skor']);
@@ -100,7 +100,7 @@ class CreateAkreditasiMetaTables extends Migration
             'kode'              => ['type' => 'VARCHAR', 'constraint' => 30],
             'judul'             => ['type' => 'VARCHAR', 'constraint' => 250],
             'kriteria_kode'     => ['type' => 'VARCHAR', 'constraint' => 20, 'null' => true],
-            'schema_json'       => ['type' => 'JSON', 'null' => true],
+            'schema_json'       => ['type' => 'LONGTEXT', 'null' => true],
             'urutan'            => ['type' => 'INT', 'default' => 0],
         ]);
         $this->forge->addPrimaryKey('id');
@@ -148,7 +148,7 @@ class CreateAkreditasiMetaTables extends Migration
             'skor_auto'         => ['type' => 'DECIMAL', 'constraint' => '3,2', 'null' => true],
             'skor_manual'       => ['type' => 'DECIMAL', 'constraint' => '3,2', 'null' => true],
             'skor_final'        => ['type' => 'DECIMAL', 'constraint' => '3,2', 'null' => true],
-            'sumber_data_json'  => ['type' => 'JSON', 'null' => true],
+            'sumber_data_json'  => ['type' => 'LONGTEXT', 'null' => true],
             'catatan'           => ['type' => 'TEXT', 'null' => true],
             'updated_at'        => ['type' => 'DATETIME', 'null' => true],
             'updated_by'        => ['type' => 'INT', 'unsigned' => true, 'null' => true],

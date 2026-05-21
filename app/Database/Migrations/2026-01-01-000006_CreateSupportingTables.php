@@ -92,7 +92,7 @@ class CreateSupportingTables extends Migration
             'token'        => ['type' => 'VARCHAR', 'constraint' => 64, 'null' => true],
             'mulai'        => ['type' => 'DATETIME', 'null' => true],
             'selesai'      => ['type' => 'DATETIME', 'null' => true],
-            'pertanyaan_json' => ['type' => 'JSON', 'null' => true],
+            'pertanyaan_json' => ['type' => 'LONGTEXT', 'null' => true],
         ]);
         $this->forge->addPrimaryKey('id');
         $this->forge->addForeignKey('prodi_id', 'prodi', 'id', 'CASCADE', 'CASCADE');
@@ -102,7 +102,7 @@ class CreateSupportingTables extends Migration
             'id'         => ['type' => 'INT', 'unsigned' => true, 'auto_increment' => true],
             'survei_id'  => ['type' => 'INT', 'unsigned' => true],
             'responden'  => ['type' => 'VARCHAR', 'constraint' => 150, 'null' => true],
-            'jawaban_json' => ['type' => 'JSON'],
+            'jawaban_json' => ['type' => 'LONGTEXT'],
             'created_at' => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addPrimaryKey('id');
@@ -118,8 +118,8 @@ class CreateSupportingTables extends Migration
             'file_path'    => ['type' => 'VARCHAR', 'constraint' => 255],
             'file_mime'    => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             'file_size'    => ['type' => 'BIGINT', 'null' => true],
-            'tag_butir_json' => ['type' => 'JSON', 'null' => true],
-            'tag_tabel_lkps_json' => ['type' => 'JSON', 'null' => true],
+            'tag_butir_json' => ['type' => 'LONGTEXT', 'null' => true],
+            'tag_tabel_lkps_json' => ['type' => 'LONGTEXT', 'null' => true],
             'uploaded_by'  => ['type' => 'INT', 'unsigned' => true, 'null' => true],
             'created_at'   => ['type' => 'DATETIME', 'null' => true],
         ]);
@@ -135,8 +135,8 @@ class CreateSupportingTables extends Migration
             'aksi'       => ['type' => 'VARCHAR', 'constraint' => 50],
             'tabel'      => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             'record_id'  => ['type' => 'VARCHAR', 'constraint' => 64, 'null' => true],
-            'before_json'=> ['type' => 'JSON', 'null' => true],
-            'after_json' => ['type' => 'JSON', 'null' => true],
+            'before_json'=> ['type' => 'LONGTEXT', 'null' => true],
+            'after_json' => ['type' => 'LONGTEXT', 'null' => true],
             'ip'         => ['type' => 'VARCHAR', 'constraint' => 45, 'null' => true],
             'ua'         => ['type' => 'VARCHAR', 'constraint' => 250, 'null' => true],
             'created_at' => ['type' => 'DATETIME', 'null' => true],
