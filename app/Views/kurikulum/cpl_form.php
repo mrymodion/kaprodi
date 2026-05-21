@@ -18,7 +18,7 @@
             <div class="card-body">
                 <form method="post" action="<?= esc($action) ?>">
                     <?= csrf_field() ?>
-                    <?php if ($isEdit): ?><input type="hidden" name="_method" value="PUT"><?php endif ?>
+
                     <input type="hidden" name="kurikulum_id" value="<?= $kuri['id'] ?>">
 
                     <div class="row g-3 mb-3">

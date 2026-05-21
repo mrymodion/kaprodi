@@ -24,7 +24,6 @@
 
 <form method="post" action="<?= esc($action) ?>" id="dosenForm">
     <?= csrf_field() ?>
-    <?php if ($isEdit): ?><input type="hidden" name="_method" value="PUT"><?php endif ?>
 
     <div class="row g-4">
         <!-- Kiri: Data Pokok -->

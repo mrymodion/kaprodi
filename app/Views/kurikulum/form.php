@@ -16,7 +16,7 @@
     <div class="card-body">
         <form method="post" action="<?= esc($action) ?>">
             <?= csrf_field() ?>
-            <?php if ($isEdit): ?><input type="hidden" name="_method" value="PUT"><?php endif ?>
+
 
             <div class="mb-3">
                 <label class="form-label">Prodi <span class="text-danger">*</span></label>
