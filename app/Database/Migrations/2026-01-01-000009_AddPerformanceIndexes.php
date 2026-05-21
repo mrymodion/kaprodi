@@ -18,7 +18,7 @@ class AddPerformanceIndexes extends Migration
         'hki'                  => [['prodi_id'], ['tahun']],
         'kerjasama'            => [['prodi_id'], ['tingkat']],
         'dosen'                => [['prodi_id'], ['aktif']],
-        'mahasiswa'            => [['prodi_id'], ['status_mahasiswa']],
+        'mahasiswa'            => [['prodi_id'], ['status']],
         'butir_skor'           => [['prodi_id'], ['lam_butir_id'], ['prodi_id', 'lam_butir_id']],
         'prodi_instrumen'      => [['prodi_id'], ['aktif']],
         'lam_tabel_lkps'       => [['lam_instrumen_id'], ['urutan']],
@@ -33,9 +33,23 @@ class AddPerformanceIndexes extends Migration
     public function up(): void
     {
         foreach ($this->indexes as $table => $colGroups) {
+            // Skip kalau tabel belum ada
+            if (!$this->db->tableExists($table)) {
+                continue;
+            }
+
+            // Ambil daftar kolom yang benar-benar ada di tabel
+            $existingCols = array_map('strtolower', $this->db->getFieldNames($table));
+
             foreach ($colGroups as $cols) {
+                // Skip kalau salah satu kolom tidak ada
+                foreach ($cols as $c) {
+                    if (!in_array(strtolower($c), $existingCols, true)) {
+                        continue 2;
+                    }
+                }
+
                 $indexName = 'idx_' . $table . '_' . implode('_', $cols);
-                // Cek apakah index sudah ada (skip kalau sudah)
                 $exists = $this->db->query(
                     "SELECT COUNT(*) AS cnt FROM information_schema.statistics
                      WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?",
@@ -53,9 +67,16 @@ class AddPerformanceIndexes extends Migration
     public function down(): void
     {
         foreach ($this->indexes as $table => $colGroups) {
+            if (!$this->db->tableExists($table)) {
+                continue;
+            }
             foreach ($colGroups as $cols) {
                 $indexName = 'idx_' . $table . '_' . implode('_', $cols);
-                $this->db->query("DROP INDEX IF EXISTS {$indexName} ON {$table}");
+                try {
+                    $this->db->query("DROP INDEX {$indexName} ON {$table}");
+                } catch (\Throwable $e) {
+                    // ignore — index might not exist
+                }
             }
         }
     }
