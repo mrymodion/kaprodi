@@ -1,69 +1,117 @@
-# CodeIgniter 4 Application Starter
+# KAPRODI — Sistem Pendukung Akreditasi Program Studi
 
-## What is CodeIgniter?
+Aplikasi pendukung Kaprodi untuk peningkatan nilai akreditasi program studi
+(target **Unggul**). Dibangun di atas **CodeIgniter 4.7** dengan arsitektur
+**driver-based** sehingga dapat mengakomodasi beberapa instrumen akreditasi:
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+- ✅ **LAM INFOKOM 2.0 D3** (MVP — Manajemen Informatika)
+- 🔜 LAM INFOKOM D4 / S1 / S2 / S3
+- 🔜 BAN-PT, LAMDIK, LAMEMBA, LAM Teknik, dst.
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+PT yang dipakai sebagai data awal: **Universitas Teknologi Digital (UTD)**
+dengan 11 program studi.
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+---
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+## Fitur Utama (roadmap)
 
-## Installation & updates
+| Modul | Status |
+|---|---|
+| Multi-PT, Multi-UPPS, Multi-Prodi | ✅ fondasi |
+| Driver instrumen LAM INFOKOM 2.0 D3 (6 kriteria, 82 butir, 31 tabel LKPS) | ✅ seeder siap |
+| Engine skoring auto (1.00 - 4.00) + agregasi per kriteria | ✅ skeleton |
+| Master data: DTPR, Tendik, Mahasiswa, Tahun Akademik | ✅ migration |
+| Modul Tridharma: Penelitian, PkM, Publikasi, HKI, Kerjasama, Prestasi | ✅ migration |
+| Kurikulum OBE: CPL, CPMK, MK, Peta CPL | ✅ migration |
+| VMTS, Sarpras, Keuangan, SPMI/PPEPP, Survei, Evidence, Audit Trail | ✅ migration |
+| Generator LKPS (Excel) | 🔜 Fase 2 |
+| Generator LED (Word) + Groq AI | 🔜 Fase 2 |
+| Tracer study online + survei kepuasan | 🔜 Fase 2 |
+| Integrasi PDDikti / SISTER / SINTA | 🔜 Fase 3 (default OFF) |
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+## Stack Teknis
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+- PHP 8.2+ · CodeIgniter 4.7
+- MySQL 8 / MariaDB 10.6+
+- CodeIgniter Shield (Auth & RBAC)
+- PhpSpreadsheet (LKPS Excel), PhpWord (LED), dompdf (PDF)
+- Groq AI (LLM) — model `llama-3.3-70b-versatile` & `llama-3.1-8b-instant`
+- Bootstrap 5 + Bootstrap Icons
 
 ## Setup
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+### 1. Clone & install dependencies
+```bash
+git clone <repo> kaprodi && cd kaprodi
+cp .env.example .env
+composer install
+```
 
-## Important Change with index.php
+### 2. Edit `.env`
+Wajib di-set:
+```
+database.default.hostname = localhost
+database.default.database = kaprodi
+database.default.username = root
+database.default.password = ...
+groq.apiKey = gsk_xxxxxxxxxxxxxxxxxxxxx   # dari https://console.groq.com/keys
+encryption.key = $(php -r 'echo bin2hex(random_bytes(16));')
+```
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+### 3. Migrate & seed
+```bash
+php spark migrate
+php spark db:seed DatabaseSeeder
+```
+Setelah seeder berjalan, database berisi:
+- 1 PT (UTD), 1 UPPS, 11 prodi, 5 tahun akademik (TS-4 … TS)
+- 1 instrumen **LAM INFOKOM 2.0 D3** dengan 9 kriteria/bagian, **82 butir**, **31 tabel LKPS**, template LED 32 bagian
+- Mapping otomatis untuk prodi MI D3 (kode 57401 & 57472)
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+### 4. Letakkan logo
+Salin file logo UTD ke `public/assets/logo-utd.png`.
 
-**Please** read the user guide for a better explanation of how CI4 works!
+### 5. Jalankan
+```bash
+php spark serve
+```
+Buka http://localhost:8080/
 
-## Repository Management
+## Arsitektur Driver Instrumen
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+Setiap instrumen LAM punya satu kelas driver yang
+mengimplementasikan `Modules\Akreditasi\Contracts\AccreditationDriver`:
+- `computeScores()` — hitung skor 1-4 per butir dari data DB
+- `buildLkpsTable()` — bangun isi tabel LKPS spesifik
+- `validateSubmission()` — aturan validasi pre-submit
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+Driver LAM INFOKOM D3 ada di `app/Modules/Akreditasi/Drivers/LamInfokomD3/`.
+Menambah instrumen baru = buat folder driver baru + seeder baru, **tanpa**
+mengubah engine.
 
-## Server Requirements
+## Skema Penilaian LAM INFOKOM 2.0 D3
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+| Bagian | Butir | Bobot | % |
+|---|---:|---:|---:|
+| A. Kondisi Eksternal | 1 | 4 | 1% |
+| B. Profil UPPS | 1 | 4 | 1% |
+| C1. Budaya Mutu | 10 | 40 | 10% |
+| **C2. Relevansi Pendidikan** | **20** | **120** | **30%** |
+| C3. Relevansi Penelitian | 15 | 32 | 8% |
+| **C4. Relevansi PkM** | **15** | **100** | **25%** |
+| C5. Akuntabilitas | 10 | 40 | 10% |
+| C6. Diferensiasi Misi | 5 | 40 | 10% |
+| D. Suplemen Prodi | 5 | 20 | 5% |
+| **Total** | **82** | **400** | **100%** |
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+Distribusi IPO: Input 17 (15%) · Proses 27 (30%) · **Output 38 (55%)**.
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+## Catatan Keamanan
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+- **JANGAN** commit file `.env`.
+- API key Groq disimpan di `.env`, bukan di kode.
+- Default driver integrasi PDDikti/SISTER/SINTA dalam keadaan OFF.
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+## Lisensi
+
+MIT

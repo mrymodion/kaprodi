@@ -1,17 +1,17 @@
 {
-    "name": "codeigniter4/appstarter",
-    "description": "CodeIgniter4 starter app",
+    "name": "utd/kaprodi",
+    "description": "Aplikasi Pendukung Kaprodi untuk Akreditasi LAM INFOKOM / BAN-PT",
     "license": "MIT",
     "type": "project",
-    "homepage": "https://codeigniter.com",
-    "support": {
-        "forum": "https://forum.codeigniter.com/",
-        "source": "https://github.com/codeigniter4/CodeIgniter4",
-        "slack": "https://codeigniterchat.slack.com"
-    },
     "require": {
         "php": "^8.2",
-        "codeigniter4/framework": "^4.7"
+        "codeigniter4/framework": "^4.7",
+        "codeigniter4/shield": "^1.1",
+        "codeigniter4/settings": "^2.2",
+        "phpoffice/phpspreadsheet": "^3.5",
+        "phpoffice/phpword": "^1.3",
+        "dompdf/dompdf": "^3.0",
+        "guzzlehttp/guzzle": "^7.9"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9",
@@ -21,7 +21,8 @@
     "autoload": {
         "psr-4": {
             "App\\": "app/",
-            "Config\\": "app/Config/"
+            "Config\\": "app/Config/",
+            "Modules\\": "app/Modules/"
         },
         "exclude-from-classmap": [
             "**/Database/Migrations/**"
