@@ -25,6 +25,34 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('users/(:num)/delete','Admin\UserManagement::delete/$1');
     });
 
+    // Kurikulum OBE + CPL
+    $routes->group('kurikulum', ['filter' => 'permission:kurikulum.manage'], function ($routes) {
+        $routes->get('/',                                              'Kurikulum\KurikulumController::index');
+        $routes->get('create',                                         'Kurikulum\KurikulumController::create');
+        $routes->post('store',                                         'Kurikulum\KurikulumController::store');
+        $routes->get('(:num)',                                         'Kurikulum\KurikulumController::show/$1');
+        $routes->get('(:num)/edit',                                    'Kurikulum\KurikulumController::edit/$1');
+        $routes->post('(:num)/update',                                 'Kurikulum\KurikulumController::update/$1');
+        $routes->post('(:num)/delete',                                 'Kurikulum\KurikulumController::delete/$1');
+        // CPL
+        $routes->get('(:num)/cpl/create',                              'Kurikulum\KurikulumController::cplCreate/$1');
+        $routes->post('(:num)/cpl/store',                              'Kurikulum\KurikulumController::cplStore/$1');
+        $routes->get('(:num)/cpl/(:num)/edit',                         'Kurikulum\KurikulumController::cplEdit/$1/$2');
+        $routes->post('(:num)/cpl/(:num)/update',                      'Kurikulum\KurikulumController::cplUpdate/$1/$2');
+        $routes->post('(:num)/cpl/(:num)/delete',                      'Kurikulum\KurikulumController::cplDelete/$1/$2');
+        // Mata Kuliah
+        $routes->get('(:num)/mk/create',                               'Kurikulum\KurikulumController::mkCreate/$1');
+        $routes->post('(:num)/mk/store',                               'Kurikulum\KurikulumController::mkStore/$1');
+        $routes->get('(:num)/mk/(:num)/edit',                          'Kurikulum\KurikulumController::mkEdit/$1/$2');
+        $routes->post('(:num)/mk/(:num)/update',                       'Kurikulum\KurikulumController::mkUpdate/$1/$2');
+        $routes->post('(:num)/mk/(:num)/delete',                       'Kurikulum\KurikulumController::mkDelete/$1/$2');
+        // Peta CPL-MK
+        $routes->post('(:num)/peta/save',                              'Kurikulum\KurikulumController::petaSave/$1');
+        // Ketercapaian CPL
+        $routes->get('(:num)/ketercapaian',                            'Kurikulum\KurikulumController::ketercapaianForm/$1');
+        $routes->post('(:num)/ketercapaian/save',                      'Kurikulum\KurikulumController::ketercapaianSave/$1');
+    });
+
     // Mahasiswa + Tracer Study
     $routes->group('mahasiswa', ['filter' => 'permission:mahasiswa.manage'], function ($routes) {
         $routes->get('/',                          'Mahasiswa\MahasiswaController::index');

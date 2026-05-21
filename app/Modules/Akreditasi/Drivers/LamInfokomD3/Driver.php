@@ -84,6 +84,44 @@ class Driver implements AccreditationDriver
             }
         }
 
+        // ── C2: Kurikulum OBE ─────────────────────────────────────────────────
+        $kuriRow = $db->table('kurikulum')->where(['prodi_id' => $prodiId, 'aktif' => 1])->get()->getRowArray();
+        if ($kuriRow) {
+            $kuriId  = $kuriRow['id'];
+            $jmlCpl  = $db->table('cpl')->where('kurikulum_id', $kuriId)->countAllResults();
+            $jmlMk   = $db->table('mata_kuliah')->where('kurikulum_id', $kuriId)->countAllResults();
+
+            // C2.1 — CPL tersedia & minimal (≥10=4, ≥7=3, ≥4=2, <4=1)
+            if ($jmlCpl > 0) {
+                $scores['C2.1'] = $jmlCpl >= 10 ? 4 : ($jmlCpl >= 7 ? 3 : ($jmlCpl >= 4 ? 2 : 1));
+            }
+
+            // C2.3 — Coverage CPL oleh MK: % CPL yang didukung ≥1 MK (≥100%=4, ≥80%=3, ≥60%=2, <60%=1)
+            if ($jmlCpl > 0 && $jmlMk > 0) {
+                $cplCovered = $db->query("
+                    SELECT COUNT(DISTINCT mc.cpl_id) AS n FROM mk_cpl mc
+                    JOIN mata_kuliah mk ON mk.id = mc.mata_kuliah_id
+                    WHERE mk.kurikulum_id = ?
+                ", [$kuriId])->getRowArray();
+                $pctCoverage = ($cplCovered['n'] ?? 0) / $jmlCpl * 100;
+                $scores['C2.3'] = $pctCoverage >= 100 ? 4 : ($pctCoverage >= 80 ? 3 : ($pctCoverage >= 60 ? 2 : 1));
+            }
+
+            // C2.5 — Ketercapaian CPL rata-rata (≥75%=4, ≥60%=3, ≥50%=2, <50%=1)
+            if ($tahunAkademikId) {
+                $ketRow = $db->query("
+                    SELECT AVG(ck.persen_tercapai) AS avg_pct
+                    FROM cpl_ketercapaian ck
+                    JOIN mata_kuliah mk ON mk.id = ck.mata_kuliah_id
+                    WHERE mk.kurikulum_id = ? AND ck.tahun_akademik_id = ?
+                ", [$kuriId, $tahunAkademikId])->getRowArray();
+                if ($ketRow && $ketRow['avg_pct'] !== null) {
+                    $avgPct = (float)$ketRow['avg_pct'];
+                    $scores['C2.5'] = $avgPct >= 75 ? 4 : ($avgPct >= 60 ? 3 : ($avgPct >= 50 ? 2 : 1));
+                }
+            }
+        }
+
         // ── C2: Kepuasan pengguna & Lulusan ───────────────────────────────────
         $db = Database::connect();
         $kpl = $db->table('kepuasan_pengguna_lulusan kpl')
