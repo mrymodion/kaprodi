@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use CodeIgniter\Model;
+use App\Models\AppModel;
 
-class MkCplModel extends Model
+class MkCplModel extends AppModel
 {
     protected $table      = 'mk_cpl';
     protected $primaryKey = 'id';

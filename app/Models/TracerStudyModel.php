@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use CodeIgniter\Model;
+use App\Models\AppModel;
 
-class TracerStudyModel extends Model
+class TracerStudyModel extends AppModel
 {
     protected $table      = 'tracer_study';
     protected $primaryKey = 'id';
