@@ -10,15 +10,6 @@ use Modules\Akreditasi\Engine\AkreditasiEngine;
 
 class LkpsController extends BaseController
 {
-    protected LkpsGenerator $generator;
-    protected AkreditasiEngine $engine;
-
-    public function __construct()
-    {
-        $this->generator = new LkpsGenerator();
-        $this->engine    = new AkreditasiEngine();
-    }
-
     private function getProdiId(): ?int
     {
         $user = auth()->user();
@@ -33,15 +24,28 @@ class LkpsController extends BaseController
         return session('active_prodi_id') ? (int)session('active_prodi_id') : null;
     }
 
+    private function engine(): AkreditasiEngine
+    {
+        static $engine;
+        return $engine ??= new AkreditasiEngine();
+    }
+
     public function index(): string
     {
         $prodiId   = $this->getProdiId();
         $taId      = $this->request->getGet('ta') ? (int)$this->request->getGet('ta') : null;
         $taList    = (new TahunAkademikModel())->findAll();
-        $instrumen = $prodiId ? $this->engine->getInstrumen($prodiId) : null;
-        $tabelList = $prodiId ? $this->generator->listTabel($prodiId) : [];
+        $instrumen = $prodiId ? $this->engine()->getInstrumen($prodiId) : null;
 
-        // Cek file LKPS sebelumnya
+        // Query langsung — tidak autoload PhpSpreadsheet hanya untuk daftar tabel
+        $tabelList = [];
+        if ($instrumen) {
+            $tabelList = db_connect()->query("
+                SELECT * FROM lam_tabel_lkps WHERE lam_instrumen_id = ?
+                ORDER BY urutan
+            ", [$instrumen['id']])->getResultArray();
+        }
+
         $existingFiles = [];
         $lkpsDir = WRITEPATH . 'lkps/';
         if (is_dir($lkpsDir)) {
@@ -71,7 +75,7 @@ class LkpsController extends BaseController
         $taId = $this->request->getPost('tahun_akademik_id') ?: null;
 
         try {
-            $path = $this->generator->generateAll($prodiId, $taId ? (int)$taId : null);
+            $path = (new LkpsGenerator())->generateAll($prodiId, $taId ? (int)$taId : null);
             return $this->response->download($path, null)->setFileName(basename($path));
         } catch (\Throwable $e) {
             log_message('error', 'LKPS gen error: ' . $e->getMessage());
@@ -91,7 +95,7 @@ class LkpsController extends BaseController
         $taId = $this->request->getPost('tahun_akademik_id') ?: null;
 
         try {
-            $path = $this->generator->generateSingle($prodiId, $kodeTabel, $taId ? (int)$taId : null);
+            $path = (new LkpsGenerator())->generateSingle($prodiId, $kodeTabel, $taId ? (int)$taId : null);
             return $this->response->download($path, null)->setFileName(basename($path));
         } catch (\Throwable $e) {
             log_message('error', 'LKPS gen error: ' . $e->getMessage());
@@ -105,7 +109,7 @@ class LkpsController extends BaseController
         if (!auth()->user()->can('lkps.generate')) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
-        $filename = basename($filename); // sanitize
+        $filename = basename($filename);
         $path = WRITEPATH . 'lkps/' . $filename;
         if (!is_file($path)) {
             return redirect()->back()->with('error', 'File tidak ditemukan.');
