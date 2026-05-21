@@ -75,7 +75,7 @@ $can = fn($p) => $user && $user->can($p);
                 <nav class="nav flex-column">
                     <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'penilaian') ? 'active' : '' ?>" href="<?= site_url('penilaian') ?>"><i class="bi bi-clipboard-check"></i> Penilaian LAM</a><?php endif ?>
                     <?php if ($can('lkps.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'lkps') ? 'active' : '' ?>" href="<?= site_url('lkps') ?>"><i class="bi bi-file-earmark-spreadsheet"></i> LKPS</a><?php endif ?>
-                    <?php if ($can('led.generate')): ?><a class="nav-link" href="#"><i class="bi bi-file-earmark-word"></i> LED</a><?php endif ?>
+                    <?php if ($can('led.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'led') ? 'active' : '' ?>" href="<?= site_url('led') ?>"><i class="bi bi-file-earmark-word"></i> LED</a><?php endif ?>
                 </nav>
             <?php endif ?>
             <?php if ($can('users.manage') || $can('instrumen.manage')): ?>
@@ -92,7 +92,7 @@ $can = fn($p) => $user && $user->can($p);
     </div>
 </div>
 <footer class="text-center text-muted small py-3">
-    &copy; <?= date('Y') ?> <?= esc(env('app.namaPT', '')) ?> &middot; KAPRODI v0.3
+    &copy; <?= date('Y') ?> <?= esc(env('app.namaPT', '')) ?> &middot; KAPRODI v0.4
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
