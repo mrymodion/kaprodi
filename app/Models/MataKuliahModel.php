@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use CodeIgniter\Model;
+use App\Models\AppModel;
 
-class MataKuliahModel extends Model
+class MataKuliahModel extends AppModel
 {
     protected $table      = 'mata_kuliah';
     protected $primaryKey = 'id';

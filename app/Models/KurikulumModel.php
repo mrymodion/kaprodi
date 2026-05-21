@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use CodeIgniter\Model;
+use App\Models\AppModel;
 
-class KurikulumModel extends Model
+class KurikulumModel extends AppModel
 {
     protected $table      = 'kurikulum';
     protected $primaryKey = 'id';
