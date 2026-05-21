@@ -128,6 +128,15 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/delete', 'Tridharma\KerjasamaController::delete/$1');
     });
 
+    // LED Generator
+    $routes->group('led', ['filter' => 'permission:led.generate'], function ($routes) {
+        $routes->get('/',                       'Led\LedController::index');
+        $routes->post('generate',               'Led\LedController::generate');
+        $routes->post('narasi/(:num)/save',     'Led\LedController::saveNarasi/$1');
+        $routes->post('groq/(:num)',            'Led\LedController::groqGenerate/$1');
+        $routes->get('download/(:any)',         'Led\LedController::download/$1');
+    });
+
     // DTPR — Dosen
     $routes->group('dosen', ['filter' => 'permission:dosen.manage'], function ($routes) {
         $routes->get('/',                        'Dosen\DosenController::index');
