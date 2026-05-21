@@ -17,6 +17,9 @@ class Login extends BaseController
         if (!function_exists('auth')) {
             return view('auth/install_required');
         }
+        if (auth()->loggedIn()) {
+            return redirect()->to('/');
+        }
         return view('auth/login');
     }
 
@@ -24,6 +27,11 @@ class Login extends BaseController
     {
         if (!function_exists('auth')) {
             return redirect()->to('/login');
+        }
+        // Shield melempar LogicException kalau ada session user aktif saat attempt().
+        // Pastikan sesi lama dibersihkan sebelum login ulang.
+        if (auth()->loggedIn()) {
+            auth()->logout();
         }
         $rules = (new ValidationRules())->getLoginRules();
         if (!$this->validate($rules)) {
