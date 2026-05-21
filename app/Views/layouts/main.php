@@ -63,10 +63,11 @@ $can = fn($p) => $user && $user->can($p);
                     <?php endif ?>
                     <?php if ($can('kurikulum.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'kurikulum') ? 'active' : '' ?>" href="<?= site_url('kurikulum') ?>"><i class="bi bi-book"></i> Kurikulum & CPL</a><?php endif ?>
                     <?php if ($can('tridharma.manage') || $can('tridharma.input_own')): ?>
-                        <a class="nav-link" href="#"><i class="bi bi-journal-text"></i> Penelitian</a>
-                        <a class="nav-link" href="#"><i class="bi bi-megaphone"></i> PkM</a>
+                        <a class="nav-link <?= str_starts_with(uri_string(), 'penelitian') ? 'active' : '' ?>" href="<?= site_url('penelitian') ?>"><i class="bi bi-journal-text"></i> Penelitian</a>
+                        <a class="nav-link <?= str_starts_with(uri_string(), 'pkm') ? 'active' : '' ?>" href="<?= site_url('pkm') ?>"><i class="bi bi-megaphone"></i> PkM</a>
+                        <a class="nav-link <?= str_starts_with(uri_string(), 'publikasi') ? 'active' : '' ?>" href="<?= site_url('publikasi') ?>"><i class="bi bi-file-earmark-text"></i> Publikasi & HKI</a>
                     <?php endif ?>
-                    <?php if ($can('kerjasama.manage')): ?><a class="nav-link" href="#"><i class="bi bi-link-45deg"></i> Kerjasama</a><?php endif ?>
+                    <?php if ($can('kerjasama.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'kerjasama') ? 'active' : '' ?>" href="<?= site_url('kerjasama') ?>"><i class="bi bi-link-45deg"></i> Kerjasama</a><?php endif ?>
                 </nav>
             <?php endif ?>
             <?php if ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate')): ?>
@@ -91,7 +92,7 @@ $can = fn($p) => $user && $user->can($p);
     </div>
 </div>
 <footer class="text-center text-muted small py-3">
-    &copy; <?= date('Y') ?> <?= esc(env('app.namaPT', '')) ?> &middot; KAPRODI v0.2
+    &copy; <?= date('Y') ?> <?= esc(env('app.namaPT', '')) ?> &middot; KAPRODI v0.3
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

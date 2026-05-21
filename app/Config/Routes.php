@@ -67,6 +67,51 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('tracer/(:num)/store',       'Mahasiswa\MahasiswaController::tracerStore/$1');
     });
 
+    // Penelitian (Kriteria C3)
+    $routes->group('penelitian', ['filter' => 'permission:tridharma.manage'], function ($routes) {
+        $routes->get('/',              'Tridharma\PenelitianController::index');
+        $routes->get('create',         'Tridharma\PenelitianController::create');
+        $routes->post('store',         'Tridharma\PenelitianController::store');
+        $routes->get('(:num)/edit',    'Tridharma\PenelitianController::edit/$1');
+        $routes->post('(:num)/update', 'Tridharma\PenelitianController::update/$1');
+        $routes->post('(:num)/delete', 'Tridharma\PenelitianController::delete/$1');
+    });
+
+    // PkM (Kriteria C4)
+    $routes->group('pkm', ['filter' => 'permission:tridharma.manage'], function ($routes) {
+        $routes->get('/',              'Tridharma\PkmController::index');
+        $routes->get('create',         'Tridharma\PkmController::create');
+        $routes->post('store',         'Tridharma\PkmController::store');
+        $routes->get('(:num)/edit',    'Tridharma\PkmController::edit/$1');
+        $routes->post('(:num)/update', 'Tridharma\PkmController::update/$1');
+        $routes->post('(:num)/delete', 'Tridharma\PkmController::delete/$1');
+    });
+
+    // Publikasi & HKI (Tabel 3.C.2, 3.C.3, 4.C.2, 4.C.3)
+    $routes->group('publikasi', ['filter' => 'permission:tridharma.manage'], function ($routes) {
+        $routes->get('/',                   'Tridharma\PublikasiController::index');
+        $routes->get('create',              'Tridharma\PublikasiController::createPublikasi');
+        $routes->post('store',              'Tridharma\PublikasiController::storePublikasi');
+        $routes->get('(:num)/edit',         'Tridharma\PublikasiController::editPublikasi/$1');
+        $routes->post('(:num)/update',      'Tridharma\PublikasiController::updatePublikasi/$1');
+        $routes->post('(:num)/delete',      'Tridharma\PublikasiController::deletePublikasi/$1');
+        $routes->get('hki/create',          'Tridharma\PublikasiController::createHki');
+        $routes->post('hki/store',          'Tridharma\PublikasiController::storeHki');
+        $routes->get('hki/(:num)/edit',     'Tridharma\PublikasiController::editHki/$1');
+        $routes->post('hki/(:num)/update',  'Tridharma\PublikasiController::updateHki/$1');
+        $routes->post('hki/(:num)/delete',  'Tridharma\PublikasiController::deleteHki/$1');
+    });
+
+    // Kerjasama (Tabel 3.C.1 / 4.C.1)
+    $routes->group('kerjasama', ['filter' => 'permission:kerjasama.manage'], function ($routes) {
+        $routes->get('/',              'Tridharma\KerjasamaController::index');
+        $routes->get('create',         'Tridharma\KerjasamaController::create');
+        $routes->post('store',         'Tridharma\KerjasamaController::store');
+        $routes->get('(:num)/edit',    'Tridharma\KerjasamaController::edit/$1');
+        $routes->post('(:num)/update', 'Tridharma\KerjasamaController::update/$1');
+        $routes->post('(:num)/delete', 'Tridharma\KerjasamaController::delete/$1');
+    });
+
     // DTPR — Dosen
     $routes->group('dosen', ['filter' => 'permission:dosen.manage'], function ($routes) {
         $routes->get('/',                        'Dosen\DosenController::index');
