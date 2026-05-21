@@ -67,6 +67,14 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('tracer/(:num)/store',       'Mahasiswa\MahasiswaController::tracerStore/$1');
     });
 
+    // Penilaian LAM
+    $routes->group('penilaian', ['filter' => 'permission:penilaian.input'], function ($routes) {
+        $routes->get('/',                    'Penilaian\PenilaianController::index');
+        $routes->get('kriteria/(:num)',      'Penilaian\PenilaianController::kriteria/$1');
+        $routes->post('skor/(:num)/save',    'Penilaian\PenilaianController::saveSkor/$1');
+        $routes->post('run-auto',            'Penilaian\PenilaianController::runAuto');
+    });
+
     // Penelitian (Kriteria C3)
     $routes->group('penelitian', ['filter' => 'permission:tridharma.manage'], function ($routes) {
         $routes->get('/',              'Tridharma\PenelitianController::index');
