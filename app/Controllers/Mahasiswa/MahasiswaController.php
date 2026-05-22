@@ -5,6 +5,8 @@ namespace App\Controllers\Mahasiswa;
 use App\Controllers\BaseController;
 use App\Models\MahasiswaModel;
 use App\Models\TracerStudyModel;
+use App\Services\FonnteClient;
+use App\Services\TracerToken;
 use Config\Database;
 
 class MahasiswaController extends BaseController
@@ -128,8 +130,9 @@ class MahasiswaController extends BaseController
         $tracer  = $prodiId ? $this->tracerModel->listByProdi($prodiId) : [];
         $summary = $prodiId ? $this->tracerModel->summaryByProdi($prodiId) : null;
         $belum   = $prodiId ? $this->tracerModel->lulusanBelumTracer($prodiId) : [];
+        $fonnteEnabled = (new FonnteClient())->enabled();
 
-        return view('mahasiswa/tracer/index', compact('tracer', 'summary', 'belum', 'prodiId'));
+        return view('mahasiswa/tracer/index', compact('tracer', 'summary', 'belum', 'prodiId', 'fonnteEnabled'));
     }
 
     public function tracerForm(int $mahasiswaId): string
@@ -160,6 +163,71 @@ class MahasiswaController extends BaseController
         }
 
         return redirect()->to(site_url('mahasiswa/tracer'))->with('success', 'Data tracer study berhasil disimpan.');
+    }
+
+    // ---------- KIRIM FORM TRACER VIA WHATSAPP (FONNTE) ----------
+
+    /** Kirim link kuesioner tracer ke satu alumnus. */
+    public function tracerKirim(int $mahasiswaId)
+    {
+        $mhs = $this->model->findOrFail($mahasiswaId);
+        if (empty($mhs['no_hp'])) {
+            return redirect()->back()->with('error', "Nomor WhatsApp \"{$mhs['nama']}\" belum diisi.");
+        }
+        $prodiNama = $this->prodiNama((int) $mhs['prodi_id']);
+        $res = (new FonnteClient())->send($mhs['no_hp'], $this->tracerMessage($mhs['nama'], (int) $mhs['id'], $prodiNama));
+
+        return $res['ok']
+            ? redirect()->back()->with('success', "Link kuesioner terkirim ke {$mhs['nama']}.")
+            : redirect()->back()->with('error', "Gagal mengirim ke {$mhs['nama']}: {$res['error']}");
+    }
+
+    /** Kirim link kuesioner ke semua lulusan yang belum mengisi tracer. */
+    public function tracerKirimSemua()
+    {
+        $prodiId = $this->importProdiId();
+        if (!$prodiId) {
+            return redirect()->back()->with('error', 'Pilih prodi aktif terlebih dahulu.');
+        }
+        $belum     = $this->tracerModel->lulusanBelumTracer($prodiId);
+        $prodiNama = $this->prodiNama($prodiId);
+        $fonnte    = new FonnteClient();
+        if (!$fonnte->enabled()) {
+            return redirect()->back()->with('error', 'WhatsApp gateway (Fonnte) belum dikonfigurasi. Set fonnte.token di .env.');
+        }
+
+        $sent = 0; $fail = 0; $skip = 0; $contoh = [];
+        foreach ($belum as $b) {
+            if (empty($b['no_hp'])) { $skip++; continue; }
+            $res = $fonnte->send($b['no_hp'], $this->tracerMessage($b['nama'], (int) $b['id'], $prodiNama));
+            if ($res['ok']) {
+                $sent++;
+            } else {
+                $fail++;
+                if (count($contoh) < 5) $contoh[] = "{$b['nama']}: {$res['error']}";
+            }
+        }
+
+        $msg = "Terkirim: {$sent}. Gagal: {$fail}. Tanpa nomor WA: {$skip}.";
+        if ($contoh) $msg .= ' Contoh gagal — ' . implode('; ', $contoh);
+        return redirect()->to(site_url('mahasiswa/tracer'))->with($fail ? 'error' : 'success', $msg);
+    }
+
+    private function prodiNama(int $prodiId): string
+    {
+        $row = Database::connect()->table('prodi')->select('nama')->where('id', $prodiId)->get()->getRowArray();
+        return $row['nama'] ?? 'Program Studi';
+    }
+
+    private function tracerMessage(string $nama, int $mahasiswaId, string $prodiNama): string
+    {
+        $link = site_url('tracer/isi/' . TracerToken::make($mahasiswaId));
+        $tpl  = trim((string) env('fonnte.tracerMessage', ''));
+        if ($tpl === '') {
+            $tpl = "Halo {nama}, kami dari {prodi} memohon kesediaan Anda mengisi kuesioner tracer study alumni "
+                 . "untuk keperluan akreditasi program studi. Mohon klik tautan berikut (cukup beberapa menit):\n\n{link}\n\nTerima kasih banyak.";
+        }
+        return strtr($tpl, ['{nama}' => $nama, '{prodi}' => $prodiNama, '{link}' => $link]);
     }
 
     // ---------- IMPORT EXCEL ----------

@@ -11,6 +11,10 @@ $routes->get('login', 'Auth\Login::index');
 $routes->post('login', 'Auth\Login::attempt');
 $routes->get('logout', 'Auth\Login::logout');
 
+// Form publik tracer study (diisi alumni via link WA, tanpa login)
+$routes->get('tracer/isi/(:segment)',  'Tracer\PublicTracerController::form/$1');
+$routes->post('tracer/isi/(:segment)', 'Tracer\PublicTracerController::submit/$1');
+
 // Routes yang butuh autentikasi (filter 'session' & 'prodiScope' diaktifkan di Config/Filters.php)
 $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     $routes->get('/', 'Dashboard::index');
@@ -85,8 +89,10 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/update',            'Mahasiswa\MahasiswaController::update/$1');
         $routes->post('(:num)/delete',            'Mahasiswa\MahasiswaController::delete/$1');
         $routes->get('tracer',                     'Mahasiswa\MahasiswaController::tracerIndex');
+        $routes->post('tracer/kirim-semua',        'Mahasiswa\MahasiswaController::tracerKirimSemua');
         $routes->get('tracer/(:num)',              'Mahasiswa\MahasiswaController::tracerForm/$1');
         $routes->post('tracer/(:num)/store',       'Mahasiswa\MahasiswaController::tracerStore/$1');
+        $routes->post('tracer/(:num)/kirim',       'Mahasiswa\MahasiswaController::tracerKirim/$1');
     });
 
     // LKPS Generator
