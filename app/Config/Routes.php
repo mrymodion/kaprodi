@@ -58,6 +58,26 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/delete', 'SarprasController::delete/$1');
     });
 
+    // Keuangan
+    $routes->group('keuangan', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('/',              'KeuanganController::index');
+        $routes->get('create',         'KeuanganController::create');
+        $routes->post('store',         'KeuanganController::store');
+        $routes->get('(:num)/edit',    'KeuanganController::edit/$1');
+        $routes->post('(:num)/update', 'KeuanganController::update/$1');
+        $routes->post('(:num)/delete', 'KeuanganController::delete/$1');
+    });
+
+    // Tenaga Kependidikan
+    $routes->group('tendik', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('/',              'TendikController::index');
+        $routes->get('create',         'TendikController::create');
+        $routes->post('store',         'TendikController::store');
+        $routes->get('(:num)/edit',    'TendikController::edit/$1');
+        $routes->post('(:num)/update', 'TendikController::update/$1');
+        $routes->post('(:num)/delete', 'TendikController::delete/$1');
+    });
+
     // Admin
     $routes->group('admin', function ($routes) {
         $routes->get('users',              'Admin\UserManagement::index');

@@ -265,6 +265,9 @@ class Driver implements AccreditationDriver
             '4.A.1' => $this->tabelSarpras($prodiId, 'untuk_pkm'),
             '5.2'   => $this->tabelSarpras($prodiId, 'untuk_pendidikan'),
             '6'     => $this->tabelVmts($prodiId),
+            '1.A.2' => $this->tabelKeuangan($prodiId, 'pemasukan'),
+            '1.A.3' => $this->tabelKeuangan($prodiId, 'pengeluaran'),
+            '1.A.5' => $this->tabelTendik($prodiId),
             default => [],
         };
     }
@@ -374,6 +377,43 @@ class Driver implements AccreditationDriver
             GROUP BY c.id, c.kode
             ORDER BY c.kode
         ", [$kid])->getResultArray();
+    }
+
+    /** Tabel 1.A.2 / 1.A.3 — Sumber Pendanaan / Penggunaan Dana. */
+    private function tabelKeuangan(int $prodiId, string $arah): array
+    {
+        return Database::connect()->table('keuangan k')
+            ->select('k.sumber_atau_pos, k.kategori, k.jumlah, ta.kode AS ta_kode')
+            ->join('tahun_akademik ta', 'ta.id = k.tahun_akademik_id', 'left')
+            ->where(['k.prodi_id' => $prodiId, 'k.arah' => $arah])
+            ->orderBy('ta.tahun_mulai DESC, k.sumber_atau_pos')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 1.A.5 — Kualifikasi Tenaga Kependidikan (rekap jenis x pendidikan). */
+    private function tabelTendik(int $prodiId): array
+    {
+        $db   = Database::connect();
+        $rows = $db->table('tendik')->select('jenis, pendidikan_terakhir, COUNT(*) AS n', false)
+            ->where(['prodi_id' => $prodiId, 'aktif' => 1])
+            ->groupBy(['jenis', 'pendidikan_terakhir'])->get()->getResultArray();
+
+        $jenisLabel = ['pustakawan' => 'Pustakawan', 'laboran' => 'Laboran', 'teknisi' => 'Teknisi',
+            'operator' => 'Operator', 'administrasi' => 'Administrasi', 'lainnya' => 'Lainnya'];
+        $jenjang = ['S3', 'S2', 'S1', 'D4', 'D3', 'D2', 'D1', 'SMA'];
+
+        $rekap = [];
+        foreach ($jenisLabel as $jk => $jl) {
+            $rekap[$jk] = ['jenis' => $jl] + array_fill_keys($jenjang, 0) + ['total' => 0];
+        }
+        foreach ($rows as $r) {
+            $jk = $r['jenis']; $pd = $r['pendidikan_terakhir'];
+            if (!isset($rekap[$jk])) continue;
+            if ($pd && isset($rekap[$jk][$pd])) $rekap[$jk][$pd] += (int) $r['n'];
+            $rekap[$jk]['total'] += (int) $r['n'];
+        }
+        // Hanya tampilkan jenis yang ada datanya
+        return array_values(array_filter($rekap, fn($r) => $r['total'] > 0));
     }
 
     /** Tabel 3.A.1 / 4.A.1 / 5.2 — Sarana & Prasarana (per peruntukan). */

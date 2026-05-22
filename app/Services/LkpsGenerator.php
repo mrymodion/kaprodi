@@ -53,6 +53,9 @@ class LkpsGenerator
         '4.A.1' => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
         '5.2'   => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
         '6'     => ['Komponen', 'Isi'],
+        '1.A.2' => ['No', 'Sumber Pendanaan', 'Kategori', 'Tahun Akademik', 'Jumlah (Rp)'],
+        '1.A.3' => ['No', 'Pos Penggunaan', 'Kategori', 'Tahun Akademik', 'Jumlah (Rp)'],
+        '1.A.5' => ['Jenis Tenaga', 'S3', 'S2', 'S1', 'D4', 'D3', 'D2', 'D1', 'SMA', 'Total'],
     ];
 
     public function __construct()
@@ -314,6 +317,10 @@ class LkpsGenerator
                 $r['jumlah'] ?? 0, $r['luas_m2'] ?? '-', $r['kapasitas'] ?? '-',
                 str_replace('_', ' ', ucfirst($r['kondisi'] ?? '-')), ucfirst($r['kepemilikan'] ?? '-')],
             '6' => [$r['komponen'] ?? '-', $r['isi'] ?? '-'],
+            '1.A.2', '1.A.3' => [$r['sumber_atau_pos'] ?? '-', str_replace('_', ' ', ucfirst($r['kategori'] ?? '-')),
+                $r['ta_kode'] ?? '-', number_format((int) ($r['jumlah'] ?? 0), 0, ',', '.')],
+            '1.A.5' => [$r['jenis'] ?? '-', $r['S3'] ?? 0, $r['S2'] ?? 0, $r['S1'] ?? 0, $r['D4'] ?? 0,
+                $r['D3'] ?? 0, $r['D2'] ?? 0, $r['D1'] ?? 0, $r['SMA'] ?? 0, $r['total'] ?? 0],
             default => array_values($r),
         };
     }
