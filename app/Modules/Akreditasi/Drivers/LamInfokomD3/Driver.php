@@ -261,6 +261,10 @@ class Driver implements AccreditationDriver
             '4.C.1' => $this->tabelKerjasama($prodiId, 'pkm'),
             '4.C.2' => $this->tabelPublikasi($prodiId, 'pkm'),
             '4.C.3' => $this->tabelHki($prodiId, 'pkm'),
+            '3.A.1' => $this->tabelSarpras($prodiId, 'untuk_penelitian'),
+            '4.A.1' => $this->tabelSarpras($prodiId, 'untuk_pkm'),
+            '5.2'   => $this->tabelSarpras($prodiId, 'untuk_pendidikan'),
+            '6'     => $this->tabelVmts($prodiId),
             default => [],
         };
     }
@@ -370,6 +374,31 @@ class Driver implements AccreditationDriver
             GROUP BY c.id, c.kode
             ORDER BY c.kode
         ", [$kid])->getResultArray();
+    }
+
+    /** Tabel 3.A.1 / 4.A.1 / 5.2 — Sarana & Prasarana (per peruntukan). */
+    private function tabelSarpras(int $prodiId, string $flag): array
+    {
+        return Database::connect()->table('sarpras')
+            ->select('nama, kategori, jumlah, luas_m2, kapasitas, kondisi, kepemilikan')
+            ->where('prodi_id', $prodiId)
+            ->where($flag, 1)
+            ->orderBy('kategori, nama')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 6 — Kesesuaian Visi, Misi, Tujuan, Strategi. */
+    private function tabelVmts(int $prodiId): array
+    {
+        $v = Database::connect()->table('vmts')
+            ->where(['prodi_id' => $prodiId, 'aktif' => 1])->orderBy('id', 'DESC')->get()->getRowArray();
+        if (!$v) return [];
+        return [
+            ['komponen' => 'Visi',     'isi' => $v['visi'] ?? '-'],
+            ['komponen' => 'Misi',     'isi' => $v['misi'] ?? '-'],
+            ['komponen' => 'Tujuan',   'isi' => $v['tujuan'] ?? '-'],
+            ['komponen' => 'Strategi', 'isi' => $v['strategi'] ?? '-'],
+        ];
     }
 
     private function tabelMasaTunggu(int $prodiId): array

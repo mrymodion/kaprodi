@@ -42,6 +42,22 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('assign', 'InstrumenController::assign');
     });
 
+    // VMTS (Visi Misi Tujuan Strategi)
+    $routes->group('vmts', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('/',      'VmtsController::index');
+        $routes->post('save',  'VmtsController::save');
+    });
+
+    // Sarana & Prasarana
+    $routes->group('sarpras', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('/',              'SarprasController::index');
+        $routes->get('create',         'SarprasController::create');
+        $routes->post('store',         'SarprasController::store');
+        $routes->get('(:num)/edit',    'SarprasController::edit/$1');
+        $routes->post('(:num)/update', 'SarprasController::update/$1');
+        $routes->post('(:num)/delete', 'SarprasController::delete/$1');
+    });
+
     // Admin
     $routes->group('admin', function ($routes) {
         $routes->get('users',              'Admin\UserManagement::index');

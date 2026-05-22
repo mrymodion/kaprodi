@@ -49,6 +49,10 @@ class LkpsGenerator
         '4.C.1' => ['No', 'Nama Mitra', 'Tingkat', 'Jenis Dokumen', 'No. Dokumen', 'Tgl Mulai', 'Tgl Berakhir', 'Manfaat', 'Bukti Implementasi'],
         '4.C.2' => ['No', 'Jenis', 'Judul', 'Penulis', 'Nama Media', 'Tahun', 'Volume', 'DOI', 'Sitasi', 'SINTA'],
         '4.C.3' => ['No', 'Jenis HKI', 'Judul', 'No. HKI', 'Tahun', 'Pemilik', 'Status'],
+        '3.A.1' => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
+        '4.A.1' => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
+        '5.2'   => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
+        '6'     => ['Komponen', 'Isi'],
     ];
 
     public function __construct()
@@ -306,6 +310,10 @@ class LkpsGenerator
                 $r['doi'] ?? '-', $r['sitasi'] ?? 0, $r['sinta_score'] ?? '-'],
             '3.C.3', '4.C.3' => [$r['jenis'] ?? '-', $r['judul'] ?? '-', $r['no_hki'] ?? '-',
                 $r['tahun'] ?? '-', $r['pemilik'] ?? '-', $r['status'] ?? '-'],
+            '3.A.1', '4.A.1', '5.2' => [$r['nama'] ?? '-', str_replace('_', ' ', ucfirst($r['kategori'] ?? '-')),
+                $r['jumlah'] ?? 0, $r['luas_m2'] ?? '-', $r['kapasitas'] ?? '-',
+                str_replace('_', ' ', ucfirst($r['kondisi'] ?? '-')), ucfirst($r['kepemilikan'] ?? '-')],
+            '6' => [$r['komponen'] ?? '-', $r['isi'] ?? '-'],
             default => array_values($r),
         };
     }
