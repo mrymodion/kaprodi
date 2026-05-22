@@ -65,6 +65,48 @@
 </div>
 <?php endif ?>
 
+<?php if (!empty($kepatuhan)): ?>
+<?php
+$badge = [
+    'ok'   => ['success',   'bi-check-circle-fill',       'Memenuhi'],
+    'warn' => ['warning',   'bi-exclamation-triangle-fill','Perlu perhatian'],
+    'bad'  => ['danger',    'bi-x-circle-fill',           'Belum memenuhi'],
+    'info' => ['secondary', 'bi-dash-circle',             'Belum ada data'],
+];
+?>
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-clipboard-check"></i> Kepatuhan DTPR terhadap Kaidah LAM</span>
+        <?php if ($kepatuhan['memenuhi']): ?>
+            <span class="badge bg-success">Syarat wajib terpenuhi</span>
+        <?php else: ?>
+            <span class="badge bg-danger"><?= $kepatuhan['wajibBad'] ?> syarat wajib belum terpenuhi</span>
+        <?php endif ?>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+            <tbody>
+            <?php foreach ($kepatuhan['checks'] as $c): [$col, $ic, $txt] = $badge[$c['status']]; ?>
+                <tr>
+                    <td style="width:38px" class="text-center"><i class="bi <?= $ic ?> text-<?= $col ?>"></i></td>
+                    <td>
+                        <?= esc($c['label']) ?>
+                        <?php if ($c['wajib']): ?><span class="badge bg-light text-dark border ms-1">wajib</span><?php endif ?>
+                        <div class="small text-muted"><?= esc($c['ket']) ?></div>
+                    </td>
+                    <td class="text-end fw-semibold text-nowrap"><?= esc($c['nilai']) ?></td>
+                    <td class="text-end" style="width:130px"><span class="badge bg-<?= $col ?>"><?= $txt ?></span></td>
+                </tr>
+            <?php endforeach ?>
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer small text-muted">
+        Ambang mengikuti kaidah umum LAM INFOKOM. Item "wajib" menentukan kelayakan dasar DTPR; item lain bersifat indikator mutu.
+    </div>
+</div>
+<?php endif ?>
+
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <span class="fw-semibold">Daftar DTPR</span>

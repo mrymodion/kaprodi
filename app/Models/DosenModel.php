@@ -23,6 +23,11 @@ class DosenModel extends AppModel
     protected $validationRules = [
         'nama'     => 'required|min_length[3]|max_length[150]',
         'prodi_id' => 'required|is_natural_no_zero',
+        'nidn'     => 'permit_empty|regex_match[/^[0-9]{10}$/]',
+    ];
+
+    protected $validationMessages = [
+        'nidn' => ['regex_match' => 'NIDN harus berupa 10 digit angka (atau dikosongkan untuk dosen tanpa NIDN).'],
     ];
 
     public function listByProdi(int $prodiId): array
