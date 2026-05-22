@@ -143,7 +143,7 @@ class AkreditasiEngine
     }
 
     /** Simpan skor manual satu butir. */
-    public function saveSkorManual(int $prodiId, int $butirId, ?int $taId, ?float $skor, ?string $catatan, int $userId): void
+    public function saveSkorManual(int $prodiId, int $butirId, ?int $taId, ?float $skor, ?string $catatan, int $userId, ?string $linkBukti = null): void
     {
         $existing = $this->db->query("
             SELECT id, skor_auto FROM butir_skor
@@ -154,14 +154,14 @@ class AkreditasiEngine
 
         if ($existing) {
             $this->db->query("
-                UPDATE butir_skor SET skor_manual=?, skor_final=?, catatan=?, updated_at=NOW(), updated_by=?
+                UPDATE butir_skor SET skor_manual=?, skor_final=?, catatan=?, link_bukti=?, updated_at=NOW(), updated_by=?
                 WHERE id=?
-            ", [$skor, $skorFinal, $catatan, $userId, $existing['id']]);
+            ", [$skor, $skorFinal, $catatan, $linkBukti, $userId, $existing['id']]);
         } else {
             $this->db->query("
-                INSERT INTO butir_skor (prodi_id,lam_butir_id,tahun_akademik_id,skor_manual,skor_final,catatan,updated_at,updated_by)
-                VALUES (?,?,?,?,?,?,NOW(),?)
-            ", [$prodiId, $butirId, $taId, $skor, $skorFinal, $catatan, $userId]);
+                INSERT INTO butir_skor (prodi_id,lam_butir_id,tahun_akademik_id,skor_manual,skor_final,catatan,link_bukti,updated_at,updated_by)
+                VALUES (?,?,?,?,?,?,?,NOW(),?)
+            ", [$prodiId, $butirId, $taId, $skor, $skorFinal, $catatan, $linkBukti, $userId]);
         }
     }
 
