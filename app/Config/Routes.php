@@ -77,6 +77,9 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('/',                          'Mahasiswa\MahasiswaController::index');
         $routes->get('create',                     'Mahasiswa\MahasiswaController::create');
         $routes->post('store',                     'Mahasiswa\MahasiswaController::store');
+        $routes->get('import',                     'Mahasiswa\MahasiswaController::importForm');
+        $routes->get('import/template',            'Mahasiswa\MahasiswaController::importTemplate');
+        $routes->post('import',                    'Mahasiswa\MahasiswaController::importStore');
         $routes->get('(:num)',                     'Mahasiswa\MahasiswaController::show/$1');
         $routes->get('(:num)/edit',               'Mahasiswa\MahasiswaController::edit/$1');
         $routes->post('(:num)/update',            'Mahasiswa\MahasiswaController::update/$1');
