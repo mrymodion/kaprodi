@@ -245,6 +245,11 @@ class Driver implements AccreditationDriver
         return match ($kodeTabel) {
             '1.A.4' => $this->tabelEwmp($prodiId, $tahunAkademikId),
             '2.A.1' => $this->tabelDataMahasiswa($prodiId),
+            '2.A.2' => $this->tabelKeragamanMhs($prodiId),
+            '2.A.3' => $this->tabelKondisiMhs($prodiId),
+            '2.B.1' => $this->tabelIsiPembelajaran($prodiId),
+            '2.B.2' => $this->tabelDaftarCpl($prodiId),
+            '2.B.3' => $this->tabelPemenuhanCpl($prodiId),
             '2.B.4' => $this->tabelMasaTunggu($prodiId),
             '2.B.5' => $this->tabelKesesuaian($prodiId),
             '2.B.6' => $this->tabelKepuasan($prodiId),
@@ -291,6 +296,80 @@ class Driver implements AccreditationDriver
             ->where('prodi_id', $prodiId)
             ->groupBy(['jenis_kelamin','status'])
             ->get()->getResultArray();
+    }
+
+    private function kurikulumAktifId(int $prodiId): ?int
+    {
+        $row = Database::connect()->table('kurikulum')->select('id')
+            ->where(['prodi_id' => $prodiId, 'aktif' => 1])->get()->getRowArray();
+        return $row ? (int) $row['id'] : null;
+    }
+
+    /** Tabel 2.A.2 — Keragaman Asal Mahasiswa (per provinsi asal). */
+    private function tabelKeragamanMhs(int $prodiId): array
+    {
+        return Database::connect()->table('mahasiswa')
+            ->select('provinsi_asal, COUNT(*) AS jumlah', false)
+            ->where('prodi_id', $prodiId)
+            ->groupBy('provinsi_asal')
+            ->orderBy('jumlah', 'DESC')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 2.A.3 — Kondisi Jumlah Mahasiswa (per status). */
+    private function tabelKondisiMhs(int $prodiId): array
+    {
+        $db     = Database::connect();
+        $labels = ['aktif' => 'Mahasiswa Aktif', 'lulus' => 'Lulus', 'cuti' => 'Cuti', 'do' => 'Drop Out (DO)', 'keluar' => 'Mengundurkan Diri/Keluar'];
+        $rows   = $db->table('mahasiswa')->select('status, COUNT(*) AS jumlah', false)
+            ->where('prodi_id', $prodiId)->groupBy('status')->get()->getResultArray();
+        $map = [];
+        foreach ($rows as $r) $map[$r['status']] = (int) $r['jumlah'];
+        $out = [];
+        foreach ($labels as $k => $l) $out[] = ['kondisi' => $l, 'jumlah' => $map[$k] ?? 0];
+        return $out;
+    }
+
+    /** Tabel 2.B.1 — Isi Pembelajaran (daftar mata kuliah kurikulum aktif). */
+    private function tabelIsiPembelajaran(int $prodiId): array
+    {
+        $kid = $this->kurikulumAktifId($prodiId);
+        if (!$kid) return [];
+        return Database::connect()->table('mata_kuliah')
+            ->select('kode, nama, (sks_teori + sks_praktek + sks_lapangan) AS sks, semester, jenis', false)
+            ->where('kurikulum_id', $kid)
+            ->orderBy('semester, kode')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 2.B.2 — Daftar CPL kurikulum aktif. */
+    private function tabelDaftarCpl(int $prodiId): array
+    {
+        $kid = $this->kurikulumAktifId($prodiId);
+        if (!$kid) return [];
+        return Database::connect()->table('cpl')
+            ->select('kode, aspek, deskripsi')
+            ->where('kurikulum_id', $kid)
+            ->orderBy("FIELD(aspek,'sikap','pengetahuan','keterampilan_umum','keterampilan_khusus'), kode", '', false)
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 2.B.3 — Peta Pemenuhan CPL oleh Mata Kuliah. */
+    private function tabelPemenuhanCpl(int $prodiId): array
+    {
+        $kid = $this->kurikulumAktifId($prodiId);
+        if (!$kid) return [];
+        return Database::connect()->query("
+            SELECT c.kode AS cpl_kode,
+                   COUNT(mc.id) AS jml_mk,
+                   GROUP_CONCAT(mk.kode ORDER BY mk.kode SEPARATOR ', ') AS mk_list
+            FROM cpl c
+            LEFT JOIN mk_cpl mc ON mc.cpl_id = c.id
+            LEFT JOIN mata_kuliah mk ON mk.id = mc.mata_kuliah_id
+            WHERE c.kurikulum_id = ?
+            GROUP BY c.id, c.kode
+            ORDER BY c.kode
+        ", [$kid])->getResultArray();
     }
 
     private function tabelMasaTunggu(int $prodiId): array
