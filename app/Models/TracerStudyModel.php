@@ -10,6 +10,7 @@ class TracerStudyModel extends AppModel
     protected $primaryKey = 'id';
     protected $returnType = 'array';
     protected $useTimestamps = true;
+    protected $updatedField  = ''; // tabel tracer_study tidak punya kolom updated_at
 
     protected $allowedFields = [
         'mahasiswa_id', 'tgl_isi', 'masa_tunggu_bulan', 'kesesuaian_bidang_kerja',
