@@ -15,6 +15,10 @@ $routes->get('logout', 'Auth\Login::logout');
 $routes->get('tracer/isi/(:segment)',  'Tracer\PublicTracerController::form/$1');
 $routes->post('tracer/isi/(:segment)', 'Tracer\PublicTracerController::submit/$1');
 
+// Form publik survei kepuasan pengguna lulusan (diisi atasan/pengguna, tanpa login)
+$routes->get('kepuasan/isi/(:segment)',  'Tracer\PublicKepuasanController::form/$1');
+$routes->post('kepuasan/isi/(:segment)', 'Tracer\PublicKepuasanController::submit/$1');
+
 // Routes yang butuh autentikasi (filter 'session' & 'prodiScope' diaktifkan di Config/Filters.php)
 $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     $routes->get('/', 'Dashboard::index');
@@ -99,6 +103,12 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('tracer/(:num)',              'Mahasiswa\MahasiswaController::tracerForm/$1');
         $routes->post('tracer/(:num)/store',       'Mahasiswa\MahasiswaController::tracerStore/$1');
         $routes->post('tracer/(:num)/kirim',       'Mahasiswa\MahasiswaController::tracerKirim/$1');
+        // Survei Kepuasan Pengguna Lulusan (2.B.6)
+        $routes->get('kepuasan',                   'Mahasiswa\MahasiswaController::kepuasanIndex');
+        $routes->post('kepuasan/kirim-semua',      'Mahasiswa\MahasiswaController::kepuasanKirimSemua');
+        $routes->get('kepuasan/(:num)',            'Mahasiswa\MahasiswaController::kepuasanForm/$1');
+        $routes->post('kepuasan/(:num)/store',     'Mahasiswa\MahasiswaController::kepuasanStore/$1');
+        $routes->post('kepuasan/(:num)/kirim',     'Mahasiswa\MahasiswaController::kepuasanKirim/$1');
     });
 
     // LKPS Generator

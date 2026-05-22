@@ -5,6 +5,7 @@ namespace App\Controllers\Mahasiswa;
 use App\Controllers\BaseController;
 use App\Models\MahasiswaModel;
 use App\Models\TracerStudyModel;
+use App\Models\KepuasanModel;
 use App\Services\FonnteClient;
 use App\Services\TracerToken;
 use Config\Database;
@@ -13,11 +14,13 @@ class MahasiswaController extends BaseController
 {
     protected MahasiswaModel $model;
     protected TracerStudyModel $tracerModel;
+    protected KepuasanModel $kepuasanModel;
 
     public function __construct()
     {
-        $this->model       = new MahasiswaModel();
-        $this->tracerModel = new TracerStudyModel();
+        $this->model         = new MahasiswaModel();
+        $this->tracerModel   = new TracerStudyModel();
+        $this->kepuasanModel = new KepuasanModel();
     }
 
     // ---------- INDEX ----------
@@ -226,6 +229,98 @@ class MahasiswaController extends BaseController
         if ($tpl === '') {
             $tpl = "Halo {nama}, kami dari {prodi} memohon kesediaan Anda mengisi kuesioner tracer study alumni "
                  . "untuk keperluan akreditasi program studi. Mohon klik tautan berikut (cukup beberapa menit):\n\n{link}\n\nTerima kasih banyak.";
+        }
+        return strtr($tpl, ['{nama}' => $nama, '{prodi}' => $prodiNama, '{link}' => $link]);
+    }
+
+    // ---------- SURVEI KEPUASAN PENGGUNA LULUSAN (2.B.6) ----------
+
+    public function kepuasanIndex(): string
+    {
+        $prodiId = $this->importProdiId();
+        $list    = $prodiId ? $this->kepuasanModel->listByProdi($prodiId) : [];
+        $summary = $prodiId ? $this->kepuasanModel->summaryByProdi($prodiId) : [];
+        $belum   = $prodiId ? $this->kepuasanModel->lulusanBelum($prodiId) : [];
+        $fonnteEnabled = (new FonnteClient())->enabled();
+        $aspek   = KepuasanModel::ASPEK;
+
+        return view('mahasiswa/kepuasan/index', compact('list', 'summary', 'belum', 'prodiId', 'fonnteEnabled', 'aspek'));
+    }
+
+    /** Form input kepuasan oleh admin/GKM. */
+    public function kepuasanForm(int $mahasiswaId): string
+    {
+        $mhs  = $this->model->findOrFail($mahasiswaId);
+        $data = $this->kepuasanModel->getByMahasiswa($mahasiswaId) ?? [];
+        return view('mahasiswa/kepuasan/form', ['mhs' => $mhs, 'data' => $data, 'aspek' => KepuasanModel::ASPEK]);
+    }
+
+    public function kepuasanStore(int $mahasiswaId)
+    {
+        $this->model->findOrFail($mahasiswaId);
+        $req  = $this->request;
+        $data = [
+            'mahasiswa_id'    => $mahasiswaId,
+            'tgl_isi'         => date('Y-m-d'),
+            'nama_atasan'     => trim((string) $req->getPost('nama_atasan')) ?: null,
+            'jabatan_atasan'  => trim((string) $req->getPost('jabatan_atasan')) ?: null,
+            'nama_perusahaan' => trim((string) $req->getPost('nama_perusahaan')) ?: null,
+            'saran'           => trim((string) $req->getPost('saran')) ?: null,
+        ];
+        foreach (array_keys(KepuasanModel::ASPEK) as $a) {
+            $v = (int) $req->getPost($a);
+            $data[$a] = ($v >= 1 && $v <= 4) ? $v : null;
+        }
+        $existing = $this->kepuasanModel->getByMahasiswa($mahasiswaId);
+        if ($existing) {
+            $this->kepuasanModel->update($existing['id'], $data);
+        } else {
+            $this->kepuasanModel->insert($data);
+        }
+        return redirect()->to(site_url('mahasiswa/kepuasan'))->with('success', 'Survei kepuasan berhasil disimpan.');
+    }
+
+    public function kepuasanKirim(int $mahasiswaId)
+    {
+        $mhs = $this->model->findOrFail($mahasiswaId);
+        if (empty($mhs['no_hp'])) {
+            return redirect()->back()->with('error', "Nomor WhatsApp \"{$mhs['nama']}\" belum diisi.");
+        }
+        $res = (new FonnteClient())->send($mhs['no_hp'], $this->kepuasanMessage($mhs['nama'], (int) $mhs['id'], $this->prodiNama((int) $mhs['prodi_id'])));
+        return $res['ok']
+            ? redirect()->back()->with('success', "Link survei kepuasan terkirim ke {$mhs['nama']}.")
+            : redirect()->back()->with('error', "Gagal mengirim ke {$mhs['nama']}: {$res['error']}");
+    }
+
+    public function kepuasanKirimSemua()
+    {
+        $prodiId = $this->importProdiId();
+        if (!$prodiId) {
+            return redirect()->back()->with('error', 'Pilih prodi aktif terlebih dahulu.');
+        }
+        $fonnte = new FonnteClient();
+        if (!$fonnte->enabled()) {
+            return redirect()->back()->with('error', 'WhatsApp gateway (Fonnte) belum dikonfigurasi. Set fonnte.token di .env.');
+        }
+        $prodiNama = $this->prodiNama($prodiId);
+        $sent = 0; $fail = 0; $skip = 0; $contoh = [];
+        foreach ($this->kepuasanModel->lulusanBelum($prodiId) as $b) {
+            if (empty($b['no_hp'])) { $skip++; continue; }
+            $res = $fonnte->send($b['no_hp'], $this->kepuasanMessage($b['nama'], (int) $b['id'], $prodiNama));
+            if ($res['ok']) { $sent++; } else { $fail++; if (count($contoh) < 5) $contoh[] = "{$b['nama']}: {$res['error']}"; }
+        }
+        $msg = "Terkirim: {$sent}. Gagal: {$fail}. Tanpa nomor WA: {$skip}.";
+        if ($contoh) $msg .= ' Contoh gagal — ' . implode('; ', $contoh);
+        return redirect()->to(site_url('mahasiswa/kepuasan'))->with($fail ? 'error' : 'success', $msg);
+    }
+
+    private function kepuasanMessage(string $nama, int $mahasiswaId, string $prodiNama): string
+    {
+        $link = site_url('kepuasan/isi/' . TracerToken::make($mahasiswaId, 'kepuasan'));
+        $tpl  = trim((string) env('fonnte.kepuasanMessage', ''));
+        if ($tpl === '') {
+            $tpl = "Halo {nama}, kami dari {prodi} memohon bantuan Anda meneruskan tautan berikut kepada ATASAN/PIMPINAN "
+                 . "di tempat kerja Anda untuk mengisi Survei Kepuasan Pengguna Lulusan (untuk akreditasi prodi):\n\n{link}\n\nTerima kasih banyak.";
         }
         return strtr($tpl, ['{nama}' => $nama, '{prodi}' => $prodiNama, '{link}' => $link]);
     }

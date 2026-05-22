@@ -3,7 +3,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Tracer Study</h4>
-    <a href="<?= site_url('mahasiswa') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali ke Mahasiswa</a>
+    <div class="d-flex gap-2">
+        <a href="<?= site_url('mahasiswa/kepuasan') ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-emoji-smile"></i> Survei Kepuasan Pengguna</a>
+        <a href="<?= site_url('mahasiswa') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali ke Mahasiswa</a>
+    </div>
 </div>
 
 <?php if (session('success')): ?>
