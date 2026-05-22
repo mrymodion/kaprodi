@@ -109,7 +109,7 @@ if ($isSuperadmin) {
             <?php if ($can('prodi.manage') || $can('dosen.manage') || $can('mahasiswa.manage')): ?>
                 <div class="nav-section">Data Akreditasi</div>
                 <nav class="nav flex-column">
-                    <?php if ($can('prodi.manage')): ?><a class="nav-link" href="#"><i class="bi bi-building"></i> Prodi</a><?php endif ?>
+                    <?php if ($can('prodi.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'prodi') && !str_starts_with(uri_string(), 'prodi/switch') ? 'active' : '' ?>" href="<?= site_url('prodi') ?>"><i class="bi bi-building"></i> Prodi</a><?php endif ?>
                     <?php if ($can('dosen.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'dosen') ? 'active' : '' ?>" href="<?= site_url('dosen') ?>"><i class="bi bi-people"></i> DTPR (Dosen)</a><?php endif ?>
                     <?php if ($can('mahasiswa.manage')): ?>
                         <a class="nav-link <?= str_starts_with(uri_string(), 'mahasiswa') ? 'active' : '' ?>" href="<?= site_url('mahasiswa') ?>"><i class="bi bi-person-badge"></i> Mahasiswa</a>
@@ -135,7 +135,7 @@ if ($isSuperadmin) {
                 <div class="nav-section">Administrasi</div>
                 <nav class="nav flex-column">
                     <?php if ($can('users.manage')): ?><a class="nav-link" href="<?= site_url('admin/users') ?>"><i class="bi bi-person-gear"></i> Manajemen User</a><?php endif ?>
-                    <?php if ($can('instrumen.manage')): ?><a class="nav-link" href="#"><i class="bi bi-sliders"></i> Instrumen LAM</a><?php endif ?>
+                    <?php if ($can('instrumen.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'instrumen') ? 'active' : '' ?>" href="<?= site_url('instrumen') ?>"><i class="bi bi-sliders"></i> Instrumen LAM</a><?php endif ?>
                 </nav>
             <?php endif ?>
         </aside>

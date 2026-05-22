@@ -18,6 +18,22 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     // Pemilih prodi aktif (khusus superadmin)
     $routes->get('prodi/switch/(:num)', 'ProdiSwitchController::switch/$1');
 
+    // Manajemen Prodi
+    $routes->group('prodi', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('/',              'ProdiController::index');
+        $routes->get('create',         'ProdiController::create');
+        $routes->post('store',         'ProdiController::store');
+        $routes->get('(:num)/edit',    'ProdiController::edit/$1');
+        $routes->post('(:num)/update', 'ProdiController::update/$1');
+        $routes->post('(:num)/delete', 'ProdiController::delete/$1');
+    });
+
+    // Instrumen LAM (lihat struktur + pemetaan prodi)
+    $routes->group('instrumen', ['filter' => 'permission:instrumen.manage'], function ($routes) {
+        $routes->get('/',       'InstrumenController::index');
+        $routes->post('assign', 'InstrumenController::assign');
+    });
+
     // Admin
     $routes->group('admin', function ($routes) {
         $routes->get('users',              'Admin\UserManagement::index');
