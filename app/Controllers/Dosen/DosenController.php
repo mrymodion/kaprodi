@@ -58,6 +58,11 @@ class DosenController extends BaseController
         $data['aktif'] = 1;
         $data['sertifikat_pendidik'] = isset($data['sertifikat_pendidik']) ? 1 : 0;
 
+        if ($dupe = $this->nidnDuplikat($data['nidn'] ?? null)) {
+            return redirect()->back()->withInput()->with('errors', ['nidn' => $this->pesanDuplikat($data['nidn'], $dupe)]);
+        }
+        $data['nidn'] = trim((string)($data['nidn'] ?? '')) ?: null;
+
         $this->model->insert($data);
         return redirect()->to(site_url('dosen'))->with('success', 'Dosen berhasil ditambahkan.');
     }
@@ -92,6 +97,11 @@ class DosenController extends BaseController
         $data['sertifikat_pendidik'] = isset($data['sertifikat_pendidik']) ? 1 : 0;
         $data['aktif'] = $data['aktif'] ?? 1;
 
+        if ($dupe = $this->nidnDuplikat($data['nidn'] ?? null, $id)) {
+            return redirect()->back()->withInput()->with('errors', ['nidn' => $this->pesanDuplikat($data['nidn'], $dupe)]);
+        }
+        $data['nidn'] = trim((string)($data['nidn'] ?? '')) ?: null;
+
         $this->model->update($id, $data);
         return redirect()->to(site_url('dosen'))->with('success', 'Data dosen berhasil diperbarui.');
     }
@@ -102,6 +112,27 @@ class DosenController extends BaseController
         $this->model->findOrFail($id);
         $this->model->update($id, ['aktif' => 0]);
         return redirect()->to(site_url('dosen'))->with('success', 'Dosen dinonaktifkan.');
+    }
+
+    /** Cari dosen lain dengan NIDN yang sama (lintas prodi). Null bila NIDN kosong/unik. */
+    private function nidnDuplikat(?string $nidn, int $exceptId = 0): ?array
+    {
+        $nidn = trim((string) $nidn);
+        if ($nidn === '') return null;
+        return Database::connect()->table('dosen d')
+            ->select('d.id, d.nama, p.nama AS prodi_nama')
+            ->join('prodi p', 'p.id = d.prodi_id', 'left')
+            ->where('d.nidn', $nidn)
+            ->where('d.id !=', $exceptId)
+            ->get()->getRowArray();
+    }
+
+    private function pesanDuplikat(string $nidn, array $dupe): string
+    {
+        return "NIDN {$nidn} sudah terdaftar atas nama \"{$dupe['nama']}\" (prodi: "
+            . ($dupe['prodi_nama'] ?: '-') . "). Setiap dosen hanya didaftarkan sebagai DTPR di SATU prodi "
+            . "(homebase). Jika dosen ini mengajar di prodi lain, catat bebannya melalui menu EWMP "
+            . "(kolom SKS di PS lain) — bukan dengan menambah data dosen baru.";
     }
 
     // ---------- SHOW ----------
