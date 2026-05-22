@@ -10,6 +10,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call('MasterSeeder');
         $this->call('LamInfokomD3Seeder');
+        $this->call('LamInfokomS1Seeder');
         // AuthDemoSeeder hanya jalan jika Shield sudah ter-install (cek di dalam seeder).
         $this->call('AuthDemoSeeder');
     }
