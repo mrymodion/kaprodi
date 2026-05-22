@@ -77,6 +77,9 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('/',                          'Mahasiswa\MahasiswaController::index');
         $routes->get('create',                     'Mahasiswa\MahasiswaController::create');
         $routes->post('store',                     'Mahasiswa\MahasiswaController::store');
+        $routes->get('import',                     'Mahasiswa\MahasiswaController::importForm');
+        $routes->get('import/template',            'Mahasiswa\MahasiswaController::importTemplate');
+        $routes->post('import',                    'Mahasiswa\MahasiswaController::importStore');
         $routes->get('(:num)',                     'Mahasiswa\MahasiswaController::show/$1');
         $routes->get('(:num)/edit',               'Mahasiswa\MahasiswaController::edit/$1');
         $routes->post('(:num)/update',            'Mahasiswa\MahasiswaController::update/$1');
@@ -161,6 +164,12 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('/',                        'Dosen\DosenController::index');
         $routes->get('create',                   'Dosen\DosenController::create');
         $routes->post('store',                   'Dosen\DosenController::store');
+        $routes->get('import',                   'Dosen\DosenController::importForm');
+        $routes->get('import/template',          'Dosen\DosenController::importTemplate');
+        $routes->post('import',                  'Dosen\DosenController::importStore');
+        $routes->get('ewmp/import',              'Dosen\DosenController::ewmpImportForm');
+        $routes->get('ewmp/import/template',     'Dosen\DosenController::ewmpImportTemplate');
+        $routes->post('ewmp/import',             'Dosen\DosenController::ewmpImportStore');
         $routes->get('(:num)',                   'Dosen\DosenController::show/$1');
         $routes->get('(:num)/edit',              'Dosen\DosenController::edit/$1');
         $routes->post('(:num)/update',           'Dosen\DosenController::update/$1');

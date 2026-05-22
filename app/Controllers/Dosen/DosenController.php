@@ -3,12 +3,15 @@
 namespace App\Controllers\Dosen;
 
 use App\Controllers\BaseController;
+use App\Controllers\Concerns\ExcelImport;
 use App\Models\DosenModel;
 use App\Models\DosenEwmpModel;
 use Config\Database;
 
 class DosenController extends BaseController
 {
+    use ExcelImport;
+
     protected DosenModel $model;
     protected DosenEwmpModel $ewmpModel;
 
@@ -232,6 +235,287 @@ class DosenController extends BaseController
             . ($dupe['prodi_nama'] ?: '-') . "). Setiap dosen hanya didaftarkan sebagai DTPR di SATU prodi "
             . "(homebase). Jika dosen ini mengajar di prodi lain, catat bebannya melalui menu EWMP "
             . "(kolom SKS di PS lain) — bukan dengan menambah data dosen baru.";
+    }
+
+    // ---------- IMPORT DOSEN (EXCEL) ----------
+
+    private const IMPORT_COLS_DOSEN = [
+        'nidn', 'nip', 'nama', 'gelar_depan', 'gelar_belakang', 'jenis_kelamin',
+        'tempat_lahir', 'tanggal_lahir', 'email', 'no_hp', 'pendidikan_terakhir',
+        'bidang_keahlian', 'linieritas', 'jabatan_akademik', 'sertifikat_pendidik',
+        'no_serdos', 'status_kepegawaian', 'sinta_id', 'scopus_id', 'google_scholar_id', 'orcid',
+    ];
+
+    private const IMPORT_COLS_EWMP = [
+        'nidn', 'tahun_akademik', 'sks_pendidikan_ps', 'sks_pendidikan_ps_lain_pt',
+        'sks_pendidikan_pt_lain', 'sks_penelitian', 'sks_pkm', 'sks_tugas_tambahan',
+    ];
+
+    private function importProdiId(): int
+    {
+        $prodiId = (int) session('active_prodi_id');
+        if (!$prodiId && session('is_superadmin')) {
+            $first = Database::connect()->table('prodi')->where('status', 'aktif')->orderBy('nama')->get()->getRowArray();
+            $prodiId = $first ? (int) $first['id'] : 0;
+        }
+        return $prodiId;
+    }
+
+    public function importForm(): string
+    {
+        return view('dosen/import');
+    }
+
+    public function importTemplate()
+    {
+        $contoh = [
+            '0012345678', '198001012005011001', 'Dr. Andi Wijaya', 'Dr.', 'M.Kom.', 'L',
+            'Surabaya', '1980-01-01', 'andi@example.ac.id', '081200000002', 'S3',
+            'Rekayasa Perangkat Lunak', 'linier', 'Lektor Kepala', 'ya', '12345', 'tetap',
+            '6012345', '57000000', 'abcdEFG', '0000-0001-0000-0000',
+        ];
+        $petunjuk = [
+            ['Kolom wajib', 'nama (nidn sangat disarankan untuk hindari duplikat)'],
+            ['nidn', '10 digit angka; jika diisi tidak boleh terdaftar di prodi lain'],
+            ['jenis_kelamin', 'L atau P'],
+            ['pendidikan_terakhir', 'S1 | S2 | S3 | Sp | Sp2 (DTPR minimal S2)'],
+            ['linieritas', 'linier | tidak_linier'],
+            ['jabatan_akademik', 'Tenaga Pengajar | Asisten Ahli | Lektor | Lektor Kepala | Guru Besar'],
+            ['sertifikat_pendidik', 'ya/1 atau tidak/0'],
+            ['status_kepegawaian', 'tetap | tidak_tetap | dosen_industri'],
+            ['tanggal_lahir', 'format YYYY-MM-DD'],
+        ];
+        return $this->keluarkanTemplate('Template_Import_Dosen.xlsx', self::IMPORT_COLS_DOSEN, $contoh, $petunjuk);
+    }
+
+    public function importStore()
+    {
+        $prodiId = $this->importProdiId();
+        if (!$prodiId) {
+            return redirect()->back()->with('error', 'Pilih prodi aktif terlebih dahulu sebelum impor.');
+        }
+        $load = $this->bacaUpload();
+        if (is_string($load)) return redirect()->back()->with('error', $load);
+        [$sheet, $colOf, $highestRow] = $load;
+
+        if (!isset($colOf['nama'])) {
+            return redirect()->back()->with('error', 'Header "nama" tidak ditemukan. Gunakan template.');
+        }
+
+        $inserted = 0; $updated = 0; $errors = []; $warnings = [];
+        $jabatanValid = ['Tenaga Pengajar', 'Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Guru Besar'];
+        $pendValid    = ['S1', 'S2', 'S3', 'Sp', 'Sp2'];
+        $statusValid  = ['tetap', 'tidak_tetap', 'dosen_industri'];
+
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $val  = fn(string $k) => isset($colOf[$k]) ? trim((string) $sheet->getCell([$colOf[$k], $r])->getValue()) : '';
+            $nama = $val('nama');
+            $nidn = preg_replace('/\s+/', '', $val('nidn'));
+            if ($nama === '' && $nidn === '') continue;
+            if ($nama === '') { $errors[] = "Baris {$r}: nama wajib diisi."; continue; }
+
+            $existing = null;
+            if ($nidn !== '') {
+                if (!preg_match('/^[0-9]{10}$/', $nidn)) {
+                    $errors[] = "Baris {$r}: NIDN \"{$nidn}\" harus 10 digit angka."; continue;
+                }
+                $existing = $this->model->where('nidn', $nidn)->first();
+                if ($existing && (int) $existing['prodi_id'] !== $prodiId) {
+                    $errors[] = "Baris {$r}: NIDN {$nidn} sudah terdaftar di prodi lain (\"{$existing['nama']}\")."; continue;
+                }
+            } else {
+                $warnings[] = "Baris {$r}: tanpa NIDN — tidak dapat dicek duplikat (selalu ditambah baru).";
+            }
+
+            $jk = strtoupper(substr($val('jenis_kelamin'), 0, 1));
+            $pend = strtoupper(str_replace([' ', '-'], '', $val('pendidikan_terakhir')));
+            $pend = $pend === 'SP' ? 'Sp' : ($pend === 'SP2' ? 'Sp2' : $pend);
+            if ($pend !== '' && !in_array($pend, $pendValid, true)) { $pend = null; $warnings[] = "Baris {$r}: pendidikan tidak dikenal, dikosongkan."; }
+            if (in_array($pend, ['S1', null], true) || $pend === '') $warnings[] = "Baris {$r}: pendidikan belum S2 (syarat DTPR).";
+
+            $lin = strtolower(str_replace(' ', '_', $val('linieritas')));
+            $lin = in_array($lin, ['linier', 'tidak_linier'], true) ? $lin : 'linier';
+
+            $jab = $val('jabatan_akademik');
+            $jabMatch = null;
+            foreach ($jabatanValid as $jv) { if (strcasecmp($jab, $jv) === 0) { $jabMatch = $jv; break; } }
+            if ($jab !== '' && $jabMatch === null) $warnings[] = "Baris {$r}: jabatan \"{$jab}\" tidak dikenal, dikosongkan.";
+
+            $stat = strtolower(str_replace(' ', '_', $val('status_kepegawaian')));
+            $stat = in_array($stat, $statusValid, true) ? $stat : 'tetap';
+
+            $serdos = in_array(strtolower($val('sertifikat_pendidik')), ['1', 'ya', 'yes', 'true', 'sudah'], true) ? 1 : 0;
+
+            $data = [
+                'prodi_id'            => $prodiId,
+                'nidn'                => $nidn ?: null,
+                'nip'                 => $val('nip') ?: null,
+                'nama'                => $nama,
+                'gelar_depan'         => $val('gelar_depan') ?: null,
+                'gelar_belakang'      => $val('gelar_belakang') ?: null,
+                'jenis_kelamin'       => in_array($jk, ['L', 'P'], true) ? $jk : null,
+                'tempat_lahir'        => $val('tempat_lahir') ?: null,
+                'tanggal_lahir'       => $this->parseDateCell($sheet, $colOf['tanggal_lahir'] ?? null, $r),
+                'email'               => $val('email') ?: null,
+                'no_hp'               => $val('no_hp') ?: null,
+                'pendidikan_terakhir' => $pend ?: null,
+                'bidang_keahlian'     => $val('bidang_keahlian') ?: null,
+                'linieritas'          => $lin,
+                'jabatan_akademik'    => $jabMatch,
+                'sertifikat_pendidik' => $serdos,
+                'no_serdos'           => $val('no_serdos') ?: null,
+                'status_kepegawaian'  => $stat,
+                'sinta_id'            => $val('sinta_id') ?: null,
+                'scopus_id'           => $val('scopus_id') ?: null,
+                'google_scholar_id'   => $val('google_scholar_id') ?: null,
+                'orcid'               => $val('orcid') ?: null,
+            ];
+
+            try {
+                if ($existing) {
+                    $this->model->update($existing['id'], $data) ? $updated++ : $errors[] = "Baris {$r}: " . implode('; ', $this->model->errors());
+                } else {
+                    $data['aktif'] = 1;
+                    $this->model->insert($data, false) ? $inserted++ : $errors[] = "Baris {$r}: " . implode('; ', $this->model->errors());
+                }
+            } catch (\Throwable $e) {
+                $errors[] = "Baris {$r}: gagal disimpan.";
+            }
+        }
+
+        return redirect()->to(site_url('dosen/import'))->with('importResult', compact('inserted', 'updated', 'errors', 'warnings'));
+    }
+
+    // ---------- IMPORT EWMP (EXCEL) ----------
+
+    public function ewmpImportForm(): string
+    {
+        $taList = Database::connect()->table('tahun_akademik')->orderBy('tahun_mulai DESC')->get()->getResultArray();
+        return view('dosen/ewmp_import', ['taList' => $taList]);
+    }
+
+    public function ewmpImportTemplate()
+    {
+        $contoh = ['0012345678', '2024/2025', '9', '3', '0', '2', '1', '1'];
+        $petunjuk = [
+            ['nidn', 'NIDN dosen (harus sudah terdaftar di prodi aktif)'],
+            ['tahun_akademik', 'kode tahun akademik (lihat daftar di bawah)'],
+            ['sks_*', 'angka SKS; total dihitung otomatis. EWMP normal 12–16 SKS.'],
+            ['sks_pendidikan_ps', 'SKS mengajar di PS sendiri'],
+            ['sks_pendidikan_ps_lain_pt', 'SKS mengajar di PS lain pada PT yang sama'],
+            ['sks_pendidikan_pt_lain', 'SKS mengajar di PT lain'],
+        ];
+        foreach (Database::connect()->table('tahun_akademik')->orderBy('tahun_mulai DESC')->get()->getResultArray() as $ta) {
+            $petunjuk[] = ['Kode TA', $ta['kode']];
+        }
+        return $this->keluarkanTemplate('Template_Import_EWMP.xlsx', self::IMPORT_COLS_EWMP, $contoh, $petunjuk);
+    }
+
+    public function ewmpImportStore()
+    {
+        $prodiId = $this->importProdiId();
+        if (!$prodiId) {
+            return redirect()->back()->with('error', 'Pilih prodi aktif terlebih dahulu sebelum impor.');
+        }
+        $load = $this->bacaUpload();
+        if (is_string($load)) return redirect()->back()->with('error', $load);
+        [$sheet, $colOf, $highestRow] = $load;
+
+        if (!isset($colOf['nidn']) || !isset($colOf['tahun_akademik'])) {
+            return redirect()->back()->with('error', 'Header "nidn" dan "tahun_akademik" wajib ada. Gunakan template.');
+        }
+
+        $taMap = [];
+        foreach (Database::connect()->table('tahun_akademik')->get()->getResultArray() as $ta) {
+            $taMap[strtolower(trim($ta['kode']))] = (int) $ta['id'];
+        }
+
+        $disimpan = 0; $errors = [];
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $val = fn(string $k) => isset($colOf[$k]) ? trim((string) $sheet->getCell([$colOf[$k], $r])->getValue()) : '';
+            $nidn = preg_replace('/\s+/', '', $val('nidn'));
+            $taKode = $val('tahun_akademik');
+            if ($nidn === '' && $taKode === '') continue;
+
+            $dosen = $this->model->where(['prodi_id' => $prodiId, 'nidn' => $nidn])->first();
+            if (!$dosen) { $errors[] = "Baris {$r}: dosen NIDN \"{$nidn}\" tidak ditemukan di prodi aktif."; continue; }
+            $taId = $taMap[strtolower($taKode)] ?? null;
+            if (!$taId) { $errors[] = "Baris {$r}: tahun akademik \"{$taKode}\" tidak dikenal."; continue; }
+
+            $num = fn(string $k) => (float) str_replace(',', '.', $val($k) ?: '0');
+            $this->ewmpModel->upsert((int) $dosen['id'], $taId, [
+                'sks_pendidikan_ps'         => $num('sks_pendidikan_ps'),
+                'sks_pendidikan_ps_lain_pt' => $num('sks_pendidikan_ps_lain_pt'),
+                'sks_pendidikan_pt_lain'    => $num('sks_pendidikan_pt_lain'),
+                'sks_penelitian'            => $num('sks_penelitian'),
+                'sks_pkm'                   => $num('sks_pkm'),
+                'sks_tugas_tambahan'        => $num('sks_tugas_tambahan'),
+            ]);
+            $disimpan++;
+        }
+
+        $warnings = [];
+        return redirect()->to(site_url('dosen/ewmp/import'))
+            ->with('importResult', ['inserted' => $disimpan, 'updated' => 0, 'errors' => $errors, 'warnings' => $warnings]);
+    }
+
+    /** Baca file upload Excel; return [sheet, colOf, highestRow] atau string pesan error. */
+    private function bacaUpload()
+    {
+        $file = $this->request->getFile('file');
+        if (!$file || !$file->isValid()) return 'File tidak valid. Unggah file Excel (.xlsx).';
+        $ext = strtolower($file->getClientExtension() ?: $file->getExtension());
+        if (!in_array($ext, ['xlsx', 'xls'], true)) return 'Format harus .xlsx atau .xls.';
+        try {
+            $ss = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getTempName());
+        } catch (\Throwable $e) {
+            return 'Gagal membaca file: ' . $e->getMessage();
+        }
+        $sheet = $ss->getActiveSheet();
+        $highestRow = $sheet->getHighestDataRow();
+        $highestCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+        $alias = ['nip_nidn' => 'nidn', 'ta' => 'tahun_akademik', 'tahun' => 'tahun_akademik'];
+        $colOf = [];
+        for ($c = 1; $c <= $highestCol; $c++) {
+            $key = $this->normHeader((string) $sheet->getCell([$c, 1])->getValue(), $alias);
+            if ($key !== '') $colOf[$key] = $c;
+        }
+        return [$sheet, $colOf, $highestRow];
+    }
+
+    /** Hasilkan & unduh file template .xlsx. */
+    private function keluarkanTemplate(string $filename, array $cols, array $contoh, array $petunjuk)
+    {
+        $ss = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $ss->getActiveSheet();
+        $sheet->setTitle('Data');
+        $col = 1;
+        foreach ($cols as $h) { $sheet->setCellValue([$col, 1], $h); $col++; }
+        $sheet->getStyle('A1:' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($cols)) . '1')->getFont()->setBold(true);
+        $col = 1;
+        foreach ($contoh as $v) {
+            $sheet->setCellValueExplicit([$col, 2], $v, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $col++;
+        }
+        for ($c = 1; $c <= count($cols); $c++) {
+            $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c))->setAutoSize(true);
+        }
+        $info = $ss->createSheet();
+        $info->setTitle('Petunjuk');
+        $r = 1;
+        foreach ($petunjuk as $row) {
+            $info->setCellValue([1, $r], $row[0]);
+            $info->setCellValue([2, $r], $row[1]);
+            $r++;
+        }
+        $info->getColumnDimension('A')->setWidth(28);
+        $info->getColumnDimension('B')->setWidth(55);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($ss))->save('php://output');
+        exit;
     }
 
     // ---------- SHOW ----------

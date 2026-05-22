@@ -162,6 +162,244 @@ class MahasiswaController extends BaseController
         return redirect()->to(site_url('mahasiswa/tracer'))->with('success', 'Data tracer study berhasil disimpan.');
     }
 
+    // ---------- IMPORT EXCEL ----------
+
+    /** Kolom kanonik yang dipakai pada file import. */
+    private const IMPORT_COLS = [
+        'nim', 'nama', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir',
+        'email', 'no_hp', 'kota_asal', 'provinsi_asal', 'negara_asal',
+        'tahun_masuk', 'jalur_masuk', 'status', 'ipk', 'masa_studi_bulan', 'tgl_lulus',
+    ];
+
+    private function importProdiId(): int
+    {
+        $prodiId = (int) session('active_prodi_id');
+        if (!$prodiId && session('is_superadmin')) {
+            $first = Database::connect()->table('prodi')->where('status', 'aktif')->orderBy('nama')->get()->getRowArray();
+            $prodiId = $first ? (int) $first['id'] : 0;
+        }
+        return $prodiId;
+    }
+
+    public function importForm(): string
+    {
+        $taList = Database::connect()->table('tahun_akademik')->orderBy('tahun_mulai DESC')->get()->getResultArray();
+        return view('mahasiswa/import', ['taList' => $taList]);
+    }
+
+    /** Unduh template .xlsx berisi header + contoh baris. */
+    public function importTemplate()
+    {
+        $ss    = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $ss->getActiveSheet();
+        $sheet->setTitle('Mahasiswa');
+
+        $col = 1;
+        foreach (self::IMPORT_COLS as $h) {
+            $sheet->setCellValue([$col, 1], $h);
+            $col++;
+        }
+        $sheet->getStyle('A1:P1')->getFont()->setBold(true);
+
+        // Contoh baris
+        $contoh = [
+            '2021010001', 'Budi Santoso', 'L', 'Bandung', '2003-05-12',
+            'budi@example.ac.id', '081200000001', 'Bandung', 'Jawa Barat', 'Indonesia',
+            '2021/2022', 'SNMPTN', 'aktif', '3.45', '', '',
+        ];
+        $col = 1;
+        foreach ($contoh as $v) {
+            $sheet->setCellValueExplicit([$col, 2], $v, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $col++;
+        }
+        foreach (range('A', 'P') as $c) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+
+        // Sheet petunjuk
+        $info = $ss->createSheet();
+        $info->setTitle('Petunjuk');
+        $baris = [
+            ['Kolom wajib', 'nim, nama'],
+            ['jenis_kelamin', 'L atau P'],
+            ['status', 'aktif | cuti | do | keluar | lulus (kosong = aktif)'],
+            ['tanggal_lahir / tgl_lulus', 'format YYYY-MM-DD (mis. 2003-05-12)'],
+            ['ipk', 'angka 0–4, gunakan titik (mis. 3.45)'],
+            ['tahun_masuk', 'kode tahun akademik, harus cocok dengan daftar di bawah'],
+            ['', ''],
+            ['Daftar kode Tahun Akademik:', ''],
+        ];
+        foreach (Database::connect()->table('tahun_akademik')->orderBy('tahun_mulai DESC')->get()->getResultArray() as $ta) {
+            $baris[] = [$ta['kode'], $ta['semester'] ?? ''];
+        }
+        $r = 1;
+        foreach ($baris as $row) {
+            $info->setCellValue([1, $r], $row[0]);
+            $info->setCellValue([2, $r], $row[1]);
+            $r++;
+        }
+        $info->getColumnDimension('A')->setWidth(30);
+        $info->getColumnDimension('B')->setWidth(50);
+
+        $filename = 'Template_Import_Mahasiswa.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($ss))->save('php://output');
+        exit;
+    }
+
+    public function importStore()
+    {
+        $prodiId = $this->importProdiId();
+        if (!$prodiId) {
+            return redirect()->back()->with('error', 'Pilih prodi aktif terlebih dahulu sebelum impor.');
+        }
+
+        $file = $this->request->getFile('file');
+        if (!$file || !$file->isValid()) {
+            return redirect()->back()->with('error', 'File tidak valid. Unggah file Excel (.xlsx).');
+        }
+        $ext = strtolower($file->getClientExtension() ?: $file->getExtension());
+        if (!in_array($ext, ['xlsx', 'xls'], true)) {
+            return redirect()->back()->with('error', 'Format harus .xlsx atau .xls.');
+        }
+
+        try {
+            $ss = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getTempName());
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Gagal membaca file Excel: ' . $e->getMessage());
+        }
+
+        $sheet     = $ss->getActiveSheet();
+        $highestRow = $sheet->getHighestDataRow();
+        $highestCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+
+        // Petakan header (baris 1) -> indeks kolom
+        $colOf = [];
+        for ($c = 1; $c <= $highestCol; $c++) {
+            $key = $this->normHeader((string) $sheet->getCell([$c, 1])->getValue());
+            if ($key !== '') $colOf[$key] = $c;
+        }
+        if (!isset($colOf['nim']) || !isset($colOf['nama'])) {
+            return redirect()->back()->with('error', 'Header tidak ditemukan. Pastikan baris pertama memuat kolom "nim" dan "nama" (gunakan template).');
+        }
+
+        // Map kode TA -> id
+        $taMap = [];
+        foreach (Database::connect()->table('tahun_akademik')->get()->getResultArray() as $ta) {
+            $taMap[strtolower(trim($ta['kode']))] = (int) $ta['id'];
+        }
+
+        $inserted = 0; $updated = 0; $errors = []; $warnings = [];
+        $statusValid = ['aktif', 'cuti', 'do', 'keluar', 'lulus'];
+
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $val = fn(string $key) => isset($colOf[$key]) ? trim((string) $sheet->getCell([$colOf[$key], $r])->getValue()) : '';
+
+            $nim  = $val('nim');
+            $nama = $val('nama');
+            if ($nim === '' && $nama === '') continue; // baris kosong
+            if ($nim === '' || $nama === '') {
+                $errors[] = "Baris {$r}: NIM dan Nama wajib diisi.";
+                continue;
+            }
+
+            $jk = strtoupper(substr($val('jenis_kelamin'), 0, 1));
+            $jk = in_array($jk, ['L', 'P'], true) ? $jk : null;
+
+            $status = strtolower($val('status')) ?: 'aktif';
+            if (!in_array($status, $statusValid, true)) {
+                $errors[] = "Baris {$r}: status \"{$val('status')}\" tidak valid (aktif/cuti/do/keluar/lulus).";
+                continue;
+            }
+
+            $ipkRaw = str_replace(',', '.', $val('ipk'));
+            $ipk = null;
+            if ($ipkRaw !== '') {
+                if (is_numeric($ipkRaw) && (float) $ipkRaw >= 0 && (float) $ipkRaw <= 4) {
+                    $ipk = round((float) $ipkRaw, 2);
+                } else {
+                    $warnings[] = "Baris {$r}: IPK \"{$val('ipk')}\" diabaikan (harus 0–4).";
+                }
+            }
+
+            $taId = null;
+            $taKode = $val('tahun_masuk');
+            if ($taKode !== '') {
+                $taId = $taMap[strtolower($taKode)] ?? null;
+                if ($taId === null) $warnings[] = "Baris {$r}: tahun masuk \"{$taKode}\" tidak cocok, dikosongkan.";
+            }
+
+            $masaStudi = $val('masa_studi_bulan');
+            $data = [
+                'prodi_id'         => $prodiId,
+                'nim'              => $nim,
+                'nama'             => $nama,
+                'jenis_kelamin'    => $jk,
+                'tempat_lahir'     => $val('tempat_lahir') ?: null,
+                'tanggal_lahir'    => $this->parseDateCell($sheet, $colOf['tanggal_lahir'] ?? null, $r),
+                'email'            => $val('email') ?: null,
+                'no_hp'            => $val('no_hp') ?: null,
+                'kota_asal'        => $val('kota_asal') ?: null,
+                'provinsi_asal'    => $val('provinsi_asal') ?: null,
+                'negara_asal'      => $val('negara_asal') ?: 'Indonesia',
+                'tahun_masuk_id'   => $taId,
+                'jalur_masuk'      => $val('jalur_masuk') ?: null,
+                'status'           => $status,
+                'tgl_lulus'        => $this->parseDateCell($sheet, $colOf['tgl_lulus'] ?? null, $r),
+                'ipk'              => $ipk,
+                'masa_studi_bulan' => $masaStudi !== '' && is_numeric($masaStudi) ? (int) $masaStudi : null,
+            ];
+
+            $existing = $this->model->where(['prodi_id' => $prodiId, 'nim' => $nim])->first();
+            try {
+                if ($existing) {
+                    $ok = $this->model->update($existing['id'], $data);
+                    $ok ? $updated++ : $errors[] = "Baris {$r} (NIM {$nim}): " . implode('; ', $this->model->errors());
+                } else {
+                    $ok = $this->model->insert($data, false);
+                    $ok ? $inserted++ : $errors[] = "Baris {$r} (NIM {$nim}): " . implode('; ', $this->model->errors());
+                }
+            } catch (\Throwable $e) {
+                $errors[] = "Baris {$r} (NIM {$nim}): gagal disimpan.";
+            }
+        }
+
+        return redirect()->to(site_url('mahasiswa/import'))
+            ->with('importResult', compact('inserted', 'updated', 'errors', 'warnings'));
+    }
+
+    /** Normalisasi nama header kolom Excel ke kunci kanonik. */
+    private function normHeader(string $v): string
+    {
+        $h = strtolower(trim($v));
+        $h = preg_replace('/\(.*?\)/', '', $h);
+        $h = preg_replace('/[^a-z0-9]+/', '_', $h);
+        $h = trim((string) $h, '_');
+        $alias = [
+            'jk' => 'jenis_kelamin', 'kelamin' => 'jenis_kelamin',
+            'tgl_lahir' => 'tanggal_lahir', 'hp' => 'no_hp', 'telp' => 'no_hp',
+            'ta_masuk' => 'tahun_masuk', 'tahun_akademik_masuk' => 'tahun_masuk', 'angkatan' => 'tahun_masuk',
+            'masa_studi' => 'masa_studi_bulan',
+        ];
+        return $alias[$h] ?? $h;
+    }
+
+    /** Baca sel tanggal (mendukung serial Excel maupun teks) -> 'Y-m-d' atau null. */
+    private function parseDateCell($sheet, ?int $col, int $row): ?string
+    {
+        if (!$col) return null;
+        $cell = $sheet->getCell([$col, $row]);
+        $raw  = $cell->getValue();
+        if ($raw === null || $raw === '') return null;
+        if (\PhpOffice\PhpSpreadsheet\Shared\Date::isDateTime($cell) && is_numeric($raw)) {
+            return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $raw)->format('Y-m-d');
+        }
+        $ts = strtotime((string) $raw);
+        return $ts ? date('Y-m-d', $ts) : null;
+    }
+
     // ---------- helpers ----------
     private function collectPost(): array
     {

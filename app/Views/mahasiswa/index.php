@@ -4,9 +4,14 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-person-badge"></i> Data Mahasiswa</h4>
     <?php if (auth()->user()->can('mahasiswa.manage')): ?>
-        <a href="<?= site_url('mahasiswa/create') ?>" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-circle"></i> Tambah Mahasiswa
-        </a>
+        <div class="d-flex gap-2">
+            <a href="<?= site_url('mahasiswa/import') ?>" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-file-earmark-excel"></i> Import Excel
+            </a>
+            <a href="<?= site_url('mahasiswa/create') ?>" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Tambah Mahasiswa
+            </a>
+        </div>
     <?php endif ?>
 </div>
 
