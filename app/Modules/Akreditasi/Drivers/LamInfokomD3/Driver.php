@@ -246,6 +246,8 @@ class Driver implements AccreditationDriver
             '1.A.4' => $this->tabelEwmp($prodiId, $tahunAkademikId),
             '2.A.1' => $this->tabelDataMahasiswa($prodiId),
             '2.B.4' => $this->tabelMasaTunggu($prodiId),
+            '2.B.5' => $this->tabelKesesuaian($prodiId),
+            '2.B.6' => $this->tabelKepuasan($prodiId),
             '3.A.2' => $this->tabelPenelitian($prodiId),
             '3.C.1' => $this->tabelKerjasama($prodiId, 'penelitian'),
             '3.C.2' => $this->tabelPublikasi($prodiId, 'penelitian'),
@@ -299,6 +301,53 @@ class Driver implements AccreditationDriver
             ->join('mahasiswa m', 'm.id = ts.mahasiswa_id')
             ->where('m.prodi_id', $prodiId)
             ->get()->getResultArray();
+    }
+
+    /** Tabel 2.B.5 — Kesesuaian Bidang Kerja Lulusan (per responden tracer). */
+    private function tabelKesesuaian(int $prodiId): array
+    {
+        $db = Database::connect();
+        return $db->table('tracer_study ts')
+            ->select('m.nim, m.nama, m.tgl_lulus, ts.kesesuaian_bidang_kerja, ts.tingkat_pekerjaan, ts.nama_perusahaan, ts.jabatan')
+            ->join('mahasiswa m', 'm.id = ts.mahasiswa_id')
+            ->where('m.prodi_id', $prodiId)
+            ->orderBy('m.tgl_lulus DESC, m.nama')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 2.B.6 — Kepuasan Pengguna Lulusan (% per aspek, 7 baris). */
+    private function tabelKepuasan(int $prodiId): array
+    {
+        $db   = Database::connect();
+        $rows = $db->query("
+            SELECT etika, keahlian, bahasa_asing, teknologi_info, komunikasi, kerjasama_tim, pengembangan_diri
+            FROM kepuasan_pengguna_lulusan k JOIN mahasiswa m ON m.id = k.mahasiswa_id
+            WHERE m.prodi_id = ?
+        ", [$prodiId])->getResultArray();
+
+        $aspek = [
+            'etika' => 'Etika', 'keahlian' => 'Keahlian pada bidang ilmu',
+            'bahasa_asing' => 'Kemampuan bahasa asing', 'teknologi_info' => 'Penggunaan teknologi informasi',
+            'komunikasi' => 'Kemampuan komunikasi', 'kerjasama_tim' => 'Kerjasama tim',
+            'pengembangan_diri' => 'Pengembangan diri',
+        ];
+        $out = [];
+        foreach ($aspek as $key => $label) {
+            $vals = array_filter(array_column($rows, $key), fn($v) => $v !== null && $v !== '');
+            $n    = count($vals);
+            $cnt  = [4 => 0, 3 => 0, 2 => 0, 1 => 0];
+            foreach ($vals as $v) { $vi = (int) $v; if (isset($cnt[$vi])) $cnt[$vi]++; }
+            $pct = fn(int $c) => $n ? round($c / $n * 100, 1) : 0;
+            $out[] = [
+                'aspek'       => $label,
+                'sangat_baik' => $pct($cnt[4]),
+                'baik'        => $pct($cnt[3]),
+                'cukup'       => $pct($cnt[2]),
+                'kurang'      => $pct($cnt[1]),
+                'responden'   => $n,
+            ];
+        }
+        return $out;
     }
 
     private function tabelPenelitian(int $prodiId): array
