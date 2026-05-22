@@ -4,6 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Tracer Study</h4>
     <div class="d-flex gap-2">
+        <a href="<?= site_url('mahasiswa/tracer/laporan') ?>" class="btn btn-sm btn-danger" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Laporan PDF</a>
         <a href="<?= site_url('mahasiswa/kepuasan') ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-emoji-smile"></i> Survei Kepuasan Pengguna</a>
         <a href="<?= site_url('mahasiswa') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali ke Mahasiswa</a>
     </div>

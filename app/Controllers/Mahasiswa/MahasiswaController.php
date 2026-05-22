@@ -233,7 +233,40 @@ class MahasiswaController extends BaseController
         return strtr($tpl, ['{nama}' => $nama, '{prodi}' => $prodiNama, '{link}' => $link]);
     }
 
-    // ---------- SURVEI KEPUASAN PENGGUNA LULUSAN (2.B.6) ----------
+    // ---------- LAPORAN PDF TRACER + KEPUASAN ----------
+
+    public function tracerReport()
+    {
+        $prodiId = $this->importProdiId();
+        if (!$prodiId) {
+            return redirect()->back()->with('error', 'Pilih prodi aktif terlebih dahulu.');
+        }
+        $db = Database::connect();
+        $prodi = $db->table('prodi p')
+            ->select('p.nama, p.jenjang, pt.nama AS pt_nama')
+            ->join('upps u', 'u.id = p.upps_id', 'left')
+            ->join('perguruan_tinggi pt', 'pt.id = u.perguruan_tinggi_id', 'left')
+            ->where('p.id', $prodiId)->get()->getRowArray() ?: ['nama' => '-', 'jenjang' => '', 'pt_nama' => ''];
+
+        $data = [
+            'prodi'       => $prodi,
+            'totalLulus'  => (int) $db->table('mahasiswa')->where(['prodi_id' => $prodiId, 'status' => 'lulus'])->countAllResults(),
+            'tracerList'  => $this->tracerModel->listByProdi($prodiId),
+            'tracerSum'   => $this->tracerModel->summaryByProdi($prodiId),
+            'kepSum'      => $this->kepuasanModel->summaryByProdi($prodiId),
+            'kepList'     => $this->kepuasanModel->listByProdi($prodiId),
+            'aspek'       => KepuasanModel::ASPEK,
+            'tanggal'     => date('d-m-Y H:i'),
+        ];
+
+        $html   = view('mahasiswa/tracer/report_pdf', $data);
+        $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false, 'defaultFont' => 'Helvetica']);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        $dompdf->stream('Laporan_Tracer_Study_' . preg_replace('/[^A-Za-z0-9]/', '_', $prodi['nama']) . '.pdf', ['Attachment' => true]);
+        exit;
+    }
 
     public function kepuasanIndex(): string
     {

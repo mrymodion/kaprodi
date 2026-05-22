@@ -99,6 +99,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/update',            'Mahasiswa\MahasiswaController::update/$1');
         $routes->post('(:num)/delete',            'Mahasiswa\MahasiswaController::delete/$1');
         $routes->get('tracer',                     'Mahasiswa\MahasiswaController::tracerIndex');
+        $routes->get('tracer/laporan',             'Mahasiswa\MahasiswaController::tracerReport');
         $routes->post('tracer/kirim-semua',        'Mahasiswa\MahasiswaController::tracerKirimSemua');
         $routes->get('tracer/(:num)',              'Mahasiswa\MahasiswaController::tracerForm/$1');
         $routes->post('tracer/(:num)/store',       'Mahasiswa\MahasiswaController::tracerStore/$1');
