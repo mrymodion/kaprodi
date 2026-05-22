@@ -15,6 +15,9 @@ $routes->get('logout', 'Auth\Login::logout');
 $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     $routes->get('/', 'Dashboard::index');
 
+    // Pemilih prodi aktif (khusus superadmin)
+    $routes->get('prodi/switch/(:num)', 'ProdiSwitchController::switch/$1');
+
     // Admin
     $routes->group('admin', function ($routes) {
         $routes->get('users',              'Admin\UserManagement::index');
