@@ -15,6 +15,10 @@ $routes->get('logout', 'Auth\Login::logout');
 $routes->get('tracer/isi/(:segment)',  'Tracer\PublicTracerController::form/$1');
 $routes->post('tracer/isi/(:segment)', 'Tracer\PublicTracerController::submit/$1');
 
+// Form publik survei kepuasan pengguna lulusan (diisi atasan/pengguna, tanpa login)
+$routes->get('kepuasan/isi/(:segment)',  'Tracer\PublicKepuasanController::form/$1');
+$routes->post('kepuasan/isi/(:segment)', 'Tracer\PublicKepuasanController::submit/$1');
+
 // Routes yang butuh autentikasi (filter 'session' & 'prodiScope' diaktifkan di Config/Filters.php)
 $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     $routes->get('/', 'Dashboard::index');
@@ -36,6 +40,42 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     $routes->group('instrumen', ['filter' => 'permission:instrumen.manage'], function ($routes) {
         $routes->get('/',       'InstrumenController::index');
         $routes->post('assign', 'InstrumenController::assign');
+    });
+
+    // VMTS (Visi Misi Tujuan Strategi)
+    $routes->group('vmts', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('/',      'VmtsController::index');
+        $routes->post('save',  'VmtsController::save');
+    });
+
+    // Sarana & Prasarana
+    $routes->group('sarpras', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('/',              'SarprasController::index');
+        $routes->get('create',         'SarprasController::create');
+        $routes->post('store',         'SarprasController::store');
+        $routes->get('(:num)/edit',    'SarprasController::edit/$1');
+        $routes->post('(:num)/update', 'SarprasController::update/$1');
+        $routes->post('(:num)/delete', 'SarprasController::delete/$1');
+    });
+
+    // Keuangan
+    $routes->group('keuangan', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('/',              'KeuanganController::index');
+        $routes->get('create',         'KeuanganController::create');
+        $routes->post('store',         'KeuanganController::store');
+        $routes->get('(:num)/edit',    'KeuanganController::edit/$1');
+        $routes->post('(:num)/update', 'KeuanganController::update/$1');
+        $routes->post('(:num)/delete', 'KeuanganController::delete/$1');
+    });
+
+    // Tenaga Kependidikan
+    $routes->group('tendik', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('/',              'TendikController::index');
+        $routes->get('create',         'TendikController::create');
+        $routes->post('store',         'TendikController::store');
+        $routes->get('(:num)/edit',    'TendikController::edit/$1');
+        $routes->post('(:num)/update', 'TendikController::update/$1');
+        $routes->post('(:num)/delete', 'TendikController::delete/$1');
     });
 
     // Admin
@@ -95,10 +135,17 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/update',            'Mahasiswa\MahasiswaController::update/$1');
         $routes->post('(:num)/delete',            'Mahasiswa\MahasiswaController::delete/$1');
         $routes->get('tracer',                     'Mahasiswa\MahasiswaController::tracerIndex');
+        $routes->get('tracer/laporan',             'Mahasiswa\MahasiswaController::tracerReport');
         $routes->post('tracer/kirim-semua',        'Mahasiswa\MahasiswaController::tracerKirimSemua');
         $routes->get('tracer/(:num)',              'Mahasiswa\MahasiswaController::tracerForm/$1');
         $routes->post('tracer/(:num)/store',       'Mahasiswa\MahasiswaController::tracerStore/$1');
         $routes->post('tracer/(:num)/kirim',       'Mahasiswa\MahasiswaController::tracerKirim/$1');
+        // Survei Kepuasan Pengguna Lulusan (2.B.6)
+        $routes->get('kepuasan',                   'Mahasiswa\MahasiswaController::kepuasanIndex');
+        $routes->post('kepuasan/kirim-semua',      'Mahasiswa\MahasiswaController::kepuasanKirimSemua');
+        $routes->get('kepuasan/(:num)',            'Mahasiswa\MahasiswaController::kepuasanForm/$1');
+        $routes->post('kepuasan/(:num)/store',     'Mahasiswa\MahasiswaController::kepuasanStore/$1');
+        $routes->post('kepuasan/(:num)/kirim',     'Mahasiswa\MahasiswaController::kepuasanKirim/$1');
     });
 
     // LKPS Generator

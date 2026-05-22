@@ -110,6 +110,10 @@ if ($isSuperadmin) {
                 <div class="nav-section">Data Akreditasi</div>
                 <nav class="nav flex-column">
                     <?php if ($can('prodi.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'prodi') && !str_starts_with(uri_string(), 'prodi/switch') ? 'active' : '' ?>" href="<?= site_url('prodi') ?>"><i class="bi bi-building"></i> Prodi</a><?php endif ?>
+                    <?php if ($can('prodi.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'vmts') ? 'active' : '' ?>" href="<?= site_url('vmts') ?>"><i class="bi bi-bullseye"></i> VMTS</a><?php endif ?>
+                    <?php if ($can('prodi.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'sarpras') ? 'active' : '' ?>" href="<?= site_url('sarpras') ?>"><i class="bi bi-building-gear"></i> Sarana & Prasarana</a><?php endif ?>
+                    <?php if ($can('prodi.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'tendik') ? 'active' : '' ?>" href="<?= site_url('tendik') ?>"><i class="bi bi-person-workspace"></i> Tenaga Kependidikan</a><?php endif ?>
+                    <?php if ($can('prodi.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'keuangan') ? 'active' : '' ?>" href="<?= site_url('keuangan') ?>"><i class="bi bi-cash-coin"></i> Keuangan</a><?php endif ?>
                     <?php if ($can('dosen.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'dosen') ? 'active' : '' ?>" href="<?= site_url('dosen') ?>"><i class="bi bi-people"></i> DTPR (Dosen)</a><?php endif ?>
                     <?php if ($can('mahasiswa.manage')): ?>
                         <a class="nav-link <?= str_starts_with(uri_string(), 'mahasiswa') ? 'active' : '' ?>" href="<?= site_url('mahasiswa') ?>"><i class="bi bi-person-badge"></i> Mahasiswa</a>

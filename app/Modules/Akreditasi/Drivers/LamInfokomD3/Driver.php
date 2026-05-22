@@ -245,7 +245,14 @@ class Driver implements AccreditationDriver
         return match ($kodeTabel) {
             '1.A.4' => $this->tabelEwmp($prodiId, $tahunAkademikId),
             '2.A.1' => $this->tabelDataMahasiswa($prodiId),
+            '2.A.2' => $this->tabelKeragamanMhs($prodiId),
+            '2.A.3' => $this->tabelKondisiMhs($prodiId),
+            '2.B.1' => $this->tabelIsiPembelajaran($prodiId),
+            '2.B.2' => $this->tabelDaftarCpl($prodiId),
+            '2.B.3' => $this->tabelPemenuhanCpl($prodiId),
             '2.B.4' => $this->tabelMasaTunggu($prodiId),
+            '2.B.5' => $this->tabelKesesuaian($prodiId),
+            '2.B.6' => $this->tabelKepuasan($prodiId),
             '3.A.2' => $this->tabelPenelitian($prodiId),
             '3.C.1' => $this->tabelKerjasama($prodiId, 'penelitian'),
             '3.C.2' => $this->tabelPublikasi($prodiId, 'penelitian'),
@@ -254,6 +261,13 @@ class Driver implements AccreditationDriver
             '4.C.1' => $this->tabelKerjasama($prodiId, 'pkm'),
             '4.C.2' => $this->tabelPublikasi($prodiId, 'pkm'),
             '4.C.3' => $this->tabelHki($prodiId, 'pkm'),
+            '3.A.1' => $this->tabelSarpras($prodiId, 'untuk_penelitian'),
+            '4.A.1' => $this->tabelSarpras($prodiId, 'untuk_pkm'),
+            '5.2'   => $this->tabelSarpras($prodiId, 'untuk_pendidikan'),
+            '6'     => $this->tabelVmts($prodiId),
+            '1.A.2' => $this->tabelKeuangan($prodiId, 'pemasukan'),
+            '1.A.3' => $this->tabelKeuangan($prodiId, 'pengeluaran'),
+            '1.A.5' => $this->tabelTendik($prodiId),
             default => [],
         };
     }
@@ -291,6 +305,142 @@ class Driver implements AccreditationDriver
             ->get()->getResultArray();
     }
 
+    private function kurikulumAktifId(int $prodiId): ?int
+    {
+        $row = Database::connect()->table('kurikulum')->select('id')
+            ->where(['prodi_id' => $prodiId, 'aktif' => 1])->get()->getRowArray();
+        return $row ? (int) $row['id'] : null;
+    }
+
+    /** Tabel 2.A.2 — Keragaman Asal Mahasiswa (per provinsi asal). */
+    private function tabelKeragamanMhs(int $prodiId): array
+    {
+        return Database::connect()->table('mahasiswa')
+            ->select('provinsi_asal, COUNT(*) AS jumlah', false)
+            ->where('prodi_id', $prodiId)
+            ->groupBy('provinsi_asal')
+            ->orderBy('jumlah', 'DESC')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 2.A.3 — Kondisi Jumlah Mahasiswa (per status). */
+    private function tabelKondisiMhs(int $prodiId): array
+    {
+        $db     = Database::connect();
+        $labels = ['aktif' => 'Mahasiswa Aktif', 'lulus' => 'Lulus', 'cuti' => 'Cuti', 'do' => 'Drop Out (DO)', 'keluar' => 'Mengundurkan Diri/Keluar'];
+        $rows   = $db->table('mahasiswa')->select('status, COUNT(*) AS jumlah', false)
+            ->where('prodi_id', $prodiId)->groupBy('status')->get()->getResultArray();
+        $map = [];
+        foreach ($rows as $r) $map[$r['status']] = (int) $r['jumlah'];
+        $out = [];
+        foreach ($labels as $k => $l) $out[] = ['kondisi' => $l, 'jumlah' => $map[$k] ?? 0];
+        return $out;
+    }
+
+    /** Tabel 2.B.1 — Isi Pembelajaran (daftar mata kuliah kurikulum aktif). */
+    private function tabelIsiPembelajaran(int $prodiId): array
+    {
+        $kid = $this->kurikulumAktifId($prodiId);
+        if (!$kid) return [];
+        return Database::connect()->table('mata_kuliah')
+            ->select('kode, nama, (sks_teori + sks_praktek + sks_lapangan) AS sks, semester, jenis', false)
+            ->where('kurikulum_id', $kid)
+            ->orderBy('semester, kode')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 2.B.2 — Daftar CPL kurikulum aktif. */
+    private function tabelDaftarCpl(int $prodiId): array
+    {
+        $kid = $this->kurikulumAktifId($prodiId);
+        if (!$kid) return [];
+        return Database::connect()->table('cpl')
+            ->select('kode, aspek, deskripsi')
+            ->where('kurikulum_id', $kid)
+            ->orderBy("FIELD(aspek,'sikap','pengetahuan','keterampilan_umum','keterampilan_khusus'), kode", '', false)
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 2.B.3 — Peta Pemenuhan CPL oleh Mata Kuliah. */
+    private function tabelPemenuhanCpl(int $prodiId): array
+    {
+        $kid = $this->kurikulumAktifId($prodiId);
+        if (!$kid) return [];
+        return Database::connect()->query("
+            SELECT c.kode AS cpl_kode,
+                   COUNT(mc.id) AS jml_mk,
+                   GROUP_CONCAT(mk.kode ORDER BY mk.kode SEPARATOR ', ') AS mk_list
+            FROM cpl c
+            LEFT JOIN mk_cpl mc ON mc.cpl_id = c.id
+            LEFT JOIN mata_kuliah mk ON mk.id = mc.mata_kuliah_id
+            WHERE c.kurikulum_id = ?
+            GROUP BY c.id, c.kode
+            ORDER BY c.kode
+        ", [$kid])->getResultArray();
+    }
+
+    /** Tabel 1.A.2 / 1.A.3 — Sumber Pendanaan / Penggunaan Dana. */
+    private function tabelKeuangan(int $prodiId, string $arah): array
+    {
+        return Database::connect()->table('keuangan k')
+            ->select('k.sumber_atau_pos, k.kategori, k.jumlah, ta.kode AS ta_kode')
+            ->join('tahun_akademik ta', 'ta.id = k.tahun_akademik_id', 'left')
+            ->where(['k.prodi_id' => $prodiId, 'k.arah' => $arah])
+            ->orderBy('ta.tahun_mulai DESC, k.sumber_atau_pos')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 1.A.5 — Kualifikasi Tenaga Kependidikan (rekap jenis x pendidikan). */
+    private function tabelTendik(int $prodiId): array
+    {
+        $db   = Database::connect();
+        $rows = $db->table('tendik')->select('jenis, pendidikan_terakhir, COUNT(*) AS n', false)
+            ->where(['prodi_id' => $prodiId, 'aktif' => 1])
+            ->groupBy(['jenis', 'pendidikan_terakhir'])->get()->getResultArray();
+
+        $jenisLabel = ['pustakawan' => 'Pustakawan', 'laboran' => 'Laboran', 'teknisi' => 'Teknisi',
+            'operator' => 'Operator', 'administrasi' => 'Administrasi', 'lainnya' => 'Lainnya'];
+        $jenjang = ['S3', 'S2', 'S1', 'D4', 'D3', 'D2', 'D1', 'SMA'];
+
+        $rekap = [];
+        foreach ($jenisLabel as $jk => $jl) {
+            $rekap[$jk] = ['jenis' => $jl] + array_fill_keys($jenjang, 0) + ['total' => 0];
+        }
+        foreach ($rows as $r) {
+            $jk = $r['jenis']; $pd = $r['pendidikan_terakhir'];
+            if (!isset($rekap[$jk])) continue;
+            if ($pd && isset($rekap[$jk][$pd])) $rekap[$jk][$pd] += (int) $r['n'];
+            $rekap[$jk]['total'] += (int) $r['n'];
+        }
+        // Hanya tampilkan jenis yang ada datanya
+        return array_values(array_filter($rekap, fn($r) => $r['total'] > 0));
+    }
+
+    /** Tabel 3.A.1 / 4.A.1 / 5.2 — Sarana & Prasarana (per peruntukan). */
+    private function tabelSarpras(int $prodiId, string $flag): array
+    {
+        return Database::connect()->table('sarpras')
+            ->select('nama, kategori, jumlah, luas_m2, kapasitas, kondisi, kepemilikan')
+            ->where('prodi_id', $prodiId)
+            ->where($flag, 1)
+            ->orderBy('kategori, nama')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 6 — Kesesuaian Visi, Misi, Tujuan, Strategi. */
+    private function tabelVmts(int $prodiId): array
+    {
+        $v = Database::connect()->table('vmts')
+            ->where(['prodi_id' => $prodiId, 'aktif' => 1])->orderBy('id', 'DESC')->get()->getRowArray();
+        if (!$v) return [];
+        return [
+            ['komponen' => 'Visi',     'isi' => $v['visi'] ?? '-'],
+            ['komponen' => 'Misi',     'isi' => $v['misi'] ?? '-'],
+            ['komponen' => 'Tujuan',   'isi' => $v['tujuan'] ?? '-'],
+            ['komponen' => 'Strategi', 'isi' => $v['strategi'] ?? '-'],
+        ];
+    }
+
     private function tabelMasaTunggu(int $prodiId): array
     {
         $db = Database::connect();
@@ -299,6 +449,53 @@ class Driver implements AccreditationDriver
             ->join('mahasiswa m', 'm.id = ts.mahasiswa_id')
             ->where('m.prodi_id', $prodiId)
             ->get()->getResultArray();
+    }
+
+    /** Tabel 2.B.5 — Kesesuaian Bidang Kerja Lulusan (per responden tracer). */
+    private function tabelKesesuaian(int $prodiId): array
+    {
+        $db = Database::connect();
+        return $db->table('tracer_study ts')
+            ->select('m.nim, m.nama, m.tgl_lulus, ts.kesesuaian_bidang_kerja, ts.tingkat_pekerjaan, ts.nama_perusahaan, ts.jabatan')
+            ->join('mahasiswa m', 'm.id = ts.mahasiswa_id')
+            ->where('m.prodi_id', $prodiId)
+            ->orderBy('m.tgl_lulus DESC, m.nama')
+            ->get()->getResultArray();
+    }
+
+    /** Tabel 2.B.6 — Kepuasan Pengguna Lulusan (% per aspek, 7 baris). */
+    private function tabelKepuasan(int $prodiId): array
+    {
+        $db   = Database::connect();
+        $rows = $db->query("
+            SELECT etika, keahlian, bahasa_asing, teknologi_info, komunikasi, kerjasama_tim, pengembangan_diri
+            FROM kepuasan_pengguna_lulusan k JOIN mahasiswa m ON m.id = k.mahasiswa_id
+            WHERE m.prodi_id = ?
+        ", [$prodiId])->getResultArray();
+
+        $aspek = [
+            'etika' => 'Etika', 'keahlian' => 'Keahlian pada bidang ilmu',
+            'bahasa_asing' => 'Kemampuan bahasa asing', 'teknologi_info' => 'Penggunaan teknologi informasi',
+            'komunikasi' => 'Kemampuan komunikasi', 'kerjasama_tim' => 'Kerjasama tim',
+            'pengembangan_diri' => 'Pengembangan diri',
+        ];
+        $out = [];
+        foreach ($aspek as $key => $label) {
+            $vals = array_filter(array_column($rows, $key), fn($v) => $v !== null && $v !== '');
+            $n    = count($vals);
+            $cnt  = [4 => 0, 3 => 0, 2 => 0, 1 => 0];
+            foreach ($vals as $v) { $vi = (int) $v; if (isset($cnt[$vi])) $cnt[$vi]++; }
+            $pct = fn(int $c) => $n ? round($c / $n * 100, 1) : 0;
+            $out[] = [
+                'aspek'       => $label,
+                'sangat_baik' => $pct($cnt[4]),
+                'baik'        => $pct($cnt[3]),
+                'cukup'       => $pct($cnt[2]),
+                'kurang'      => $pct($cnt[1]),
+                'responden'   => $n,
+            ];
+        }
+        return $out;
     }
 
     private function tabelPenelitian(int $prodiId): array

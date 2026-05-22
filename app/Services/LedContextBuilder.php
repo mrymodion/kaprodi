@@ -28,7 +28,7 @@ class LedContextBuilder
     /** Pemetaan kriteria → kode tabel LKPS yang relevan. */
     private const KRITERIA_TABEL = [
         'C1' => ['1.A.4'],
-        'C2' => ['2.A.1', '2.B.4'],
+        'C2' => ['2.A.1', '2.B.4', '2.B.5', '2.B.6'],
         'C3' => ['3.A.2', '3.C.2', '3.C.3', '3.C.1'],
         'C4' => ['4.A.2', '4.C.2', '4.C.3', '4.C.1'],
     ];

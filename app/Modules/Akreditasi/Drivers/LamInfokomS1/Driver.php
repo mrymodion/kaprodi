@@ -93,7 +93,8 @@ class Driver extends D3Driver
             if ($sub) $scores['2.2.B'] = $this->avg($sub);
         }
 
-        // ── 2.2.D — Pelaksanaan kompetensi lulusan (tracer study) ─────────────
+        // ── 2.2.D — Pelaksanaan kompetensi lulusan (tracer + kepuasan pengguna) ─
+        $sub = [];
         $tracer = $db->query("
             SELECT AVG(ts.masa_tunggu_bulan) avg_tunggu,
                    SUM(CASE WHEN ts.kesesuaian_bidang_kerja IN ('sesuai','sangat_sesuai') THEN 1 ELSE 0 END) sesuai,
@@ -102,14 +103,22 @@ class Driver extends D3Driver
             WHERE m.prodi_id = ?
         ", [$prodiId])->getRowArray();
         if ($tracer && (int) $tracer['total'] > 0) {
-            $sub = [];
             if ($tracer['avg_tunggu'] !== null) {
                 $t = (float) $tracer['avg_tunggu'];
                 $sub[] = $t < 3 ? 4 : ($t < 6 ? 3 : ($t < 12 ? 2 : 1));
             }
             $sub[] = $this->band((int) $tracer['sesuai'] / (int) $tracer['total'] * 100, [80, 60, 40]);
-            $scores['2.2.D'] = $this->avg($sub);
         }
+        // Kepuasan pengguna lulusan (skala 1-4, langsung jadi sub-skor)
+        $kpl = $db->query("
+            SELECT AVG((etika + keahlian + bahasa_asing + teknologi_info + komunikasi + kerjasama_tim + pengembangan_diri) / 7) r
+            FROM kepuasan_pengguna_lulusan k JOIN mahasiswa m ON m.id = k.mahasiswa_id
+            WHERE m.prodi_id = ?
+        ", [$prodiId])->getRow();
+        if ($kpl && $kpl->r !== null) {
+            $sub[] = max(1, min(4, (int) round((float) $kpl->r)));
+        }
+        if ($sub) $scores['2.2.D'] = $this->avg($sub);
 
         // ── 3.2.C — Pelaksanaan luaran penelitian (hibah/publikasi/HKI) ───────
         $pen = $db->query("
