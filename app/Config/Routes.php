@@ -164,6 +164,12 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('/',                        'Dosen\DosenController::index');
         $routes->get('create',                   'Dosen\DosenController::create');
         $routes->post('store',                   'Dosen\DosenController::store');
+        $routes->get('import',                   'Dosen\DosenController::importForm');
+        $routes->get('import/template',          'Dosen\DosenController::importTemplate');
+        $routes->post('import',                  'Dosen\DosenController::importStore');
+        $routes->get('ewmp/import',              'Dosen\DosenController::ewmpImportForm');
+        $routes->get('ewmp/import/template',     'Dosen\DosenController::ewmpImportTemplate');
+        $routes->post('ewmp/import',             'Dosen\DosenController::ewmpImportStore');
         $routes->get('(:num)',                   'Dosen\DosenController::show/$1');
         $routes->get('(:num)/edit',              'Dosen\DosenController::edit/$1');
         $routes->post('(:num)/update',           'Dosen\DosenController::update/$1');

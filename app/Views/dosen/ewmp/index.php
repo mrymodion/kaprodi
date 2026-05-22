@@ -3,9 +3,14 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-table"></i> EWMP — Ekuivalen Waktu Mengajar Penuh</h4>
-    <a href="<?= site_url('dosen') ?>" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i> Kembali ke DTPR
-    </a>
+    <div class="d-flex gap-2">
+        <a href="<?= site_url('dosen/ewmp/import') ?>" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-file-earmark-excel"></i> Import EWMP
+        </a>
+        <a href="<?= site_url('dosen') ?>" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Kembali ke DTPR
+        </a>
+    </div>
 </div>
 
 <?php if (session('success')): ?>

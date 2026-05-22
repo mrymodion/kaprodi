@@ -4,9 +4,14 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-people"></i> DTPR — Dosen Tetap Program Studi</h4>
     <?php if (auth()->user()->can('dosen.manage')): ?>
-        <a href="<?= site_url('dosen/create') ?>" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-circle"></i> Tambah Dosen
-        </a>
+        <div class="d-flex gap-2">
+            <a href="<?= site_url('dosen/import') ?>" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-file-earmark-excel"></i> Import Excel
+            </a>
+            <a href="<?= site_url('dosen/create') ?>" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Tambah Dosen
+            </a>
+        </div>
     <?php endif ?>
 </div>
 
