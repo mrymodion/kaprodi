@@ -182,10 +182,14 @@ class LedGenerator
             . "untuk akreditasi LAM INFOKOM 2.0 jenjang {$jenjang} pada program studi {$prodiNama}.\n\n"
             . "Tugas: {$instruksi}\n\n"
             . "Ketentuan: bahasa Indonesia formal akademik, faktual, 250-400 kata, "
-            . "langsung ke isi narasi tanpa menjelaskan singkatan atau memberi basa-basi.";
+            . "langsung ke isi narasi tanpa menjelaskan singkatan atau memberi basa-basi. "
+            . "Dasarkan seluruh angka dan fakta pada DATA PROGRAM STUDI di bawah ini, jangan mengarang.";
 
+        if ($extraContext === '') {
+            $extraContext = (new LedContextBuilder())->build($prodiId, $templateId);
+        }
         if ($extraContext) {
-            $prompt .= "\n\nData pendukung program studi:\n" . $extraContext;
+            $prompt .= "\n\n=== DATA PROGRAM STUDI ===\n" . $extraContext;
         }
 
         $client  = \Config\Services::curlrequest();
