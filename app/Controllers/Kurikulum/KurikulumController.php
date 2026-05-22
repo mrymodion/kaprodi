@@ -3,11 +3,14 @@
 namespace App\Controllers\Kurikulum;
 
 use App\Controllers\BaseController;
+use App\Controllers\Concerns\ExcelImport;
 use App\Models\{KurikulumModel, CplModel, MataKuliahModel, MkCplModel, CplKetercapaianModel};
 use Config\Database;
 
 class KurikulumController extends BaseController
 {
+    use ExcelImport;
+
     protected KurikulumModel       $kuriModel;
     protected CplModel             $cplModel;
     protected MataKuliahModel      $mkModel;
@@ -342,5 +345,160 @@ class KurikulumController extends BaseController
             $data[$f] = (int)($data[$f] ?? 0);
         }
         return $data;
+    }
+
+    // ══════════════════════════════════════════════════════
+    // IMPORT EXCEL — CPL
+    // ══════════════════════════════════════════════════════
+
+    public function cplImportForm(int $kuriId): string
+    {
+        return view('kurikulum/cpl_import', ['kuri' => $this->kuriModel->findOrFail($kuriId)]);
+    }
+
+    public function cplImportTemplate(int $kuriId)
+    {
+        $this->kuriModel->findOrFail($kuriId);
+        $contoh = ['CPL-01', 'pengetahuan', 'Mampu menerapkan konsep teoritis bidang informatika.'];
+        $petunjuk = [
+            ['Kolom wajib', 'kode, aspek, deskripsi'],
+            ['aspek', 'sikap | pengetahuan | keterampilan_umum | keterampilan_khusus'],
+            ['kode', 'unik per kurikulum; jika sudah ada akan diperbarui'],
+        ];
+        return $this->excelTemplate('Template_Import_CPL.xlsx', ['kode', 'aspek', 'deskripsi'], $contoh, $petunjuk);
+    }
+
+    public function cplImportStore(int $kuriId)
+    {
+        $this->kuriModel->findOrFail($kuriId);
+        $load = $this->readUpload();
+        if (is_string($load)) return redirect()->back()->with('error', $load);
+        [$sheet, $colOf, $highestRow] = $load;
+        if (!isset($colOf['kode']) || !isset($colOf['deskripsi'])) {
+            return redirect()->back()->with('error', 'Header "kode" dan "deskripsi" wajib ada. Gunakan template.');
+        }
+
+        $aspekValid = ['sikap', 'pengetahuan', 'keterampilan_umum', 'keterampilan_khusus'];
+        $inserted = 0; $updated = 0; $errors = []; $warnings = [];
+
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $val  = fn(string $k) => isset($colOf[$k]) ? trim((string) $sheet->getCell([$colOf[$k], $r])->getValue()) : '';
+            $kode = $val('kode');
+            $desk = $val('deskripsi');
+            if ($kode === '' && $desk === '') continue;
+            if ($kode === '' || $desk === '') { $errors[] = "Baris {$r}: kode dan deskripsi wajib."; continue; }
+
+            $aspek = strtolower(str_replace([' ', '-'], '_', $val('aspek')));
+            if (!in_array($aspek, $aspekValid, true)) {
+                $errors[] = "Baris {$r}: aspek \"{$val('aspek')}\" tidak valid (sikap/pengetahuan/keterampilan_umum/keterampilan_khusus)."; continue;
+            }
+
+            $data = ['kurikulum_id' => $kuriId, 'kode' => $kode, 'aspek' => $aspek, 'deskripsi' => $desk];
+            $existing = $this->cplModel->where(['kurikulum_id' => $kuriId, 'kode' => $kode])->first();
+            if ($existing) {
+                $this->cplModel->update($existing['id'], $data) ? $updated++ : $errors[] = "Baris {$r}: " . implode('; ', $this->cplModel->errors());
+            } else {
+                $this->cplModel->insert($data, false) ? $inserted++ : $errors[] = "Baris {$r}: " . implode('; ', $this->cplModel->errors());
+            }
+        }
+
+        return redirect()->to(site_url("kurikulum/{$kuriId}/cpl/import"))->with('importResult', compact('inserted', 'updated', 'errors', 'warnings'));
+    }
+
+    // ══════════════════════════════════════════════════════
+    // IMPORT EXCEL — MATA KULIAH
+    // ══════════════════════════════════════════════════════
+
+    public function mkImportForm(int $kuriId): string
+    {
+        return view('kurikulum/mk_import', ['kuri' => $this->kuriModel->findOrFail($kuriId)]);
+    }
+
+    public function mkImportTemplate(int $kuriId)
+    {
+        $this->kuriModel->findOrFail($kuriId);
+        $cols = ['kode', 'nama', 'sks_teori', 'sks_praktek', 'sks_lapangan', 'semester', 'jenis', 'cpl'];
+        $contoh = ['IF101', 'Algoritma & Pemrograman', '2', '1', '0', '1', 'wajib', 'CPL-01; CPL-03'];
+        $petunjuk = [
+            ['Kolom wajib', 'kode, nama, semester'],
+            ['jenis', 'wajib | pilihan | mbkm (kosong = wajib)'],
+            ['sks_teori/praktek/lapangan', 'angka SKS (kosong = 0)'],
+            ['cpl', 'daftar kode CPL yang didukung, dipisah ; atau , (mis. CPL-01; CPL-03)'],
+            ['kode', 'unik per kurikulum; jika sudah ada akan diperbarui'],
+        ];
+        return $this->excelTemplate('Template_Import_MataKuliah.xlsx', $cols, $contoh, $petunjuk);
+    }
+
+    public function mkImportStore(int $kuriId)
+    {
+        $this->kuriModel->findOrFail($kuriId);
+        $load = $this->readUpload();
+        if (is_string($load)) return redirect()->back()->with('error', $load);
+        [$sheet, $colOf, $highestRow] = $load;
+        if (!isset($colOf['kode']) || !isset($colOf['nama'])) {
+            return redirect()->back()->with('error', 'Header "kode" dan "nama" wajib ada. Gunakan template.');
+        }
+
+        // Peta kode CPL -> id untuk kurikulum ini
+        $cplMap = [];
+        foreach ($this->cplModel->where('kurikulum_id', $kuriId)->findAll() as $c) {
+            $cplMap[strtolower(trim($c['kode']))] = (int) $c['id'];
+        }
+
+        $jenisValid = ['wajib', 'pilihan', 'mbkm'];
+        $inserted = 0; $updated = 0; $errors = []; $warnings = [];
+
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $val  = fn(string $k) => isset($colOf[$k]) ? trim((string) $sheet->getCell([$colOf[$k], $r])->getValue()) : '';
+            $kode = $val('kode');
+            $nama = $val('nama');
+            if ($kode === '' && $nama === '') continue;
+            if ($kode === '' || $nama === '') { $errors[] = "Baris {$r}: kode dan nama wajib."; continue; }
+
+            $sem = $val('semester');
+            if ($sem === '' || !is_numeric($sem) || (int) $sem < 1) { $errors[] = "Baris {$r}: semester wajib angka >= 1."; continue; }
+
+            $jenis = strtolower($val('jenis')) ?: 'wajib';
+            if (!in_array($jenis, $jenisValid, true)) $jenis = 'wajib';
+
+            $intval = fn(string $k) => is_numeric($val($k)) ? (int) $val($k) : 0;
+            $data = [
+                'kurikulum_id' => $kuriId,
+                'kode'         => $kode,
+                'nama'         => $nama,
+                'sks_teori'    => $intval('sks_teori'),
+                'sks_praktek'  => $intval('sks_praktek'),
+                'sks_lapangan' => $intval('sks_lapangan'),
+                'semester'     => (int) $sem,
+                'jenis'        => $jenis,
+            ];
+
+            $existing = $this->mkModel->where(['kurikulum_id' => $kuriId, 'kode' => $kode])->first();
+            if ($existing) {
+                if ($this->mkModel->update($existing['id'], $data)) { $mkId = (int) $existing['id']; $updated++; }
+                else { $errors[] = "Baris {$r}: " . implode('; ', $this->mkModel->errors()); continue; }
+            } else {
+                $mkId = $this->mkModel->insert($data, true);
+                if (!$mkId) { $errors[] = "Baris {$r}: " . implode('; ', $this->mkModel->errors()); continue; }
+                $inserted++;
+            }
+
+            // Set peta CPL (ganti yang lama)
+            $cplCol = $val('cpl');
+            if ($cplCol !== '') {
+                $this->mkCplModel->where('mata_kuliah_id', $mkId)->delete();
+                foreach (preg_split('/[;,]/', $cplCol) as $kk) {
+                    $kk = strtolower(trim($kk));
+                    if ($kk === '') continue;
+                    if (isset($cplMap[$kk])) {
+                        $this->mkCplModel->insert(['mata_kuliah_id' => $mkId, 'cpl_id' => $cplMap[$kk], 'bobot' => 1.00]);
+                    } else {
+                        $warnings[] = "Baris {$r}: CPL \"{$kk}\" tidak ditemukan di kurikulum ini, dilewati.";
+                    }
+                }
+            }
+        }
+
+        return redirect()->to(site_url("kurikulum/{$kuriId}/mk/import"))->with('importResult', compact('inserted', 'updated', 'errors', 'warnings'));
     }
 }
