@@ -18,6 +18,22 @@ $can = fn($p) => $perms[$p] ?? false;
 // Cache env() — masing-masing call mem-parse .env file di CI4
 $appName = env('app.namaAplikasi', 'KAPRODI');
 $appPt   = env('app.namaPT', '');
+
+// Pemilih prodi aktif (khusus superadmin): daftar prodi + nama yang aktif
+$isSuperadmin    = $user && $user->inGroup('superadmin');
+$prodiSwitcher   = [];
+$activeProdiNama = null;
+if ($isSuperadmin) {
+    $activeProdiId = session('active_prodi_id');
+    $prodiSwitcher = \Config\Database::connect()
+        ->table('prodi')->select('id, nama, jenjang')
+        ->orderBy('nama', 'ASC')->get()->getResultArray();
+    foreach ($prodiSwitcher as $p) {
+        if ($activeProdiId && (int) $p['id'] === (int) $activeProdiId) {
+            $activeProdiNama = $p['nama'] . ' (' . $p['jenjang'] . ')';
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -48,6 +64,26 @@ $appPt   = env('app.namaPT', '');
             <strong><?= esc($appName) ?></strong>
             <small class="ms-2 opacity-75"><?= esc($appPt) ?></small>
         </a>
+        <div class="d-flex align-items-center gap-2">
+        <?php if ($isSuperadmin): ?>
+        <div class="dropdown">
+            <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-building"></i>
+                <?= $activeProdiNama ? esc($activeProdiNama) : 'Pilih Prodi' ?>
+            </button>
+            <ul class="dropdown-menu" style="max-height:60vh; overflow-y:auto;">
+                <li><h6 class="dropdown-header">Prodi aktif</h6></li>
+                <?php foreach ($prodiSwitcher as $p): ?>
+                    <li>
+                        <a class="dropdown-item <?= (int) session('active_prodi_id') === (int) $p['id'] ? 'active' : '' ?>"
+                           href="<?= site_url('prodi/switch/' . $p['id']) ?>">
+                            <?= esc($p['nama']) ?> <span class="text-muted small">(<?= esc($p['jenjang']) ?>)</span>
+                        </a>
+                    </li>
+                <?php endforeach ?>
+            </ul>
+        </div>
+        <?php endif ?>
         <div class="dropdown">
             <button class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="bi bi-person-circle"></i>
@@ -59,6 +95,7 @@ $appPt   = env('app.namaPT', '');
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="<?= site_url('logout') ?>"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
             </ul>
+        </div>
         </div>
     </div>
 </nav>
@@ -103,6 +140,9 @@ $appPt   = env('app.namaPT', '');
             <?php endif ?>
         </aside>
         <main class="col-md-10 p-4">
+            <?php if (session('message')): ?>
+                <div class="alert alert-success alert-dismissible fade show"><?= esc(session('message')) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            <?php endif ?>
             <?= $this->renderSection('content') ?>
         </main>
     </div>
