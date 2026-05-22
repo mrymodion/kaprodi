@@ -34,14 +34,6 @@ class DosenModel extends AppModel
             ->findAll();
     }
 
-    public function listAll(): array
-    {
-        return $this->select('dosen.*, p.nama AS nama_prodi')
-            ->join('prodi p', 'p.id = dosen.prodi_id', 'left')
-            ->orderBy('p.nama, dosen.nama')
-            ->findAll();
-    }
-
     public function summaryForProdi(int $prodiId): array
     {
         $base = $this->where(['prodi_id' => $prodiId, 'aktif' => 1]);

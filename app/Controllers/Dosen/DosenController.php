@@ -25,10 +25,7 @@ class DosenController extends BaseController
         $isSuperadmin = $user->inGroup('superadmin');
         $prodiId     = session('active_prodi_id');
 
-        $dosen = $isSuperadmin
-            ? $this->model->listAll()
-            : ($prodiId ? $this->model->listByProdi((int) $prodiId) : []);
-
+        $dosen   = $prodiId ? $this->model->listByProdi((int) $prodiId) : [];
         $summary = $prodiId ? $this->model->summaryForProdi((int) $prodiId) : null;
 
         return view('dosen/index', compact('dosen', 'summary', 'prodiId', 'isSuperadmin'));
