@@ -19,6 +19,7 @@ class TahunAkademikModel extends AppModel
 
     public function findAll(?int $limit = null, int $offset = 0): array
     {
-        return $this->orderBy('tahun_mulai DESC, semester DESC')->findAll($limit, $offset);
+        $this->orderBy('tahun_mulai DESC, semester DESC');
+        return parent::findAll($limit, $offset);
     }
 }
