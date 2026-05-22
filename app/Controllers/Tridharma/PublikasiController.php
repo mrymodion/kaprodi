@@ -57,14 +57,14 @@ class PublikasiController extends BaseController
 
     public function storePublikasi()
     {
-        if (!$this->validate($this->model->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
         $prodiId = $this->getProdiId();
         $data    = $this->request->getPost([
             'kategori','jenis','judul','penulis','nama_media','tahun','volume','doi','url','sitasi','sinta_score',
         ]);
         $data['prodi_id']   = $prodiId;
+        if (!$this->validateData($data, $this->model->validationRules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
         $data['created_at'] = date('Y-m-d H:i:s');
         $this->model->insert($data);
         return redirect()->to(site_url('publikasi'))->with('success', 'Publikasi berhasil disimpan.');
@@ -82,13 +82,14 @@ class PublikasiController extends BaseController
 
     public function updatePublikasi(int $id)
     {
-        $this->model->findOrFail($id);
-        if (!$this->validate($this->model->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
+        $item = $this->model->findOrFail($id);
         $data = $this->request->getPost([
             'kategori','jenis','judul','penulis','nama_media','tahun','volume','doi','url','sitasi','sinta_score',
         ]);
+        $data['prodi_id'] = (int) $item['prodi_id'];
+        if (!$this->validateData($data, $this->model->validationRules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
         $this->model->update($id, $data);
         return redirect()->to(site_url('publikasi'))->with('success', 'Publikasi berhasil diperbarui.');
     }
@@ -113,12 +114,12 @@ class PublikasiController extends BaseController
 
     public function storeHki()
     {
-        if (!$this->validate($this->hkiModel->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
         $prodiId = $this->getProdiId();
         $data    = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status']);
         $data['prodi_id']   = $prodiId;
+        if (!$this->validateData($data, $this->hkiModel->validationRules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
         $data['created_at'] = date('Y-m-d H:i:s');
         $this->hkiModel->insert($data);
         return redirect()->to(site_url('publikasi'))->with('success', 'HKI berhasil disimpan.');
@@ -136,11 +137,12 @@ class PublikasiController extends BaseController
 
     public function updateHki(int $id)
     {
-        $this->hkiModel->findOrFail($id);
-        if (!$this->validate($this->hkiModel->validationRules)) {
+        $item = $this->hkiModel->findOrFail($id);
+        $data = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status']);
+        $data['prodi_id'] = (int) $item['prodi_id'];
+        if (!$this->validateData($data, $this->hkiModel->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
-        $data = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status']);
         $this->hkiModel->update($id, $data);
         return redirect()->to(site_url('publikasi'))->with('success', 'HKI berhasil diperbarui.');
     }
