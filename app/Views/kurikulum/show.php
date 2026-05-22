@@ -58,9 +58,14 @@ $aspekColors = ['sikap'=>'success','pengetahuan'=>'primary','keterampilan_umum'=
         <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="fw-semibold">Capaian Pembelajaran Lulusan (CPL)</span>
             <?php if ($canManage): ?>
-                <a href="<?= site_url("kurikulum/{$kuri['id']}/cpl/create") ?>" class="btn btn-sm btn-success">
-                    <i class="bi bi-plus"></i> Tambah CPL
-                </a>
+                <span class="d-flex gap-2">
+                    <a href="<?= site_url("kurikulum/{$kuri['id']}/cpl/import") ?>" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-file-earmark-excel"></i> Import
+                    </a>
+                    <a href="<?= site_url("kurikulum/{$kuri['id']}/cpl/create") ?>" class="btn btn-sm btn-success">
+                        <i class="bi bi-plus"></i> Tambah CPL
+                    </a>
+                </span>
             <?php endif ?>
         </div>
 
@@ -105,9 +110,14 @@ $aspekColors = ['sikap'=>'success','pengetahuan'=>'primary','keterampilan_umum'=
         <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="fw-semibold">Daftar Mata Kuliah — Tabel 2.B.1</span>
             <?php if ($canManage): ?>
-                <a href="<?= site_url("kurikulum/{$kuri['id']}/mk/create") ?>" class="btn btn-sm btn-primary">
-                    <i class="bi bi-plus"></i> Tambah MK
-                </a>
+                <span class="d-flex gap-2">
+                    <a href="<?= site_url("kurikulum/{$kuri['id']}/mk/import") ?>" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-file-earmark-excel"></i> Import
+                    </a>
+                    <a href="<?= site_url("kurikulum/{$kuri['id']}/mk/create") ?>" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Tambah MK
+                    </a>
+                </span>
             <?php endif ?>
         </div>
         <?php

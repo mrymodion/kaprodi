@@ -58,12 +58,18 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/update',                                 'Kurikulum\KurikulumController::update/$1');
         $routes->post('(:num)/delete',                                 'Kurikulum\KurikulumController::delete/$1');
         // CPL
+        $routes->get('(:num)/cpl/import',                              'Kurikulum\KurikulumController::cplImportForm/$1');
+        $routes->get('(:num)/cpl/import/template',                     'Kurikulum\KurikulumController::cplImportTemplate/$1');
+        $routes->post('(:num)/cpl/import',                             'Kurikulum\KurikulumController::cplImportStore/$1');
         $routes->get('(:num)/cpl/create',                              'Kurikulum\KurikulumController::cplCreate/$1');
         $routes->post('(:num)/cpl/store',                              'Kurikulum\KurikulumController::cplStore/$1');
         $routes->get('(:num)/cpl/(:num)/edit',                         'Kurikulum\KurikulumController::cplEdit/$1/$2');
         $routes->post('(:num)/cpl/(:num)/update',                      'Kurikulum\KurikulumController::cplUpdate/$1/$2');
         $routes->post('(:num)/cpl/(:num)/delete',                      'Kurikulum\KurikulumController::cplDelete/$1/$2');
         // Mata Kuliah
+        $routes->get('(:num)/mk/import',                               'Kurikulum\KurikulumController::mkImportForm/$1');
+        $routes->get('(:num)/mk/import/template',                      'Kurikulum\KurikulumController::mkImportTemplate/$1');
+        $routes->post('(:num)/mk/import',                              'Kurikulum\KurikulumController::mkImportStore/$1');
         $routes->get('(:num)/mk/create',                               'Kurikulum\KurikulumController::mkCreate/$1');
         $routes->post('(:num)/mk/store',                               'Kurikulum\KurikulumController::mkStore/$1');
         $routes->get('(:num)/mk/(:num)/edit',                          'Kurikulum\KurikulumController::mkEdit/$1/$2');
