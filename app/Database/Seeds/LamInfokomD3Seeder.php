@@ -227,8 +227,8 @@ class LamInfokomD3Seeder extends Seeder
     private function defaultPrompt(?string $kriteria, ?string $sub): string
     {
         if (!$kriteria) {
-            return 'Tuliskan ' . ($sub ?: '') . ' LED dalam bahasa Indonesia formal.';
+            return 'Tuliskan bagian "' . ($sub ?: 'Pendahuluan') . '" dari Laporan Evaluasi Diri (LED) program studi dalam bahasa Indonesia formal akademik.';
         }
-        return "Tuliskan narasi tahap {$sub} untuk kriteria {$kriteria} pada LED LAM INFOKOM 2.0 D3 berdasarkan data prodi yang disediakan. Gaya: formal akademik, faktual, 250-400 kata, sertakan tren 3 tahun (TS-2, TS-1, TS) bila ada, dan rujukan ke tabel LKPS terkait.";
+        return "Tuliskan narasi tahap {$sub} untuk kriteria {$kriteria} pada Laporan Evaluasi Diri (LED) akreditasi LAM INFOKOM 2.0 D3 berdasarkan data prodi yang disediakan. Gaya: formal akademik, faktual, 250-400 kata, sertakan tren 3 tahun (TS-2, TS-1, TS) bila ada, dan rujukan ke tabel LKPS terkait.";
     }
 }

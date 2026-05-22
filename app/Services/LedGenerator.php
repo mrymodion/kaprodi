@@ -171,10 +171,21 @@ class LedGenerator
             throw new \RuntimeException("Template LED #{$templateId} tidak ditemukan.");
         }
 
-        $prompt = $template['prompt_groq'] ?: "Tuliskan narasi {$template['sub_bagian']} untuk {$template['judul']} pada LED LAM INFOKOM 2.0 D3. Gaya: formal akademik, faktual, 250-400 kata.";
+        $prodi     = $this->db->table('prodi')->where('id', $prodiId)->get()->getRowArray();
+        $prodiNama = $prodi['nama'] ?? 'program studi';
+        $jenjang   = $prodi['jenjang'] ?? '';
+
+        $instruksi = $template['prompt_groq']
+            ?: "Tuliskan narasi bagian \"{$template['sub_bagian']}\" untuk \"{$template['judul']}\".";
+
+        $prompt = "Konteks: Anda menulis bagian dari LED (Laporan Evaluasi Diri) "
+            . "untuk akreditasi LAM INFOKOM 2.0 jenjang {$jenjang} pada program studi {$prodiNama}.\n\n"
+            . "Tugas: {$instruksi}\n\n"
+            . "Ketentuan: bahasa Indonesia formal akademik, faktual, 250-400 kata, "
+            . "langsung ke isi narasi tanpa menjelaskan singkatan atau memberi basa-basi.";
 
         if ($extraContext) {
-            $prompt .= "\n\nKonteks data prodi:\n" . $extraContext;
+            $prompt .= "\n\nData pendukung program studi:\n" . $extraContext;
         }
 
         $client  = \Config\Services::curlrequest();
@@ -189,7 +200,7 @@ class LedGenerator
             'json' => [
                 'model'    => $model,
                 'messages' => [
-                    ['role' => 'system', 'content' => 'Anda adalah asisten penulis dokumen akreditasi perguruan tinggi Indonesia. Tulis narasi dalam bahasa Indonesia yang formal, akademik, dan faktual.'],
+                    ['role' => 'system', 'content' => 'Anda adalah konsultan penjaminan mutu yang menyusun LED (Laporan Evaluasi Diri) program studi untuk akreditasi LAM INFOKOM di Indonesia. Dalam seluruh konteks ini, "LED" SELALU berarti "Laporan Evaluasi Diri" (sebuah dokumen akreditasi), dan TIDAK PERNAH berarti komponen elektronik (Light Emitting Diode). Tulis narasi dalam bahasa Indonesia yang formal, akademik, dan faktual.'],
                     ['role' => 'user', 'content' => $prompt],
                 ],
                 'temperature' => 0.7,
