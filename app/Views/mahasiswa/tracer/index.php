@@ -11,6 +11,16 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif ?>
+<?php if (session('error')): ?>
+    <div class="alert alert-danger alert-dismissible fade show"><i class="bi bi-exclamation-triangle"></i> <?= esc(session('error')) ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif ?>
+<?php if (!($fonnteEnabled ?? false)): ?>
+    <div class="alert alert-secondary py-2 small"><i class="bi bi-whatsapp"></i>
+        Pengiriman kuesioner via WhatsApp belum aktif. Set <code>fonnte.token</code> di <code>.env</code> untuk mengaktifkan blast tracer study.
+    </div>
+<?php endif ?>
 
 <!-- KPI Tracer -->
 <?php if ($summary): ?>
@@ -56,9 +66,15 @@
 <!-- Lulusan belum tracer -->
 <?php if (!empty($belum)): ?>
 <div class="card border-warning mb-3">
-    <div class="card-header bg-warning-subtle fw-semibold">
-        <i class="bi bi-exclamation-triangle text-warning"></i>
-        Lulusan Belum Mengisi Tracer (<?= count($belum) ?>)
+    <div class="card-header bg-warning-subtle fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-exclamation-triangle text-warning"></i> Lulusan Belum Mengisi Tracer (<?= count($belum) ?>)</span>
+        <?php if ($fonnteEnabled ?? false): ?>
+        <form method="post" action="<?= site_url('mahasiswa/tracer/kirim-semua') ?>" class="m-0"
+              onsubmit="return confirm('Kirim link kuesioner via WhatsApp ke semua lulusan yang belum mengisi dan memiliki nomor WA?')">
+            <?= csrf_field() ?>
+            <button class="btn btn-sm btn-success"><i class="bi bi-whatsapp"></i> Kirim WA ke Semua</button>
+        </form>
+        <?php endif ?>
     </div>
     <div class="list-group list-group-flush">
         <?php foreach ($belum as $b): ?>
@@ -67,10 +83,19 @@
                     <code><?= esc($b['nim']) ?></code>
                     <strong class="ms-2"><?= esc($b['nama']) ?></strong>
                     <?= $b['tgl_lulus'] ? '<small class="text-muted ms-1">lulus '.date('M Y', strtotime($b['tgl_lulus'])).'</small>' : '' ?>
+                    <?php if (empty($b['no_hp'])): ?><span class="badge bg-light text-muted border ms-1">tanpa no. WA</span><?php endif ?>
                 </span>
-                <a href="<?= site_url("mahasiswa/tracer/{$b['id']}") ?>" class="btn btn-sm btn-warning">
-                    <i class="bi bi-plus-circle"></i> Isi Tracer
-                </a>
+                <span class="d-flex gap-1">
+                    <?php if (($fonnteEnabled ?? false) && !empty($b['no_hp'])): ?>
+                    <form method="post" action="<?= site_url("mahasiswa/tracer/{$b['id']}/kirim") ?>" class="m-0">
+                        <?= csrf_field() ?>
+                        <button class="btn btn-sm btn-outline-success" title="Kirim link via WhatsApp"><i class="bi bi-whatsapp"></i></button>
+                    </form>
+                    <?php endif ?>
+                    <a href="<?= site_url("mahasiswa/tracer/{$b['id']}") ?>" class="btn btn-sm btn-warning">
+                        <i class="bi bi-plus-circle"></i> Isi Tracer
+                    </a>
+                </span>
             </div>
         <?php endforeach ?>
     </div>

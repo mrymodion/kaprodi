@@ -65,7 +65,7 @@ class TracerStudyModel extends AppModel
     {
         $db = \Config\Database::connect();
         return $db->query("
-            SELECT m.id, m.nim, m.nama, m.tgl_lulus, m.ipk
+            SELECT m.id, m.nim, m.nama, m.no_hp, m.tgl_lulus, m.ipk
             FROM mahasiswa m
             LEFT JOIN tracer_study ts ON ts.mahasiswa_id = m.id
             WHERE m.prodi_id = ? AND m.status = 'lulus' AND ts.id IS NULL
