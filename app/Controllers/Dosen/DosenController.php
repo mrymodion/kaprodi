@@ -25,10 +25,11 @@ class DosenController extends BaseController
         $isSuperadmin = $user->inGroup('superadmin');
         $prodiId     = session('active_prodi_id');
 
-        $dosen   = $prodiId ? $this->model->listByProdi((int) $prodiId) : [];
-        $summary = $prodiId ? $this->model->summaryForProdi((int) $prodiId) : null;
+        $dosen     = $prodiId ? $this->model->listByProdi((int) $prodiId) : [];
+        $summary   = $prodiId ? $this->model->summaryForProdi((int) $prodiId) : null;
+        $kepatuhan = $prodiId ? $this->kepatuhanDtpr((int) $prodiId) : null;
 
-        return view('dosen/index', compact('dosen', 'summary', 'prodiId', 'isSuperadmin'));
+        return view('dosen/index', compact('dosen', 'summary', 'prodiId', 'isSuperadmin', 'kepatuhan'));
     }
 
     // ---------- CREATE ----------
@@ -64,7 +65,7 @@ class DosenController extends BaseController
         $data['nidn'] = trim((string)($data['nidn'] ?? '')) ?: null;
 
         $this->model->insert($data);
-        return redirect()->to(site_url('dosen'))->with('success', 'Dosen berhasil ditambahkan.');
+        return redirect()->to(site_url('dosen'))->with('success', $this->pesanSimpan('Dosen berhasil ditambahkan.', $data));
     }
 
     // ---------- EDIT ----------
@@ -103,7 +104,7 @@ class DosenController extends BaseController
         $data['nidn'] = trim((string)($data['nidn'] ?? '')) ?: null;
 
         $this->model->update($id, $data);
-        return redirect()->to(site_url('dosen'))->with('success', 'Data dosen berhasil diperbarui.');
+        return redirect()->to(site_url('dosen'))->with('success', $this->pesanSimpan('Data dosen berhasil diperbarui.', $data));
     }
 
     // ---------- DELETE ----------
@@ -112,6 +113,95 @@ class DosenController extends BaseController
         $this->model->findOrFail($id);
         $this->model->update($id, ['aktif' => 0]);
         return redirect()->to(site_url('dosen'))->with('success', 'Dosen dinonaktifkan.');
+    }
+
+    /** Evaluasi kepatuhan DTPR terhadap kaidah LAM untuk satu prodi. */
+    private function kepatuhanDtpr(int $prodiId): array
+    {
+        $db    = Database::connect();
+        $aktif = fn() => $db->table('dosen')->where(['prodi_id' => $prodiId, 'aktif' => 1]);
+
+        $jml     = (int) $aktif()->countAllResults();
+        $belumS2 = (int) $aktif()->groupStart()->where('pendidikan_terakhir', 'S1')
+                        ->orWhere('pendidikan_terakhir IS NULL')->groupEnd()->countAllResults();
+        $s3      = (int) $aktif()->where('pendidikan_terakhir', 'S3')->countAllResults();
+        $lkgb    = (int) $aktif()->whereIn('jabatan_akademik', ['Lektor Kepala', 'Guru Besar'])->countAllResults();
+        $serdos  = (int) $aktif()->where('sertifikat_pendidik', 1)->countAllResults();
+        $linier  = (int) $aktif()->where('linieritas', 'linier')->countAllResults();
+
+        $mhsAktif = (int) $db->table('mahasiswa')->where(['prodi_id' => $prodiId, 'status' => 'aktif'])->countAllResults();
+        $pct = fn(int $n) => $jml > 0 ? round($n / $jml * 100) : 0;
+
+        // EWMP di Tahun Sekarang (TS)
+        $tsId = $db->table('tahun_akademik')->where('is_ts', 1)->get()->getRowArray()['id'] ?? null;
+        $ewmpDinilai = 0; $ewmpLuar = 0;
+        if ($tsId) {
+            $rows = $db->table('dosen_ewmp e')->select('e.total_sks')
+                ->join('dosen d', 'd.id = e.dosen_id')
+                ->where(['d.prodi_id' => $prodiId, 'e.tahun_akademik_id' => $tsId])
+                ->get()->getResultArray();
+            $ewmpDinilai = count($rows);
+            $ewmpLuar = count(array_filter($rows, fn($r) => (float) $r['total_sks'] < 12 || (float) $r['total_sks'] > 16));
+        }
+
+        $rasio = $jml > 0 ? $mhsAktif / $jml : null;
+
+        $checks = [];
+        $checks[] = [
+            'label' => 'Jumlah DTPR aktif', 'wajib' => true,
+            'nilai' => "{$jml} dosen",
+            'status' => $jml >= 5 ? 'ok' : 'bad',
+            'ket' => 'Minimal 5 dosen homebase untuk program sarjana.',
+        ];
+        $checks[] = [
+            'label' => 'Kualifikasi minimal S2', 'wajib' => true,
+            'nilai' => $belumS2 === 0 ? 'Semua ≥ S2' : "{$belumS2} dosen belum S2",
+            'status' => $belumS2 === 0 ? 'ok' : 'bad',
+            'ket' => 'Seluruh DTPR wajib berpendidikan minimal magister (S2).',
+        ];
+        $checks[] = [
+            'label' => 'Linieritas bidang keahlian', 'wajib' => true,
+            'nilai' => "{$linier}/{$jml} ({$pct($linier)}%)",
+            'status' => $jml > 0 && $linier === $jml ? 'ok' : ($pct($linier) >= 80 ? 'warn' : 'bad'),
+            'ket' => 'Bidang keahlian DTPR sesuai (linier) dengan kompetensi inti PS.',
+        ];
+        $checks[] = [
+            'label' => 'Rasio dosen : mahasiswa', 'wajib' => true,
+            'nilai' => $rasio !== null ? '1 : ' . round($rasio, 1) : '-',
+            'status' => $rasio === null ? 'info' : ($rasio <= 25 ? 'ok' : ($rasio <= 30 ? 'warn' : 'bad')),
+            'ket' => 'Ideal ≤ 1:25, batas wajar ≤ 1:30 (bidang informatika/komputer).',
+        ];
+        $checks[] = [
+            'label' => 'Bersertifikat pendidik (Serdos)', 'wajib' => false,
+            'nilai' => "{$serdos}/{$jml} ({$pct($serdos)}%)",
+            'status' => $pct($serdos) >= 80 ? 'ok' : ($pct($serdos) >= 40 ? 'warn' : 'bad'),
+            'ket' => 'Indikator: makin tinggi makin baik.',
+        ];
+        $checks[] = [
+            'label' => 'Jabatan Lektor Kepala / Guru Besar', 'wajib' => false,
+            'nilai' => "{$lkgb}/{$jml} ({$pct($lkgb)}%)",
+            'status' => $lkgb > 0 ? ($pct($lkgb) >= 30 ? 'ok' : 'warn') : 'warn',
+            'ket' => 'Indikator: keberadaan dosen jabatan tinggi.',
+        ];
+        $checks[] = [
+            'label' => 'Bergelar S3 (Doktor)', 'wajib' => false,
+            'nilai' => "{$s3}/{$jml} ({$pct($s3)}%)",
+            'status' => $pct($s3) >= 30 ? 'ok' : ($pct($s3) >= 10 ? 'warn' : 'bad'),
+            'ket' => 'Indikator: target ≥ 30%.',
+        ];
+        $checks[] = [
+            'label' => 'EWMP 12–16 SKS (TS)', 'wajib' => false,
+            'nilai' => $ewmpDinilai === 0 ? 'Belum ada data EWMP' : ($ewmpLuar === 0 ? 'Semua dalam rentang' : "{$ewmpLuar} di luar rentang"),
+            'status' => $ewmpDinilai === 0 ? 'info' : ($ewmpLuar === 0 ? 'ok' : 'warn'),
+            'ket' => 'Beban kerja normal 12–16 SKS per semester.',
+        ];
+
+        $wajibBad = count(array_filter($checks, fn($c) => $c['wajib'] && $c['status'] === 'bad'));
+        return [
+            'checks'    => $checks,
+            'memenuhi'  => $wajibBad === 0,
+            'wajibBad'  => $wajibBad,
+        ];
     }
 
     /** Cari dosen lain dengan NIDN yang sama (lintas prodi). Null bila NIDN kosong/unik. */
@@ -125,6 +215,15 @@ class DosenController extends BaseController
             ->where('d.nidn', $nidn)
             ->where('d.id !=', $exceptId)
             ->get()->getRowArray();
+    }
+
+    /** Tambahkan peringatan kualifikasi pada pesan sukses bila pendidikan belum S2. */
+    private function pesanSimpan(string $base, array $data): string
+    {
+        if (in_array($data['pendidikan_terakhir'] ?? '', ['', 'S1'], true)) {
+            $base .= ' Peringatan: pendidikan belum magister (S2) — DTPR disyaratkan minimal S2.';
+        }
+        return $base;
     }
 
     private function pesanDuplikat(string $nidn, array $dupe): string
