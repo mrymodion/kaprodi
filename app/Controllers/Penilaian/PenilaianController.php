@@ -64,7 +64,7 @@ class PenilaianController extends BaseController
 
         $butir = $db->query("
             SELECT b.*,
-                bs.id AS skor_id, bs.skor_auto, bs.skor_manual, bs.skor_final, bs.catatan, bs.updated_at AS skor_updated_at
+                bs.id AS skor_id, bs.skor_auto, bs.skor_manual, bs.skor_final, bs.catatan, bs.link_bukti, bs.updated_at AS skor_updated_at
             FROM lam_butir b
             LEFT JOIN butir_skor bs ON bs.lam_butir_id = b.id
                 AND bs.prodi_id = ?
@@ -94,13 +94,18 @@ class PenilaianController extends BaseController
         $taId     = $this->request->getPost('tahun_akademik_id') ?: null;
         $skor     = $this->request->getPost('skor_manual') !== '' ? (float)$this->request->getPost('skor_manual') : null;
         $catatan  = $this->request->getPost('catatan');
+        $linkBukti = trim((string)$this->request->getPost('link_bukti'));
         $userId   = (int)auth()->user()->id;
 
         if ($skor !== null && ($skor < 1 || $skor > 4)) {
             return redirect()->back()->with('error', 'Skor harus antara 1-4.');
         }
 
-        $this->engine->saveSkorManual($prodiId, $butirId, $taId ? (int)$taId : null, $skor, $catatan, $userId);
+        if ($linkBukti !== '' && !filter_var($linkBukti, FILTER_VALIDATE_URL)) {
+            return redirect()->back()->withInput()->with('error', 'Link bukti harus berupa URL yang valid (diawali http:// atau https://).');
+        }
+
+        $this->engine->saveSkorManual($prodiId, $butirId, $taId ? (int)$taId : null, $skor, $catatan, $userId, $linkBukti === '' ? null : $linkBukti);
 
         return redirect()->back()->with('success', 'Skor berhasil disimpan.');
     }

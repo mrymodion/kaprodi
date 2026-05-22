@@ -150,9 +150,19 @@ $cardBorder = $skorFinal !== null
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label fw-semibold small">Catatan / Bukti</label>
+                        <label class="form-label fw-semibold small">Catatan</label>
                         <textarea name="catatan" class="form-control form-control-sm" rows="3"
-                            placeholder="Narasi singkat dasar penilaian, link bukti, dsb."><?= esc($b['catatan'] ?? '') ?></textarea>
+                            placeholder="Narasi singkat dasar penilaian."><?= esc($b['catatan'] ?? '') ?></textarea>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold small">Link Bukti (Google Drive)</label>
+                        <input type="url" name="link_bukti" class="form-control form-control-sm"
+                            placeholder="https://drive.google.com/..." value="<?= esc($b['link_bukti'] ?? '', 'attr') ?>">
+                        <small class="text-muted">Tempel link Google Drive dokumen pendukung (pastikan akses "siapa saja yang memiliki link").</small>
+                        <?php if (!empty($b['link_bukti'])): ?>
+                        <div class="mt-1"><a href="<?= esc($b['link_bukti'], 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Buka bukti</a></div>
+                        <?php endif ?>
                     </div>
 
                     <?php if ($b['skor_updated_at']): ?>
@@ -173,6 +183,9 @@ $cardBorder = $skorFinal !== null
                     <small class="fw-semibold">Catatan:</small><br>
                     <small><?= nl2br(esc($b['catatan'])) ?></small>
                 </div>
+                <?php endif ?>
+                <?php if (!empty($b['link_bukti'])): ?>
+                <div class="mt-1"><a href="<?= esc($b['link_bukti'], 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Buka bukti</a></div>
                 <?php endif ?>
             </div>
             <?php endif ?>
