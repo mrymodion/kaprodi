@@ -48,15 +48,15 @@ class KerjasamaController extends BaseController
 
     public function store()
     {
-        if (!$this->validate($this->model->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
         $prodiId = $this->getProdiId();
         $data    = $this->request->getPost([
             'nama_mitra','bidang','tingkat','jenis_dokumen','no_dokumen',
             'tgl_mulai','tgl_berakhir','manfaat','bukti_implementasi',
         ]);
         $data['prodi_id'] = $prodiId;
+        if (!$this->validateData($data, $this->model->validationRules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
         $this->model->insert($data);
         return redirect()->to(site_url('kerjasama'))->with('success', 'Kerjasama berhasil disimpan.');
     }
@@ -72,14 +72,15 @@ class KerjasamaController extends BaseController
 
     public function update(int $id)
     {
-        $this->model->findOrFail($id);
-        if (!$this->validate($this->model->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
+        $item = $this->model->findOrFail($id);
         $data = $this->request->getPost([
             'nama_mitra','bidang','tingkat','jenis_dokumen','no_dokumen',
             'tgl_mulai','tgl_berakhir','manfaat','bukti_implementasi',
         ]);
+        $data['prodi_id'] = (int) $item['prodi_id'];
+        if (!$this->validateData($data, $this->model->validationRules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
         $this->model->update($id, $data);
         return redirect()->to(site_url('kerjasama'))->with('success', 'Kerjasama berhasil diperbarui.');
     }
