@@ -34,7 +34,7 @@
 <?php endif ?>
 
 <?php if (!$groqEnabled): ?>
-<div class="alert alert-secondary py-2 small"><i class="bi bi-robot"></i> Fitur Groq AI tidak aktif. Set <code>GROQ_API_KEY</code> di file <code>.env</code> untuk mengaktifkan generate narasi otomatis.</div>
+<div class="alert alert-secondary py-2 small"><i class="bi bi-robot"></i> Fitur Groq AI tidak aktif. Set <code>groq.apiKey</code> di file <code>.env</code> untuk mengaktifkan generate narasi otomatis.</div>
 <?php endif ?>
 
 <?php if (!$instrumen): ?>
@@ -169,7 +169,7 @@
                     <li>Isi narasi PPEPP tiap kriteria secara manual atau klik <strong>Generate AI</strong> (perlu Groq API key).</li>
                     <li>Narasi AI otomatis diberi tanda <span class="badge bg-info fw-normal" style="font-size:.65rem"><i class="bi bi-robot"></i> AI</span> — wajib ditinjau ulang.</li>
                     <li>Klik <strong>Generate LED (.docx)</strong> untuk ekspor dokumen Word lengkap.</li>
-                    <li>Untuk mengaktifkan AI, set <code>GROQ_API_KEY=gsk_xxx</code> di <code>.env</code>.</li>
+                    <li>Untuk mengaktifkan AI, set <code>groq.apiKey = gsk_xxx</code> di <code>.env</code>.</li>
                 </ul>
             </div>
         </div>

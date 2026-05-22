@@ -157,13 +157,13 @@ class LedGenerator
 
     /**
      * Panggil Groq API untuk auto-generate narasi satu bagian.
-     * Throws RuntimeException jika GROQ_API_KEY tidak diset.
+     * Throws RuntimeException jika groq.apiKey tidak diset.
      */
     public function generateNarasiGroq(int $prodiId, int $templateId, string $extraContext = ''): string
     {
-        $apiKey = env('GROQ_API_KEY', '');
+        $apiKey = env('groq.apiKey', '');
         if (empty($apiKey)) {
-            throw new \RuntimeException('GROQ_API_KEY belum dikonfigurasi di .env.');
+            throw new \RuntimeException('groq.apiKey belum dikonfigurasi di .env.');
         }
 
         $template = $this->db->table('lam_template_led')->where('id', $templateId)->get()->getRowArray();
@@ -178,9 +178,10 @@ class LedGenerator
         }
 
         $client  = \Config\Services::curlrequest();
-        $model   = env('GROQ_MODEL', 'llama3-8b-8192');
+        $baseUrl = rtrim(env('groq.baseUrl', 'https://api.groq.com/openai/v1'), '/');
+        $model   = env('groq.modelLong', 'llama-3.3-70b-versatile');
 
-        $response = $client->request('POST', 'https://api.groq.com/openai/v1/chat/completions', [
+        $response = $client->request('POST', $baseUrl . '/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type'  => 'application/json',
@@ -194,7 +195,7 @@ class LedGenerator
                 'temperature' => 0.7,
                 'max_tokens'  => 800,
             ],
-            'timeout' => 30,
+            'timeout' => (int)env('groq.timeout', 60),
         ]);
 
         $body = json_decode($response->getBody(), true);

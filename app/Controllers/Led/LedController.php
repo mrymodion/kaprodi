@@ -41,7 +41,7 @@ class LedController extends BaseController
         $instrumen = $prodiId ? $this->engine->getInstrumen($prodiId) : null;
         $templates = $prodiId ? $this->generator->getTemplatesWithNarasi($prodiId) : [];
         $files     = $this->generator->listFiles();
-        $groqEnabled = !empty(env('GROQ_API_KEY', ''));
+        $groqEnabled = !empty(env('groq.apiKey', ''));
 
         // Kelompokkan templates by bagian/kriteria
         $byBagian = [];
