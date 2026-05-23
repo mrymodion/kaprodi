@@ -171,6 +171,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('/',                    'Penilaian\PenilaianController::index');
         $routes->get('kriteria/(:num)',      'Penilaian\PenilaianController::kriteria/$1');
         $routes->post('skor/(:num)/save',    'Penilaian\PenilaianController::saveSkor/$1');
+        $routes->get('bukti/(:segment)',     'Penilaian\PenilaianController::bukti/$1');
         $routes->post('run-auto',            'Penilaian\PenilaianController::runAuto');
     });
 
