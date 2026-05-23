@@ -268,6 +268,12 @@ class Driver implements AccreditationDriver
             '1.A.2' => $this->tabelKeuangan($prodiId, 'pemasukan'),
             '1.A.3' => $this->tabelKeuangan($prodiId, 'pengeluaran'),
             '1.A.5' => $this->tabelTendik($prodiId),
+            '1.A.1' => $this->tabelBorang($prodiId, 'tata_pamong', false),
+            '1.B'   => $this->tabelBorang($prodiId, 'spmi_unit', false),
+            '2.C'   => $this->tabelBorang($prodiId, 'fleksibilitas', true),
+            '2.D'   => $this->tabelBorang($prodiId, 'rekognisi_lulusan', true),
+            '3.A.3' => $this->tabelBorang($prodiId, 'pengembangan_dtpr', true),
+            '5.1'   => $this->tabelBorang($prodiId, 'tata_kelola_si', false),
             default => [],
         };
     }
@@ -414,6 +420,18 @@ class Driver implements AccreditationDriver
         }
         // Hanya tampilkan jenis yang ada datanya
         return array_values(array_filter($rekap, fn($r) => $r['total'] > 0));
+    }
+
+    /** Tabel borang pelengkap (1.A.1, 1.B, 2.C, 2.D, 3.A.3, 5.1). */
+    private function tabelBorang(int $prodiId, string $table, bool $withTa): array
+    {
+        $q = Database::connect()->table($table . ' t')->where('t.prodi_id', $prodiId);
+        if ($withTa) {
+            $q->select('t.*, ta.kode AS ta_kode')->join('tahun_akademik ta', 'ta.id = t.tahun_akademik_id', 'left');
+        } else {
+            $q->select('t.*');
+        }
+        return $q->orderBy('t.id')->get()->getResultArray();
     }
 
     /** Tabel 3.A.1 / 4.A.1 / 5.2 — Sarana & Prasarana (per peruntukan). */

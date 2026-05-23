@@ -78,6 +78,16 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/delete', 'TendikController::delete/$1');
     });
 
+    // Borang LKPS pelengkap (generik): tata-pamong, spmi, fleksibilitas, rekognisi, pengembangan-dtpr, tata-kelola
+    $routes->group('borang', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('(:segment)',                'BorangController::index/$1');
+        $routes->get('(:segment)/create',         'BorangController::create/$1');
+        $routes->post('(:segment)/store',         'BorangController::store/$1');
+        $routes->get('(:segment)/(:num)/edit',    'BorangController::edit/$1/$2');
+        $routes->post('(:segment)/(:num)/update', 'BorangController::update/$1/$2');
+        $routes->post('(:segment)/(:num)/delete', 'BorangController::delete/$1/$2');
+    });
+
     // Admin
     $routes->group('admin', function ($routes) {
         $routes->get('users',              'Admin\UserManagement::index');

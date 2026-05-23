@@ -56,6 +56,12 @@ class LkpsGenerator
         '1.A.2' => ['No', 'Sumber Pendanaan', 'Kategori', 'Tahun Akademik', 'Jumlah (Rp)'],
         '1.A.3' => ['No', 'Pos Penggunaan', 'Kategori', 'Tahun Akademik', 'Jumlah (Rp)'],
         '1.A.5' => ['Jenis Tenaga', 'S3', 'S2', 'S1', 'D4', 'D3', 'D2', 'D1', 'SMA', 'Total'],
+        '1.A.1' => ['No', 'Unit Kerja', 'Nama Pejabat', 'Jabatan', 'Periode', 'Pendidikan', 'Jab. Fungsional', 'Tugas Pokok & Fungsi'],
+        '1.B'   => ['No', 'Tingkat', 'Nama Unit SPMI', 'Dokumen SPMI', 'Jml Auditor', 'Certified', 'Non-Certified', 'Frek. Audit/Thn', 'Link Bukti'],
+        '2.C'   => ['No', 'Tahun Akademik', 'Bentuk Pembelajaran', 'Jml Mahasiswa', 'Keterangan', 'Link Bukti'],
+        '2.D'   => ['No', 'Tahun Akademik', 'Sumber', 'Jenis Pengakuan', 'Jumlah', 'Link Bukti'],
+        '3.A.3' => ['No', 'Tahun Akademik', 'Nama DTPR', 'Jenis Pengembangan', 'Jumlah', 'Link Bukti'],
+        '5.1'   => ['No', 'Jenis Tata Kelola', 'Nama Sistem Informasi', 'Akses', 'Unit Pengelola', 'Link Bukti'],
     ];
 
     public function __construct()
@@ -321,6 +327,18 @@ class LkpsGenerator
                 $r['ta_kode'] ?? '-', number_format((int) ($r['jumlah'] ?? 0), 0, ',', '.')],
             '1.A.5' => [$r['jenis'] ?? '-', $r['S3'] ?? 0, $r['S2'] ?? 0, $r['S1'] ?? 0, $r['D4'] ?? 0,
                 $r['D3'] ?? 0, $r['D2'] ?? 0, $r['D1'] ?? 0, $r['SMA'] ?? 0, $r['total'] ?? 0],
+            '1.A.1' => [$r['unit_kerja'] ?? '-', $r['nama_pejabat'] ?? '-', $r['jabatan'] ?? '-', $r['periode'] ?? '-',
+                $r['pendidikan_terakhir'] ?? '-', $r['jabatan_fungsional'] ?? '-', $r['tupoksi'] ?? '-'],
+            '1.B' => [$r['tingkat'] ?? '-', $r['nama_unit'] ?? '-', $r['dokumen_spmi'] ?? '-', $r['jml_auditor'] ?? 0,
+                $r['auditor_certified'] ?? 0, $r['auditor_non_certified'] ?? 0, $r['frekuensi_audit'] ?? 0, $r['link_bukti'] ?? '-'],
+            '2.C' => [$r['ta_kode'] ?? '-', str_replace('_', ' ', ucfirst($r['bentuk'] ?? '-')), $r['jumlah_mahasiswa'] ?? 0,
+                $r['keterangan'] ?? '-', $r['link_bukti'] ?? '-'],
+            '2.D' => [$r['ta_kode'] ?? '-', str_replace('_', ' ', ucfirst($r['sumber'] ?? '-')), $r['jenis_pengakuan'] ?? '-',
+                $r['jumlah'] ?? 0, $r['link_bukti'] ?? '-'],
+            '3.A.3' => [$r['ta_kode'] ?? '-', $r['nama_dtpr'] ?? '-', $r['jenis_pengembangan'] ?? '-',
+                $r['jumlah'] ?? 0, $r['link_bukti'] ?? '-'],
+            '5.1' => [str_replace('_', ' ', ucfirst($r['jenis'] ?? '-')), $r['nama_sistem'] ?? '-', ucfirst($r['akses'] ?? '-'),
+                $r['unit_pengelola'] ?? '-', $r['link_bukti'] ?? '-'],
             default => array_values($r),
         };
     }

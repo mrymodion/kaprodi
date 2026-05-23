@@ -127,6 +127,16 @@ if ($isSuperadmin) {
                     <?php if ($can('kerjasama.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'kerjasama') ? 'active' : '' ?>" href="<?= site_url('kerjasama') ?>"><i class="bi bi-link-45deg"></i> Kerjasama</a><?php endif ?>
                 </nav>
             <?php endif ?>
+            <?php if ($can('prodi.manage')): ?>
+                <div class="nav-section">Tata Kelola & Suplemen</div>
+                <nav class="nav flex-column">
+                    <?php foreach (\App\Controllers\BorangController::entities() as $bslug => $bdef): ?>
+                        <a class="nav-link <?= str_starts_with(uri_string(), 'borang/' . $bslug) ? 'active' : '' ?>" href="<?= site_url('borang/' . $bslug) ?>">
+                            <i class="bi <?= esc($bdef['icon']) ?>"></i> <?= esc($bdef['title']) ?>
+                        </a>
+                    <?php endforeach ?>
+                </nav>
+            <?php endif ?>
             <?php if ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate')): ?>
                 <div class="nav-section">Akreditasi</div>
                 <nav class="nav flex-column">
