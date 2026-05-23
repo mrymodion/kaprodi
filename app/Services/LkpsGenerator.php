@@ -88,7 +88,7 @@ class LkpsGenerator
             throw new \RuntimeException('Driver akreditasi tidak ditemukan.');
         }
 
-        $prodi = $this->db->table('prodi')->where('id', $prodiId)->get()->getRowArray();
+        $prodi = $this->db->table('prodi p')->select('p.*, p.kode_pddikti AS kode, u.nama AS upps')->join('upps u', 'u.id = p.upps_id', 'left')->where('p.id', $prodiId)->get()->getRowArray();
         $tabelList = $this->listTabel($prodiId);
 
         $spreadsheet = new Spreadsheet();
@@ -131,7 +131,7 @@ class LkpsGenerator
             throw new \RuntimeException('Driver akreditasi tidak ditemukan.');
         }
 
-        $prodi = $this->db->table('prodi')->where('id', $prodiId)->get()->getRowArray();
+        $prodi = $this->db->table('prodi p')->select('p.*, p.kode_pddikti AS kode, u.nama AS upps')->join('upps u', 'u.id = p.upps_id', 'left')->where('p.id', $prodiId)->get()->getRowArray();
         $tabelMeta = $this->db->table('lam_tabel_lkps')
             ->where('kode', $kodeTabel)->get()->getRowArray();
         if (!$tabelMeta) {
