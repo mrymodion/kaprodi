@@ -238,10 +238,16 @@ class LkpsGenerator
             foreach ($this->mapRow($r, $tabel['kode']) as $val) {
                 $coord = "{$col}{$dataRow}";
                 $str   = is_scalar($val) ? (string) $val : json_encode($val);
-                if ($str !== '' && preg_match('#^https?://#i', $str)) {
-                    // Jadikan link bukti dapat diklik
+                $url   = null;
+                if (\App\Services\EvidenceStorage::isStoredFile($str)) {
+                    helper('url');
+                    $url = site_url('eviden/file/' . $str);
+                } elseif ($str !== '' && preg_match('#^https?://#i', $str)) {
+                    $url = $str;
+                }
+                if ($url !== null) {
                     $sheet->setCellValue($coord, 'Lihat bukti');
-                    $sheet->getCell($coord)->getHyperlink()->setUrl($str);
+                    $sheet->getCell($coord)->getHyperlink()->setUrl($url);
                     $sheet->getStyle($coord)->getFont()->setUnderline(true)->getColor()->setRGB('0D6EFD');
                 } else {
                     $sheet->setCellValue($coord, $str);

@@ -15,7 +15,7 @@
 
 <div class="card">
     <div class="card-body">
-        <form method="post" action="<?= $action ?>">
+        <form method="post" action="<?= $action ?>" enctype="multipart/form-data">
             <?= csrf_field() ?>
 
             <div class="row g-3">
@@ -117,9 +117,20 @@
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label fw-semibold">Link Bukti (eviden)</label>
-                    <input type="url" name="link_bukti" class="form-control" placeholder="https://... (Google Drive / repositori)" value="<?= esc(old('link_bukti', $item['link_bukti'] ?? '')) ?>">
-                    <small class="text-muted">Akan tampil sebagai link yang dapat diklik di LKPS.</small>
+                    <label class="form-label fw-semibold">Bukti (PDF)</label>
+                    <?php $bk = old('link_bukti', $item['link_bukti'] ?? ''); ?>
+                    <?php if (!empty($bk)): ?>
+                    <div class="mb-1 small">
+                        <?php if (\App\Services\EvidenceStorage::isStoredFile($bk)): ?>
+                            <a href="<?= site_url('eviden/file/' . $bk) ?>" target="_blank"><i class="bi bi-file-earmark-pdf text-danger"></i> Lihat bukti</a>
+                        <?php else: ?>
+                            <a href="<?= esc($bk, 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Bukti (link lama)</a>
+                        <?php endif ?>
+                        <label class="ms-2 text-danger"><input type="checkbox" name="hapus_link_bukti" value="1"> hapus</label>
+                    </div>
+                    <?php endif ?>
+                    <input type="file" name="link_bukti" class="form-control" accept="application/pdf">
+                    <small class="text-muted">Unggah PDF dokumen pendukung (maks <?= (int) env('storage.maxUploadMb', 20) ?> MB, dikompres bila Ghostscript ada).</small>
                 </div>
             </div>
 

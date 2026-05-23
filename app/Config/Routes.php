@@ -78,6 +78,9 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/delete', 'TendikController::delete/$1');
     });
 
+    // Penyaji berkas bukti PDF (borang & tridharma)
+    $routes->get('eviden/file/(:segment)', 'EvidenceController::lihat/$1');
+
     // Dokumen eviden (PDF) untuk dosen & tendik
     $routes->post('dokumen/(:segment)/(:num)/upload', 'DokumenController::upload/$1/$2');
     $routes->get('dokumen/(:num)/lihat',              'DokumenController::lihat/$1');

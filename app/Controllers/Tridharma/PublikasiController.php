@@ -115,11 +115,14 @@ class PublikasiController extends BaseController
     public function storeHki()
     {
         $prodiId = $this->getProdiId();
-        $data    = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status','link_bukti']);
+        $data    = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status']);
         $data['prodi_id']   = $prodiId;
         if (!$this->validateData($data, $this->hkiModel->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
+        $res = (new \App\Services\EvidenceStorage())->syncUpload($this->request->getFile('link_bukti'), false, null);
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
+        $data['link_bukti'] = $res['value'];
         $data['created_at'] = date('Y-m-d H:i:s');
         $this->hkiModel->insert($data);
         return redirect()->to(site_url('publikasi'))->with('success', 'HKI berhasil disimpan.');
@@ -138,11 +141,14 @@ class PublikasiController extends BaseController
     public function updateHki(int $id)
     {
         $item = $this->hkiModel->findOrFail($id);
-        $data = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status','link_bukti']);
+        $data = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status']);
         $data['prodi_id'] = (int) $item['prodi_id'];
         if (!$this->validateData($data, $this->hkiModel->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
+        $res = (new \App\Services\EvidenceStorage())->syncUpload($this->request->getFile('link_bukti'), (bool) $this->request->getPost('hapus_link_bukti'), $item['link_bukti'] ?? null);
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
+        $data['link_bukti'] = $res['value'];
         $this->hkiModel->update($id, $data);
         return redirect()->to(site_url('publikasi'))->with('success', 'HKI berhasil diperbarui.');
     }
