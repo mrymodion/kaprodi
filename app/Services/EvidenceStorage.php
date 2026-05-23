@@ -56,6 +56,32 @@ class EvidenceStorage
         return ['ok' => true, 'name' => $name, 'compressed' => $compressed, 'before' => $before, 'after' => $after];
     }
 
+    /**
+     * Tangani field bukti: unggah baru / hapus / pertahankan.
+     * Return ['value'=>?string nama-file-atau-null, 'error'=>?string, 'compressed'=>bool].
+     */
+    public function syncUpload(?UploadedFile $file, bool $hapus, ?string $current): array
+    {
+        $isLocal = $current && !preg_match('#^https?://#i', (string) $current);
+        if ($hapus) {
+            if ($isLocal) $this->delete($current);
+            return ['value' => null, 'compressed' => false];
+        }
+        if ($file && $file->isValid() && $file->getSize() > 0) {
+            $res = $this->storePdf($file);
+            if (!$res['ok']) return ['error' => $res['error']];
+            if ($isLocal) $this->delete($current);
+            return ['value' => $res['name'], 'compressed' => $res['compressed']];
+        }
+        return ['value' => $current, 'compressed' => false];
+    }
+
+    /** Apakah nilai merupakan nama file bukti tersimpan (bukan URL). */
+    public static function isStoredFile(?string $v): bool
+    {
+        return (bool) ($v && preg_match('/^b[0-9a-f]{16}\.pdf$/i', $v));
+    }
+
     public function delete(?string $name): void
     {
         if (!$name) return;

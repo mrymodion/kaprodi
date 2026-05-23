@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\EvidenceStorage;
 use Config\Database;
 
 /**
@@ -38,7 +39,7 @@ class BorangController extends BaseController
                 'auditor_certified'     => ['Auditor Bersertifikat', 'number', false],
                 'auditor_non_certified' => ['Auditor Non-sertifikat', 'number', false],
                 'frekuensi_audit'       => ['Frekuensi Audit/Monev per Tahun', 'number', false],
-                'link_bukti'            => ['Link Bukti', 'text', false],
+                'link_bukti'            => ['Bukti (PDF)', 'file', false],
             ],
         ],
         'fleksibilitas' => [
@@ -51,7 +52,7 @@ class BorangController extends BaseController
                     'cbl_pbl' => 'CBL / PBL', 'lainnya' => 'Lainnya']],
                 'jumlah_mahasiswa'  => ['Jumlah Mahasiswa', 'number', false],
                 'keterangan'        => ['Keterangan', 'textarea', false],
-                'link_bukti'        => ['Link Bukti', 'text', false],
+                'link_bukti'        => ['Bukti (PDF)', 'file', false],
             ],
         ],
         'rekognisi' => [
@@ -63,7 +64,7 @@ class BorangController extends BaseController
                     'dunia_industri' => 'Dunia Industri', 'dunia_kerja' => 'Dunia Kerja']],
                 'jenis_pengakuan'   => ['Jenis Pengakuan/Rekognisi', 'text', true],
                 'jumlah'            => ['Jumlah', 'number', false],
-                'link_bukti'        => ['Link Bukti', 'text', false],
+                'link_bukti'        => ['Bukti (PDF)', 'file', false],
             ],
         ],
         'pengembangan-dtpr' => [
@@ -73,7 +74,7 @@ class BorangController extends BaseController
                 'nama_dtpr'          => ['Nama DTPR', 'text', true],
                 'jenis_pengembangan' => ['Jenis Pengembangan', 'text', true],
                 'jumlah'             => ['Jumlah', 'number', false],
-                'link_bukti'         => ['Link Bukti', 'text', false],
+                'link_bukti'         => ['Bukti (PDF)', 'file', false],
             ],
         ],
         'tata-kelola' => [
@@ -85,7 +86,7 @@ class BorangController extends BaseController
                 'nama_sistem'    => ['Nama Sistem Informasi', 'text', true],
                 'akses'          => ['Akses', 'select', false, ['lokal' => 'Lokal', 'internet' => 'Internet']],
                 'unit_pengelola' => ['Unit/SDM Pengelola', 'text', false],
-                'link_bukti'     => ['Link Bukti', 'text', false],
+                'link_bukti'     => ['Bukti (PDF)', 'file', false],
             ],
         ],
     ];
@@ -151,6 +152,9 @@ class BorangController extends BaseController
         if ($err = $this->validateReq($def, $data)) {
             return redirect()->back()->withInput()->with('error', $err);
         }
+        if ($err = $this->applyFiles($def, $data, null)) {
+            return redirect()->back()->withInput()->with('error', $err);
+        }
         Database::connect()->table($def['table'])->insert($data);
         return redirect()->to(site_url("borang/{$slug}"))->with('success', $def['title'] . ' ditambahkan.');
     }
@@ -173,6 +177,9 @@ class BorangController extends BaseController
         if ($err = $this->validateReq($def, $data)) {
             return redirect()->back()->withInput()->with('error', $err);
         }
+        if ($err = $this->applyFiles($def, $data, $item)) {
+            return redirect()->back()->withInput()->with('error', $err);
+        }
         $db->table($def['table'])->where('id', $id)->update($data);
         return redirect()->to(site_url("borang/{$slug}"))->with('success', $def['title'] . ' diperbarui.');
     }
@@ -188,8 +195,9 @@ class BorangController extends BaseController
     {
         $data = ['prodi_id' => $prodiId];
         foreach ($def['fields'] as $name => $f) {
-            $val = $this->request->getPost($name);
             $type = $f[1];
+            if ($type === 'file') continue; // ditangani applyFiles()
+            $val = $this->request->getPost($name);
             if ($type === 'number' || $type === 'ta') {
                 $data[$name] = ($val !== null && $val !== '') ? (int) $val : ($type === 'ta' ? null : 0);
             } else {
@@ -197,6 +205,23 @@ class BorangController extends BaseController
             }
         }
         return $data;
+    }
+
+    /** Proses field bertipe 'file' (upload/keep/hapus). Return pesan error atau null. */
+    private function applyFiles(array $def, array &$data, ?array $existing): ?string
+    {
+        $store = new EvidenceStorage();
+        foreach ($def['fields'] as $name => $f) {
+            if ($f[1] !== 'file') continue;
+            $res = $store->syncUpload(
+                $this->request->getFile($name),
+                (bool) $this->request->getPost('hapus_' . $name),
+                $existing[$name] ?? null
+            );
+            if (isset($res['error'])) return 'Bukti "' . $f[0] . '": ' . $res['error'];
+            $data[$name] = $res['value'];
+        }
+        return null;
     }
 
     private function validateReq(array $def, array $data): ?string

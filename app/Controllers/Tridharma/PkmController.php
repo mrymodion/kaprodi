@@ -66,11 +66,14 @@ class PkmController extends BaseController
             'tahun_akademik_id','judul','ketua_dosen_id','sumber_dana','nama_sumber_dana',
             'jumlah_dana','mitra','lokasi','tahun_pelaksanaan',
             'libatkan_mahasiswa','jumlah_mhs_terlibat','dampak',
-            'link_bukti',
         ]);
         $data['prodi_id']           = $prodiId;
         $data['libatkan_mahasiswa'] = $data['libatkan_mahasiswa'] ? 1 : 0;
         $data['jumlah_dana']        = str_replace(['.', ','], ['', ''], $data['jumlah_dana'] ?? '0');
+
+        $res = (new \App\Services\EvidenceStorage())->syncUpload($this->request->getFile('link_bukti'), false, null);
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
+        $data['link_bukti'] = $res['value'];
 
         $id = $this->model->insert($data);
         $anggota = $this->request->getPost('anggota') ?? [];
@@ -96,7 +99,7 @@ class PkmController extends BaseController
 
     public function update(int $id)
     {
-        $this->model->findOrFail($id);
+        $item = $this->model->findOrFail($id);
         if (!$this->validate($this->model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -104,10 +107,13 @@ class PkmController extends BaseController
             'tahun_akademik_id','judul','ketua_dosen_id','sumber_dana','nama_sumber_dana',
             'jumlah_dana','mitra','lokasi','tahun_pelaksanaan',
             'libatkan_mahasiswa','jumlah_mhs_terlibat','dampak',
-            'link_bukti',
         ]);
         $data['libatkan_mahasiswa'] = $data['libatkan_mahasiswa'] ? 1 : 0;
         $data['jumlah_dana']        = str_replace(['.', ','], ['', ''], $data['jumlah_dana'] ?? '0');
+
+        $res = (new \App\Services\EvidenceStorage())->syncUpload($this->request->getFile('link_bukti'), (bool) $this->request->getPost('hapus_link_bukti'), $item['link_bukti'] ?? null);
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
+        $data['link_bukti'] = $res['value'];
 
         $this->model->update($id, $data);
         $anggota = $this->request->getPost('anggota') ?? [];

@@ -42,8 +42,13 @@
                                     <?= esc($row['ta_kode'] ?? '-') ?>
                                 <?php elseif ($f[1] === 'select'): ?>
                                     <?= esc($f[3][$row[$name]] ?? ($row[$name] ?? '-')) ?>
-                                <?php elseif ($name === 'link_bukti'): ?>
-                                    <?php if (!empty($row[$name])): ?><a href="<?= esc($row[$name], 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i></a><?php else: ?>-<?php endif ?>
+                                <?php elseif ($f[1] === 'file'): ?>
+                                    <?php $fv = $row[$name] ?? ''; ?>
+                                    <?php if (\App\Services\EvidenceStorage::isStoredFile($fv)): ?>
+                                        <a href="<?= site_url('eviden/file/' . $fv) ?>" target="_blank"><i class="bi bi-file-earmark-pdf text-danger"></i></a>
+                                    <?php elseif (!empty($fv)): ?>
+                                        <a href="<?= esc($fv, 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i></a>
+                                    <?php else: ?>-<?php endif ?>
                                 <?php else: ?>
                                     <?= esc($row[$name] ?? '-') ?>
                                 <?php endif ?>

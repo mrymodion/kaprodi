@@ -12,14 +12,27 @@
 <?php endif ?>
 
 <div class="card"><div class="card-body">
-    <form method="post" action="<?= $isEdit ? site_url("borang/{$slug}/{$item['id']}/update") : site_url("borang/{$slug}/store") ?>">
+    <form method="post" action="<?= $isEdit ? site_url("borang/{$slug}/{$item['id']}/update") : site_url("borang/{$slug}/store") ?>" enctype="multipart/form-data">
         <?= csrf_field() ?>
         <div class="row g-3">
             <?php foreach ($def['fields'] as $name => $f): ?>
                 <?php $val = old($name, $item[$name] ?? ''); $req = !empty($f[2]); ?>
-                <div class="col-md-<?= in_array($f[1], ['textarea']) ? 12 : 6 ?>">
+                <div class="col-md-<?= in_array($f[1], ['textarea', 'file']) ? 12 : 6 ?>">
                     <label class="form-label fw-semibold"><?= esc($f[0]) ?><?= $req ? ' <span class="text-danger">*</span>' : '' ?></label>
-                    <?php if ($f[1] === 'textarea'): ?>
+                    <?php if ($f[1] === 'file'): ?>
+                        <?php if (!empty($val)): ?>
+                        <div class="mb-1 small">
+                            <?php if (\App\Services\EvidenceStorage::isStoredFile($val)): ?>
+                                <a href="<?= site_url('eviden/file/' . $val) ?>" target="_blank"><i class="bi bi-file-earmark-pdf text-danger"></i> Lihat bukti</a>
+                            <?php else: ?>
+                                <a href="<?= esc($val, 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Bukti (link lama)</a>
+                            <?php endif ?>
+                            <label class="ms-2 text-danger"><input type="checkbox" name="hapus_<?= $name ?>" value="1"> hapus</label>
+                        </div>
+                        <?php endif ?>
+                        <input type="file" name="<?= $name ?>" class="form-control" accept="application/pdf">
+                        <small class="text-muted">Unggah PDF (maks <?= (int) env('storage.maxUploadMb', 20) ?> MB, dikompres bila Ghostscript ada).</small>
+                    <?php elseif ($f[1] === 'textarea'): ?>
                         <textarea name="<?= $name ?>" class="form-control" rows="3"><?= esc($val) ?></textarea>
                     <?php elseif ($f[1] === 'number'): ?>
                         <input type="number" name="<?= $name ?>" class="form-control" value="<?= esc($val) ?>">
