@@ -58,4 +58,8 @@
     </form>
 </div></div>
 
+<?php if ($isEdit): ?>
+    <?= $this->include('dokumen/_panel', ['ref' => 'tendik', 'ownerId' => $item['id'], 'dokumen' => $dokumen ?? [], 'jenisOpt' => $jenisOpt ?? []]) ?>
+<?php endif ?>
+
 <?= $this->endSection() ?>

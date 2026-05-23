@@ -50,7 +50,13 @@ class TendikController extends BaseController
 
     public function edit(int $id): string
     {
-        return view('tendik/form', ['item' => $this->model->findOrFail($id), 'action' => site_url("tendik/{$id}/update"), 'jenis' => TendikModel::JENIS]);
+        return view('tendik/form', [
+            'item'    => $this->model->findOrFail($id),
+            'action'  => site_url("tendik/{$id}/update"),
+            'jenis'   => TendikModel::JENIS,
+            'dokumen' => (new \App\Models\DokumenEvidenModel())->listFor('tendik', $id),
+            'jenisOpt'=> \App\Models\DokumenEvidenModel::JENIS['tendik'],
+        ]);
     }
 
     public function update(int $id)

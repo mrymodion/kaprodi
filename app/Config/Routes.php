@@ -78,6 +78,11 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/delete', 'TendikController::delete/$1');
     });
 
+    // Dokumen eviden (PDF) untuk dosen & tendik
+    $routes->post('dokumen/(:segment)/(:num)/upload', 'DokumenController::upload/$1/$2');
+    $routes->get('dokumen/(:num)/lihat',              'DokumenController::lihat/$1');
+    $routes->post('dokumen/(:num)/delete',            'DokumenController::delete/$1');
+
     // Borang LKPS pelengkap (generik): tata-pamong, spmi, fleksibilitas, rekognisi, pengembangan-dtpr, tata-kelola
     $routes->group('borang', ['filter' => 'permission:prodi.manage'], function ($routes) {
         $routes->get('(:segment)',                'BorangController::index/$1');

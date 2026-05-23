@@ -530,7 +530,9 @@ class DosenController extends BaseController
             ->orderBy('ta.tahun_mulai DESC')
             ->get()->getResultArray();
 
-        return view('dosen/show', compact('dosen', 'ewmpList'));
+        $dokumen = (new \App\Models\DokumenEvidenModel())->listFor('dosen', $id);
+        $jenisOpt = \App\Models\DokumenEvidenModel::JENIS['dosen'];
+        return view('dosen/show', compact('dosen', 'ewmpList', 'dokumen', 'jenisOpt'));
     }
 
     // ---------- EWMP ----------

@@ -120,4 +120,8 @@
     <?php endif ?>
 </div>
 
+<?php if (auth()->user()->can('dosen.manage')): ?>
+    <?= $this->include('dokumen/_panel', ['ref' => 'dosen', 'ownerId' => $dosen['id'], 'dokumen' => $dokumen, 'jenisOpt' => $jenisOpt]) ?>
+<?php endif ?>
+
 <?= $this->endSection() ?>
