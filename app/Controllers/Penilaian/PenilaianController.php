@@ -131,6 +131,57 @@ class PenilaianController extends BaseController
         return redirect()->back()->with('success', 'Skor berhasil disimpan.' . $info);
     }
 
+    /** Draf catatan/justifikasi skor butir via Groq AI (JSON). */
+    public function catatanAi(int $butirId)
+    {
+        if (!auth()->user()->can('penilaian.input')) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Akses ditolak.']);
+        }
+        $client = new \App\Services\Ai\GroqClient();
+        if (!$client->isConfigured()) {
+            return $this->response->setJSON(['error' => 'Groq AI belum dikonfigurasi (set groq.apiKey di .env).']);
+        }
+
+        $db    = \Config\Database::connect();
+        $butir = $db->query("
+            SELECT b.kode, b.judul, b.deskripsi, k.kode AS kriteria_kode, k.nama AS kriteria_nama
+            FROM lam_butir b JOIN lam_kriteria k ON k.id = b.lam_kriteria_id
+            WHERE b.id = ?
+        ", [$butirId])->getRowArray();
+        if (!$butir) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Butir tidak ditemukan.']);
+        }
+
+        $skor  = (float) ($this->request->getPost('skor') ?: 0);
+        $rubrik = ($skor >= 1 && $skor <= 4)
+            ? $db->table('lam_butir_rubrik')->where(['lam_butir_id' => $butirId, 'skor' => (int) round($skor)])->get()->getRowArray()
+            : null;
+        $prodiId = $this->getProdiId();
+        $prodi   = $prodiId ? $db->table('prodi')->where('id', $prodiId)->get()->getRowArray() : null;
+
+        $sys = 'Anda penyusun dokumen akreditasi LAM INFOKOM. Tulis "catatan/justifikasi penilaian" singkat '
+             . '(2-4 kalimat) dalam bahasa Indonesia formal akademik yang menjelaskan dasar pemberian skor untuk satu butir. '
+             . 'Faktual dan langsung ke inti, tanpa basa-basi dan tanpa menyebut diri sebagai AI.';
+        $usr = 'Program studi: ' . ($prodi['nama'] ?? '-') . ".\n"
+             . "Kriteria {$butir['kriteria_kode']} - {$butir['kriteria_nama']}.\n"
+             . "Butir {$butir['kode']}: {$butir['judul']}.\n"
+             . 'Deskripsi butir: ' . ($butir['deskripsi'] ?? '-') . "\n"
+             . 'Skor yang diberikan: ' . ($skor >= 1 ? $skor . ' dari 4' : 'belum ditentukan') . ".\n"
+             . ($rubrik ? "Rubrik skor {$rubrik['skor']} ({$rubrik['label']}): {$rubrik['deskriptor']}\n" : '')
+             . "\nTuliskan catatan justifikasi yang konsisten dengan skor tersebut.";
+
+        try {
+            $text = $client->chat([
+                ['role' => 'system', 'content' => $sys],
+                ['role' => 'user', 'content' => $usr],
+            ], false, 0.5);
+            return $this->response->setJSON(['ok' => true, 'text' => trim($text)]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Groq catatan error: ' . $e->getMessage());
+            return $this->response->setJSON(['error' => 'Gagal menghubungi Groq AI.']);
+        }
+    }
+
     /** Unduh / tampilkan berkas bukti PDF. */
     public function bukti(string $name)
     {
