@@ -150,8 +150,13 @@ $cardBorder = $skorFinal !== null
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label fw-semibold small">Catatan</label>
-                        <textarea name="catatan" class="form-control form-control-sm" rows="3"
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label class="form-label fw-semibold small mb-0">Catatan</label>
+                            <button type="button" class="btn btn-sm btn-outline-info py-0 px-1 btn-ai-catatan"
+                                data-butir="<?= $b['id'] ?>" data-skor="<?= esc($b['skor_manual'] ?? $b['skor_auto'] ?? '', 'attr') ?>"
+                                title="Buat draf catatan dengan AI"><i class="bi bi-robot"></i> Bantu AI</button>
+                        </div>
+                        <textarea name="catatan" class="form-control form-control-sm mt-1" rows="3"
                             placeholder="Narasi singkat dasar penilaian."><?= esc($b['catatan'] ?? '') ?></textarea>
                     </div>
 
@@ -235,5 +240,30 @@ $next = isset($allK[$curIdx + 1]) ? $allK[$curIdx + 1] : null;
     <?php endif ?>
 </div>
 <?php endif ?>
+
+<script>
+document.querySelectorAll('.btn-ai-catatan').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var form = btn.closest('form');
+        var ta   = form ? form.querySelector('textarea[name="catatan"]') : null;
+        var sel  = form ? form.querySelector('select[name="skor_manual"]') : null;
+        var skor = (sel && sel.value) ? sel.value : (btn.dataset.skor || '');
+        var orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membuat...';
+        var body = new URLSearchParams(); body.append('skor', skor);
+        fetch('<?= site_url('penilaian/catatan-ai/') ?>' + btn.dataset.butir, {
+            method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}, body: body
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d && d.ok && ta) {
+                ta.value = d.text;
+            } else {
+                alert(d && d.error ? d.error : 'Gagal membuat draf.');
+            }
+        }).catch(function () { alert('Gagal menghubungi server.'); })
+          .finally(function () { btn.disabled = false; btn.innerHTML = orig; });
+    });
+});
+</script>
 
 <?= $this->endSection() ?>
