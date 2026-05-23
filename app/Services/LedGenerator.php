@@ -74,9 +74,17 @@ class LedGenerator
             throw new \RuntimeException('Prodi belum memiliki instrumen LAM aktif.');
         }
 
-        $prodi     = $this->db->table('prodi')->where('id', $prodiId)->get()->getRowArray();
+        $prodi     = $this->db->table('prodi p')
+            ->select('p.*, p.kode_pddikti AS kode, u.nama AS upps')
+            ->join('upps u', 'u.id = p.upps_id', 'left')
+            ->where('p.id', $prodiId)->get()->getRowArray();
         $templates = $this->getTemplatesWithNarasi($prodiId);
         $totalSkor = $this->engine->totalSkor($prodiId, $instrumen['id'], $taId);
+
+        // Wajib: PhpWord tidak escape teks secara default, sehingga karakter
+        // seperti & < > pada narasi/nama instrumen membuat .docx korup
+        // (Word minta "repair"). Aktifkan output escaping global.
+        \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
 
         $phpWord = new PhpWord();
         $phpWord->getSettings()->setUpdateFields(true);
