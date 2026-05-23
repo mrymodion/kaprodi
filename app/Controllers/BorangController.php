@@ -124,10 +124,13 @@ class BorangController extends BaseController
         $prodiId = $this->prodiId();
         $list    = [];
         if ($prodiId) {
-            $list = Database::connect()->table($def['table'] . ' t')
-                ->select('t.*, ta.kode AS ta_kode')
-                ->join('tahun_akademik ta', 'ta.id = t.tahun_akademik_id', 'left')
-                ->where('t.prodi_id', $prodiId)->orderBy('t.id', 'DESC')->get()->getResultArray();
+            $q = Database::connect()->table($def['table'] . ' t')->where('t.prodi_id', $prodiId);
+            if (isset($def['fields']['tahun_akademik_id'])) {
+                $q->select('t.*, ta.kode AS ta_kode')->join('tahun_akademik ta', 'ta.id = t.tahun_akademik_id', 'left');
+            } else {
+                $q->select('t.*');
+            }
+            $list = $q->orderBy('t.id', 'DESC')->get()->getResultArray();
         }
         return view('borang/index', ['slug' => $slug, 'def' => $def, 'list' => $list]);
     }
