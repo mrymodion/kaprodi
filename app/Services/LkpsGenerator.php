@@ -41,14 +41,14 @@ class LkpsGenerator
         '2.B.4' => ['No', 'NIM', 'Nama Lulusan', 'Masa Tunggu (bulan)', 'Kesesuaian Bidang Kerja', 'Nama Perusahaan', 'Jabatan'],
         '2.B.5' => ['No', 'NIM', 'Nama Lulusan', 'Tahun Lulus', 'Kesesuaian Bidang Kerja', 'Tingkat Pekerjaan', 'Nama Perusahaan', 'Jabatan'],
         '2.B.6' => ['No', 'Aspek Kemampuan', 'Sangat Baik (%)', 'Baik (%)', 'Cukup (%)', 'Kurang (%)', 'Jml Responden'],
-        '3.A.2' => ['No', 'Judul Penelitian', 'Ketua', 'Sumber Dana', 'Nama Sumber', 'Jumlah Dana (Rp)', 'Tahun', 'Libatkan Mahasiswa', 'Jml Mhs'],
+        '3.A.2' => ['No', 'Judul Penelitian', 'Ketua', 'Sumber Dana', 'Nama Sumber', 'Jumlah Dana (Rp)', 'Tahun', 'Libatkan Mahasiswa', 'Jml Mhs', 'Link Bukti'],
         '3.C.1' => ['No', 'Nama Mitra', 'Tingkat', 'Jenis Dokumen', 'No. Dokumen', 'Tgl Mulai', 'Tgl Berakhir', 'Manfaat', 'Bukti Implementasi'],
-        '3.C.2' => ['No', 'Jenis', 'Judul', 'Penulis', 'Nama Media', 'Tahun', 'Volume', 'DOI', 'Sitasi', 'SINTA'],
-        '3.C.3' => ['No', 'Jenis HKI', 'Judul', 'No. HKI', 'Tahun', 'Pemilik', 'Status'],
-        '4.A.2' => ['No', 'Judul PkM', 'Ketua', 'Sumber Dana', 'Nama Sumber', 'Jumlah Dana (Rp)', 'Mitra', 'Lokasi', 'Tahun', 'Libatkan Mahasiswa', 'Jml Mhs'],
+        '3.C.2' => ['No', 'Jenis', 'Judul', 'Penulis', 'Nama Media', 'Tahun', 'Volume', 'DOI', 'Sitasi', 'SINTA', 'Link Bukti'],
+        '3.C.3' => ['No', 'Jenis HKI', 'Judul', 'No. HKI', 'Tahun', 'Pemilik', 'Status', 'Link Bukti'],
+        '4.A.2' => ['No', 'Judul PkM', 'Ketua', 'Sumber Dana', 'Nama Sumber', 'Jumlah Dana (Rp)', 'Mitra', 'Lokasi', 'Tahun', 'Libatkan Mahasiswa', 'Jml Mhs', 'Link Bukti'],
         '4.C.1' => ['No', 'Nama Mitra', 'Tingkat', 'Jenis Dokumen', 'No. Dokumen', 'Tgl Mulai', 'Tgl Berakhir', 'Manfaat', 'Bukti Implementasi'],
-        '4.C.2' => ['No', 'Jenis', 'Judul', 'Penulis', 'Nama Media', 'Tahun', 'Volume', 'DOI', 'Sitasi', 'SINTA'],
-        '4.C.3' => ['No', 'Jenis HKI', 'Judul', 'No. HKI', 'Tahun', 'Pemilik', 'Status'],
+        '4.C.2' => ['No', 'Jenis', 'Judul', 'Penulis', 'Nama Media', 'Tahun', 'Volume', 'DOI', 'Sitasi', 'SINTA', 'Link Bukti'],
+        '4.C.3' => ['No', 'Jenis HKI', 'Judul', 'No. HKI', 'Tahun', 'Pemilik', 'Status', 'Link Bukti'],
         '3.A.1' => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
         '4.A.1' => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
         '5.2'   => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
@@ -236,7 +236,16 @@ class LkpsGenerator
                 $col++;
             }
             foreach ($this->mapRow($r, $tabel['kode']) as $val) {
-                $sheet->setCellValue("{$col}{$dataRow}", is_scalar($val) ? $val : json_encode($val));
+                $coord = "{$col}{$dataRow}";
+                $str   = is_scalar($val) ? (string) $val : json_encode($val);
+                if ($str !== '' && preg_match('#^https?://#i', $str)) {
+                    // Jadikan link bukti dapat diklik
+                    $sheet->setCellValue($coord, 'Lihat bukti');
+                    $sheet->getCell($coord)->getHyperlink()->setUrl($str);
+                    $sheet->getStyle($coord)->getFont()->setUnderline(true)->getColor()->setRGB('0D6EFD');
+                } else {
+                    $sheet->setCellValue($coord, $str);
+                }
                 $col++;
             }
             $dataRow++;
@@ -304,21 +313,21 @@ class LkpsGenerator
                 $r['sumber_dana'] ?? '-', $r['nama_sumber_dana'] ?? '-',
                 $r['jumlah_dana'] ?? 0, $r['tahun_pelaksanaan'] ?? '-',
                 ($r['libatkan_mahasiswa'] ?? 0) ? 'Ya' : 'Tidak',
-                $r['jumlah_mhs_terlibat'] ?? 0],
+                $r['jumlah_mhs_terlibat'] ?? 0, $r['link_bukti'] ?? '-'],
             '4.A.2' => [$r['judul'] ?? '-', $r['ketua'] ?? '-',
                 $r['sumber_dana'] ?? '-', $r['nama_sumber_dana'] ?? '-',
                 $r['jumlah_dana'] ?? 0, $r['mitra'] ?? '-', $r['lokasi'] ?? '-',
                 $r['tahun_pelaksanaan'] ?? '-',
                 ($r['libatkan_mahasiswa'] ?? 0) ? 'Ya' : 'Tidak',
-                $r['jumlah_mhs_terlibat'] ?? 0],
+                $r['jumlah_mhs_terlibat'] ?? 0, $r['link_bukti'] ?? '-'],
             '3.C.1', '4.C.1' => [$r['nama_mitra'] ?? '-', $r['tingkat'] ?? '-', $r['jenis_dokumen'] ?? '-',
                 $r['no_dokumen'] ?? '-', $r['tgl_mulai'] ?? '-', $r['tgl_berakhir'] ?? '-',
                 $r['manfaat'] ?? '-', $r['bukti_implementasi'] ?? '-'],
             '3.C.2', '4.C.2' => [$r['jenis'] ?? '-', $r['judul'] ?? '-', $r['penulis'] ?? '-',
                 $r['nama_media'] ?? '-', $r['tahun'] ?? '-', $r['volume'] ?? '-',
-                $r['doi'] ?? '-', $r['sitasi'] ?? 0, $r['sinta_score'] ?? '-'],
+                $r['doi'] ?? '-', $r['sitasi'] ?? 0, $r['sinta_score'] ?? '-', $r['url'] ?? '-'],
             '3.C.3', '4.C.3' => [$r['jenis'] ?? '-', $r['judul'] ?? '-', $r['no_hki'] ?? '-',
-                $r['tahun'] ?? '-', $r['pemilik'] ?? '-', $r['status'] ?? '-'],
+                $r['tahun'] ?? '-', $r['pemilik'] ?? '-', $r['status'] ?? '-', $r['link_bukti'] ?? '-'],
             '3.A.1', '4.A.1', '5.2' => [$r['nama'] ?? '-', str_replace('_', ' ', ucfirst($r['kategori'] ?? '-')),
                 $r['jumlah'] ?? 0, $r['luas_m2'] ?? '-', $r['kapasitas'] ?? '-',
                 str_replace('_', ' ', ucfirst($r['kondisi'] ?? '-')), ucfirst($r['kepemilikan'] ?? '-')],

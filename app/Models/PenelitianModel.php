@@ -12,7 +12,7 @@ class PenelitianModel extends AppModel
     protected $allowedFields = [
         'prodi_id', 'tahun_akademik_id', 'judul', 'ketua_dosen_id',
         'sumber_dana', 'nama_sumber_dana', 'jumlah_dana', 'mata_uang',
-        'tahun_pelaksanaan', 'libatkan_mahasiswa', 'jumlah_mhs_terlibat',
+        'tahun_pelaksanaan', 'libatkan_mahasiswa', 'jumlah_mhs_terlibat', 'link_bukti',
     ];
 
     // prodi_id dikecualikan — nilainya diset server-side, bukan dari form POST

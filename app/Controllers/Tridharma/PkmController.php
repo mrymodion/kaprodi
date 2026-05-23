@@ -66,6 +66,7 @@ class PkmController extends BaseController
             'tahun_akademik_id','judul','ketua_dosen_id','sumber_dana','nama_sumber_dana',
             'jumlah_dana','mitra','lokasi','tahun_pelaksanaan',
             'libatkan_mahasiswa','jumlah_mhs_terlibat','dampak',
+            'link_bukti',
         ]);
         $data['prodi_id']           = $prodiId;
         $data['libatkan_mahasiswa'] = $data['libatkan_mahasiswa'] ? 1 : 0;
@@ -103,6 +104,7 @@ class PkmController extends BaseController
             'tahun_akademik_id','judul','ketua_dosen_id','sumber_dana','nama_sumber_dana',
             'jumlah_dana','mitra','lokasi','tahun_pelaksanaan',
             'libatkan_mahasiswa','jumlah_mhs_terlibat','dampak',
+            'link_bukti',
         ]);
         $data['libatkan_mahasiswa'] = $data['libatkan_mahasiswa'] ? 1 : 0;
         $data['jumlah_dana']        = str_replace(['.', ','], ['', ''], $data['jumlah_dana'] ?? '0');

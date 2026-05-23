@@ -102,6 +102,12 @@
                     <label class="form-label fw-semibold">Jumlah Mahasiswa Terlibat</label>
                     <input type="number" name="jumlah_mhs_terlibat" class="form-control" min="0" value="<?= old('jumlah_mhs_terlibat', $item['jumlah_mhs_terlibat'] ?? '0') ?>">
                 </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Link Bukti (eviden)</label>
+                    <input type="url" name="link_bukti" class="form-control" placeholder="https://... (Google Drive / repositori)" value="<?= esc(old('link_bukti', $item['link_bukti'] ?? '')) ?>">
+                    <small class="text-muted">Tautan dokumen pendukung — akan tampil sebagai link yang dapat diklik di LKPS.</small>
+                </div>
             </div>
 
             <div class="mt-4">

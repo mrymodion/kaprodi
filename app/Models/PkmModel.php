@@ -13,7 +13,7 @@ class PkmModel extends AppModel
         'prodi_id', 'tahun_akademik_id', 'judul', 'ketua_dosen_id',
         'sumber_dana', 'nama_sumber_dana', 'jumlah_dana',
         'mitra', 'lokasi', 'tahun_pelaksanaan',
-        'libatkan_mahasiswa', 'jumlah_mhs_terlibat', 'dampak',
+        'libatkan_mahasiswa', 'jumlah_mhs_terlibat', 'dampak', 'link_bukti',
     ];
 
     // prodi_id dikecualikan — nilainya diset server-side, bukan dari form POST
