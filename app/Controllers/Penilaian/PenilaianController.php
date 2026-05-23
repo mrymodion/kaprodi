@@ -80,7 +80,17 @@ class PenilaianController extends BaseController
             ", [$b['id']])->getResultArray();
         }
 
-        return view('penilaian/kriteria', compact('k', 'butir', 'instrumen', 'prodiId', 'taList', 'taId', 'kriteriaId'));
+        // Dasar perhitungan auto-skor (transparansi)
+        $autoBasis = [];
+        if ($prodiId && $instrumen) {
+            $driver = $this->engine->getDriver($prodiId);
+            if ($driver && method_exists($driver, 'explanations')) {
+                $driver->computeScores($prodiId, $taId ? (int) $taId : null);
+                $autoBasis = $driver->explanations();
+            }
+        }
+
+        return view('penilaian/kriteria', compact('k', 'butir', 'instrumen', 'prodiId', 'taList', 'taId', 'kriteriaId', 'autoBasis'));
     }
 
     /** Simpan skor manual satu butir (POST via form kecil). */

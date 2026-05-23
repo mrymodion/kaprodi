@@ -23,221 +23,115 @@ class Driver implements AccreditationDriver
     public function code(): string { return 'lam-infokom-2.0-d3'; }
     public function name(): string { return 'LAM INFOKOM 2.0 D3'; }
 
+    /** Penjelasan dasar perhitungan auto-skor terakhir: [kode_butir => teks]. */
+    protected array $explain = [];
+
+    public function explanations(): array
+    {
+        return $this->explain;
+    }
+
     public function computeScores(int $prodiId, ?int $tahunAkademikId = null): array
     {
+        $db     = Database::connect();
         $scores = [];
-        $db = Database::connect();
+        $this->explain = [];
 
-        // ── C1: DTPR ──────────────────────────────────────────────────────────
-        $jumlahDosen = $db->table('dosen')
+        $jumlahDosen = (int) $db->table('dosen')
             ->where(['prodi_id' => $prodiId, 'aktif' => 1])->countAllResults();
 
+        // ── 2.2.A — Pelaksanaan DTPR & penerimaan mahasiswa baru ──────────────
         if ($jumlahDosen > 0) {
-            // % S3 → C1.x (ambang: ≥30% = 4, ≥20% = 3, ≥10% = 2, <10% = 1)
-            $s3 = $db->table('dosen')
-                ->where(['prodi_id' => $prodiId, 'aktif' => 1, 'pendidikan_terakhir' => 'S3'])
-                ->countAllResults();
-            $pctS3 = $s3 / $jumlahDosen * 100;
-            $scores['C1.3'] = $pctS3 >= 30 ? 4 : ($pctS3 >= 20 ? 3 : ($pctS3 >= 10 ? 2 : 1));
-
-            // % LK+GB → C1.x (ambang: ≥30%=4, ≥20%=3, ≥10%=2, <10%=1)
-            $lkGb = $db->table('dosen')
-                ->where(['prodi_id' => $prodiId, 'aktif' => 1])
-                ->whereIn('jabatan_akademik', ['Lektor Kepala', 'Guru Besar'])
-                ->countAllResults();
-            $pctLkGb = $lkGb / $jumlahDosen * 100;
-            $scores['C1.4'] = $pctLkGb >= 30 ? 4 : ($pctLkGb >= 20 ? 3 : ($pctLkGb >= 10 ? 2 : 1));
-
-            // % Serdos (≥80%=4, ≥60%=3, ≥40%=2, <40%=1)
-            $serdos = $db->table('dosen')
-                ->where(['prodi_id' => $prodiId, 'aktif' => 1, 'sertifikat_pendidik' => 1])
-                ->countAllResults();
-            $pctSerdos = $serdos / $jumlahDosen * 100;
-            $scores['C1.5'] = $pctSerdos >= 80 ? 4 : ($pctSerdos >= 60 ? 3 : ($pctSerdos >= 40 ? 2 : 1));
-
-            // % Linier (≥80%=4, ≥60%=3, ≥40%=2, <40%=1)
-            $linier = $db->table('dosen')
-                ->where(['prodi_id' => $prodiId, 'aktif' => 1, 'linieritas' => 'linier'])
-                ->countAllResults();
-            $pctLinier = $linier / $jumlahDosen * 100;
-            $scores['C1.6'] = $pctLinier >= 80 ? 4 : ($pctLinier >= 60 ? 3 : ($pctLinier >= 40 ? 2 : 1));
+            $sub = [];
+            $s3 = (int) $db->table('dosen')->where(['prodi_id' => $prodiId, 'aktif' => 1, 'pendidikan_terakhir' => 'S3'])->countAllResults();
+            $sub[] = $this->band($s3 / $jumlahDosen * 100, [30, 20, 10]);
+            $lkGb = (int) $db->table('dosen')->where(['prodi_id' => $prodiId, 'aktif' => 1])
+                ->whereIn('jabatan_akademik', ['Lektor Kepala', 'Guru Besar'])->countAllResults();
+            $sub[] = $this->band($lkGb / $jumlahDosen * 100, [30, 20, 10]);
+            $serdos = (int) $db->table('dosen')->where(['prodi_id' => $prodiId, 'aktif' => 1, 'sertifikat_pendidik' => 1])->countAllResults();
+            $sub[] = $this->band($serdos / $jumlahDosen * 100, [80, 60, 40]);
+            $linier = (int) $db->table('dosen')->where(['prodi_id' => $prodiId, 'aktif' => 1, 'linieritas' => 'linier'])->countAllResults();
+            $sub[] = $this->band($linier / $jumlahDosen * 100, [80, 60, 40]);
+            $mhsAktif = (int) $db->table('mahasiswa')->where(['prodi_id' => $prodiId, 'status' => 'aktif'])->countAllResults();
+            $rasio = $mhsAktif / $jumlahDosen;
+            $sub[] = $rasio <= 20 ? 4 : ($rasio <= 25 ? 3 : ($rasio <= 30 ? 2 : 1));
+            $scores['2.2.A'] = $this->avg($sub);
+            $this->explain['2.2.A'] = sprintf('DTPR: S3=%d, LK+GB=%d, serdos=%d, linier=%d dari %d dosen; rasio 1:%.1f. (rata-rata sub-skor 1-4)', $s3, $lkGb, $serdos, $linier, $jumlahDosen, $rasio);
         }
 
-        // Rasio Dosen:Mahasiswa (D3 ideal 1:20 → 4; 1:25→3; 1:30→2; >30→1)
-        $jumlahMhs = $db->table('mahasiswa')
-            ->where(['prodi_id' => $prodiId, 'status' => 'aktif'])->countAllResults();
-        if ($jumlahDosen > 0) {
-            $rasio = $jumlahMhs / $jumlahDosen;
-            $scores['C1.2'] = $rasio <= 20 ? 4 : ($rasio <= 25 ? 3 : ($rasio <= 30 ? 2 : 1));
-        }
-
-        // EWMP rata-rata total SKS (normal 12-16 → 4; 10-12 → 3; 8-10 → 2; <8 → 1)
-        if ($tahunAkademikId && $jumlahDosen > 0) {
-            $ewmpAvg = $db->table('dosen_ewmp e')
-                ->selectAvg('e.total_sks', 'avg_sks')
-                ->join('dosen d', 'd.id = e.dosen_id')
-                ->where(['d.prodi_id' => $prodiId, 'e.tahun_akademik_id' => $tahunAkademikId])
-                ->get()->getRowArray();
-            if ($ewmpAvg && $ewmpAvg['avg_sks']) {
-                $avg = (float)$ewmpAvg['avg_sks'];
-                $scores['C1.7'] = ($avg >= 12 && $avg <= 16) ? 4 : ($avg >= 10 ? 3 : ($avg >= 8 ? 2 : 1));
-            }
-        }
-
-        // ── C2: Kurikulum OBE ─────────────────────────────────────────────────
-        $kuriRow = $db->table('kurikulum')->where(['prodi_id' => $prodiId, 'aktif' => 1])->get()->getRowArray();
-        if ($kuriRow) {
-            $kuriId  = $kuriRow['id'];
-            $jmlCpl  = $db->table('cpl')->where('kurikulum_id', $kuriId)->countAllResults();
-            $jmlMk   = $db->table('mata_kuliah')->where('kurikulum_id', $kuriId)->countAllResults();
-
-            // C2.1 — CPL tersedia & minimal (≥10=4, ≥7=3, ≥4=2, <4=1)
+        // ── 2.2.B — Pelaksanaan isi pembelajaran & kurikulum OBE ──────────────
+        $kuri = $db->table('kurikulum')->where(['prodi_id' => $prodiId, 'aktif' => 1])->get()->getRowArray();
+        if ($kuri) {
+            $sub = []; $kuriId = $kuri['id'];
+            $jmlCpl = (int) $db->table('cpl')->where('kurikulum_id', $kuriId)->countAllResults();
+            $jmlMk  = (int) $db->table('mata_kuliah')->where('kurikulum_id', $kuriId)->countAllResults();
             if ($jmlCpl > 0) {
-                $scores['C2.1'] = $jmlCpl >= 10 ? 4 : ($jmlCpl >= 7 ? 3 : ($jmlCpl >= 4 ? 2 : 1));
-            }
-
-            // C2.3 — Coverage CPL oleh MK: % CPL yang didukung ≥1 MK (≥100%=4, ≥80%=3, ≥60%=2, <60%=1)
-            if ($jmlCpl > 0 && $jmlMk > 0) {
-                $cplCovered = $db->query("
-                    SELECT COUNT(DISTINCT mc.cpl_id) AS n FROM mk_cpl mc
-                    JOIN mata_kuliah mk ON mk.id = mc.mata_kuliah_id
-                    WHERE mk.kurikulum_id = ?
-                ", [$kuriId])->getRowArray();
-                $pctCoverage = ($cplCovered['n'] ?? 0) / $jmlCpl * 100;
-                $scores['C2.3'] = $pctCoverage >= 100 ? 4 : ($pctCoverage >= 80 ? 3 : ($pctCoverage >= 60 ? 2 : 1));
-            }
-
-            // C2.5 — Ketercapaian CPL rata-rata (≥75%=4, ≥60%=3, ≥50%=2, <50%=1)
-            if ($tahunAkademikId) {
-                $ketRow = $db->query("
-                    SELECT AVG(ck.persen_tercapai) AS avg_pct
-                    FROM cpl_ketercapaian ck
-                    JOIN mata_kuliah mk ON mk.id = ck.mata_kuliah_id
-                    WHERE mk.kurikulum_id = ? AND ck.tahun_akademik_id = ?
-                ", [$kuriId, $tahunAkademikId])->getRowArray();
-                if ($ketRow && $ketRow['avg_pct'] !== null) {
-                    $avgPct = (float)$ketRow['avg_pct'];
-                    $scores['C2.5'] = $avgPct >= 75 ? 4 : ($avgPct >= 60 ? 3 : ($avgPct >= 50 ? 2 : 1));
+                $sub[] = $this->band($jmlCpl, [10, 7, 4]);
+                if ($jmlMk > 0) {
+                    $cov = $db->query("SELECT COUNT(DISTINCT mc.cpl_id) n FROM mk_cpl mc JOIN mata_kuliah mk ON mk.id = mc.mata_kuliah_id WHERE mk.kurikulum_id = ?", [$kuriId])->getRow()->n;
+                    $sub[] = $this->band($cov / $jmlCpl * 100, [100, 80, 60]);
                 }
             }
-        }
-
-        // ── C2: Kepuasan pengguna & Lulusan ───────────────────────────────────
-        $db = Database::connect();
-        $kpl = $db->table('kepuasan_pengguna_lulusan kpl')
-            ->select('AVG((etika + keahlian + bahasa_asing + teknologi_info + komunikasi + kerjasama_tim + pengembangan_diri) / 7) AS rata')
-            ->join('mahasiswa m', 'm.id = kpl.mahasiswa_id')
-            ->where('m.prodi_id', $prodiId)
-            ->get()->getRowArray();
-        if ($kpl && $kpl['rata']) {
-            // Asumsi butir terkait kepuasan pengguna lulusan ada di C2 output
-            $scores['C2.20'] = $this->clamp((float)$kpl['rata']);
-        }
-
-        // Contoh: masa tunggu kerja - skor 4 jika rata2 < 3 bulan, 3 jika <6, 2 jika <12, 1 jika >=12
-        $ts = $db->table('tracer_study ts')
-            ->select('AVG(masa_tunggu_bulan) AS rata')
-            ->join('mahasiswa m', 'm.id = ts.mahasiswa_id')
-            ->where('m.prodi_id', $prodiId)
-            ->get()->getRowArray();
-        if ($ts && $ts['rata']) {
-            $rata = (float)$ts['rata'];
-            $scores['C2.16'] = $rata < 3 ? 4 : ($rata < 6 ? 3 : ($rata < 12 ? 2 : 1));
-        }
-
-        // Contoh: kesesuaian bidang kerja - % "sesuai" atau "sangat sesuai"
-        $kes = $db->table('tracer_study ts')
-            ->select("SUM(CASE WHEN kesesuaian_bidang_kerja IN ('sesuai','sangat_sesuai') THEN 1 ELSE 0 END) AS sesuai, COUNT(*) AS total")
-            ->join('mahasiswa m', 'm.id = ts.mahasiswa_id')
-            ->where('m.prodi_id', $prodiId)
-            ->get()->getRowArray();
-        if ($kes && (int)$kes['total'] > 0) {
-            $persen = ((int)$kes['sesuai'] / (int)$kes['total']) * 100;
-            $scores['C2.17'] = $persen >= 80 ? 4 : ($persen >= 60 ? 3 : ($persen >= 40 ? 2 : 1));
-        }
-
-        // ── C3: Penelitian ────────────────────────────────────────────────────
-        $penelitian = $db->query("
-            SELECT
-                COUNT(*) AS total,
-                SUM(CASE WHEN sumber_dana IN ('dalam_negeri','luar_negeri') THEN 1 ELSE 0 END) AS eksternal,
-                SUM(CASE WHEN sumber_dana = 'luar_negeri' THEN 1 ELSE 0 END) AS luar_negeri,
-                SUM(CASE WHEN libatkan_mahasiswa = 1 THEN 1 ELSE 0 END) AS libat_mhs
-            FROM penelitian WHERE prodi_id = ?
-        ", [$prodiId])->getRowArray();
-
-        if ($penelitian && (int)$penelitian['total'] > 0) {
-            // C3.1 — Jumlah penelitian per dosen per tahun (≥1/thn/dosen=4, ≥0.5=3, ≥0.25=2, <0.25=1)
-            if ($jumlahDosen > 0) {
-                $penelitianPerDosen = (int)$penelitian['total'] / $jumlahDosen;
-                $scores['C3.1'] = $penelitianPerDosen >= 1 ? 4 : ($penelitianPerDosen >= 0.5 ? 3 : ($penelitianPerDosen >= 0.25 ? 2 : 1));
+            if ($tahunAkademikId) {
+                $ket = $db->query("SELECT AVG(ck.persen_tercapai) p FROM cpl_ketercapaian ck JOIN mata_kuliah mk ON mk.id = ck.mata_kuliah_id WHERE mk.kurikulum_id = ? AND ck.tahun_akademik_id = ?", [$kuriId, $tahunAkademikId])->getRow();
+                if ($ket && $ket->p !== null) $sub[] = $this->band((float) $ket->p, [75, 60, 50]);
             }
-            // C3.2 — % penelitian eksternal (≥50%=4, ≥30%=3, ≥15%=2, <15%=1)
-            $pctEksternal = (int)$penelitian['eksternal'] / (int)$penelitian['total'] * 100;
-            $scores['C3.2'] = $pctEksternal >= 50 ? 4 : ($pctEksternal >= 30 ? 3 : ($pctEksternal >= 15 ? 2 : 1));
-            // C3.3 — Keterlibatan mahasiswa (≥50% penelitian libatkan mhs=4, ≥30%=3, ≥10%=2, <10%=1)
-            $pctLibatMhs = (int)$penelitian['libat_mhs'] / (int)$penelitian['total'] * 100;
-            $scores['C3.3'] = $pctLibatMhs >= 50 ? 4 : ($pctLibatMhs >= 30 ? 3 : ($pctLibatMhs >= 10 ? 2 : 1));
+            if ($sub) { $scores['2.2.B'] = $this->avg($sub); $this->explain['2.2.B'] = sprintf('Kurikulum OBE: %d CPL, %d mata kuliah, coverage & ketercapaian CPL. (rata-rata sub-skor 1-4)', $jmlCpl, $jmlMk); }
         }
 
-        // Publikasi dari penelitian (C3.4 — jurnal internasional bereputasi)
-        $pub = $db->query("
-            SELECT
-                COUNT(*) AS total,
-                SUM(CASE WHEN jenis = 'jurnal_internasional_bereputasi' THEN 1 ELSE 0 END) AS intl_bereputasi,
-                SUM(CASE WHEN jenis IN ('jurnal_internasional','jurnal_internasional_bereputasi') THEN 1 ELSE 0 END) AS intl
-            FROM publikasi WHERE prodi_id = ? AND kategori = 'penelitian'
-        ", [$prodiId])->getRowArray();
+        // ── 2.2.D — Pelaksanaan kompetensi lulusan (tracer + kepuasan) ────────
+        $sub = [];
+        $tracer = $db->query("SELECT AVG(ts.masa_tunggu_bulan) avg_tunggu, SUM(CASE WHEN ts.kesesuaian_bidang_kerja IN ('sesuai','sangat_sesuai') THEN 1 ELSE 0 END) sesuai, COUNT(*) total FROM tracer_study ts JOIN mahasiswa m ON m.id = ts.mahasiswa_id WHERE m.prodi_id = ?", [$prodiId])->getRowArray();
+        if ($tracer && (int) $tracer['total'] > 0) {
+            if ($tracer['avg_tunggu'] !== null) { $t = (float) $tracer['avg_tunggu']; $sub[] = $t < 3 ? 4 : ($t < 6 ? 3 : ($t < 12 ? 2 : 1)); }
+            $sub[] = $this->band((int) $tracer['sesuai'] / (int) $tracer['total'] * 100, [80, 60, 40]);
+        }
+        $kpl = $db->query("SELECT AVG((etika + keahlian + bahasa_asing + teknologi_info + komunikasi + kerjasama_tim + pengembangan_diri) / 7) r FROM kepuasan_pengguna_lulusan k JOIN mahasiswa m ON m.id = k.mahasiswa_id WHERE m.prodi_id = ?", [$prodiId])->getRow();
+        if ($kpl && $kpl->r !== null) $sub[] = max(1, min(4, (int) round((float) $kpl->r)));
+        if ($sub) { $scores['2.2.D'] = $this->avg($sub); $this->explain['2.2.D'] = 'Kompetensi lulusan: masa tunggu kerja, kesesuaian bidang, kepuasan pengguna. (rata-rata sub-skor 1-4)'; }
 
-        if ($pub && (int)$pub['total'] > 0 && $jumlahDosen > 0) {
-            $pubPerDosen = (int)$pub['total'] / $jumlahDosen;
-            $scores['C3.4'] = $pubPerDosen >= 2 ? 4 : ($pubPerDosen >= 1 ? 3 : ($pubPerDosen >= 0.5 ? 2 : 1));
+        // ── 3.2.C — Pelaksanaan luaran penelitian ─────────────────────────────
+        $pen = $db->query("SELECT COUNT(*) total, SUM(CASE WHEN sumber_dana IN ('dalam_negeri','luar_negeri') THEN 1 ELSE 0 END) eksternal FROM penelitian WHERE prodi_id = ?", [$prodiId])->getRowArray();
+        if ($pen && (int) $pen['total'] > 0 && $jumlahDosen > 0) {
+            $sub = []; $total = (int) $pen['total'];
+            $sub[] = $this->band($total / $jumlahDosen, [1, 0.5, 0.25]);
+            $sub[] = $this->band((int) $pen['eksternal'] / $total * 100, [50, 30, 15]);
+            $pub = (int) $db->table('publikasi')->where(['prodi_id' => $prodiId, 'kategori' => 'penelitian'])->countAllResults();
+            $sub[] = $this->band($pub / $jumlahDosen, [2, 1, 0.5]);
+            $hki = (int) $db->table('hki')->where(['prodi_id' => $prodiId, 'kategori' => 'penelitian'])->countAllResults();
+            $sub[] = $this->band($hki / $jumlahDosen, [1, 0.5, 0.2]);
+            $scores['3.2.C'] = $this->avg($sub);
+            $this->explain['3.2.C'] = sprintf('Luaran penelitian: %d penelitian, %d publikasi, %d HKI untuk %d dosen. (rata-rata sub-skor 1-4)', $total, $pub, $hki, $jumlahDosen);
         }
 
-        // HKI dari penelitian (C3.5)
-        $hki = $db->query("
-            SELECT COUNT(*) AS total FROM hki WHERE prodi_id = ? AND kategori = 'penelitian'
-        ", [$prodiId])->getRowArray();
-
-        if ($hki && $jumlahDosen > 0) {
-            $hkiPerDosen = (int)$hki['total'] / $jumlahDosen;
-            $scores['C3.5'] = $hkiPerDosen >= 1 ? 4 : ($hkiPerDosen >= 0.5 ? 3 : ($hkiPerDosen >= 0.2 ? 2 : 1));
-        }
-
-        // ── C4: PkM ───────────────────────────────────────────────────────────
-        $pkm = $db->query("
-            SELECT
-                COUNT(*) AS total,
-                SUM(CASE WHEN sumber_dana IN ('dalam_negeri','luar_negeri') THEN 1 ELSE 0 END) AS eksternal,
-                SUM(CASE WHEN libatkan_mahasiswa = 1 THEN 1 ELSE 0 END) AS libat_mhs
-            FROM pkm WHERE prodi_id = ?
-        ", [$prodiId])->getRowArray();
-
-        if ($pkm && (int)$pkm['total'] > 0) {
-            // C4.1 — Jumlah PkM per dosen per tahun
-            if ($jumlahDosen > 0) {
-                $pkmPerDosen = (int)$pkm['total'] / $jumlahDosen;
-                $scores['C4.1'] = $pkmPerDosen >= 1 ? 4 : ($pkmPerDosen >= 0.5 ? 3 : ($pkmPerDosen >= 0.25 ? 2 : 1));
-            }
-            // C4.2 — % PkM eksternal
-            $pctEksternalPkm = (int)$pkm['eksternal'] / (int)$pkm['total'] * 100;
-            $scores['C4.2'] = $pctEksternalPkm >= 50 ? 4 : ($pctEksternalPkm >= 30 ? 3 : ($pctEksternalPkm >= 15 ? 2 : 1));
-            // C4.3 — Keterlibatan mahasiswa
-            $pctLibatMhsPkm = (int)$pkm['libat_mhs'] / (int)$pkm['total'] * 100;
-            $scores['C4.3'] = $pctLibatMhsPkm >= 50 ? 4 : ($pctLibatMhsPkm >= 30 ? 3 : ($pctLibatMhsPkm >= 10 ? 2 : 1));
-        }
-
-        // Kerjasama internasional (C4.5 — mendukung akreditasi internasional)
-        $ksIntl = $db->query("
-            SELECT COUNT(*) AS total FROM kerjasama
-            WHERE prodi_id = ? AND tingkat = 'internasional'
-        ", [$prodiId])->getRowArray();
-        if ($ksIntl) {
-            $n = (int)$ksIntl['total'];
-            $scores['C4.5'] = $n >= 5 ? 4 : ($n >= 3 ? 3 : ($n >= 1 ? 2 : 1));
+        // ── 4.2.C — Pelaksanaan luaran PkM ────────────────────────────────────
+        $pkm = $db->query("SELECT COUNT(*) total, SUM(CASE WHEN sumber_dana IN ('dalam_negeri','luar_negeri') THEN 1 ELSE 0 END) eksternal FROM pkm WHERE prodi_id = ?", [$prodiId])->getRowArray();
+        if ($pkm && (int) $pkm['total'] > 0 && $jumlahDosen > 0) {
+            $sub = []; $total = (int) $pkm['total'];
+            $sub[] = $this->band($total / $jumlahDosen, [1, 0.5, 0.25]);
+            $sub[] = $this->band((int) $pkm['eksternal'] / $total * 100, [50, 30, 15]);
+            $ksIntl = (int) $db->table('kerjasama')->where(['prodi_id' => $prodiId, 'tingkat' => 'internasional'])->countAllResults();
+            $sub[] = $ksIntl >= 5 ? 4 : ($ksIntl >= 3 ? 3 : ($ksIntl >= 1 ? 2 : 1));
+            $scores['4.2.C'] = $this->avg($sub);
+            $this->explain['4.2.C'] = sprintf('Luaran PkM: %d PkM, %d kerjasama internasional untuk %d dosen. (rata-rata sub-skor 1-4)', $total, $ksIntl, $jumlahDosen);
         }
 
         return $scores;
+    }
+
+    /** Skor 4/3/2/1 berdasarkan 3 ambang menurun [a4, a3, a2]. */
+    protected function band(float $nilai, array $ambang): int
+    {
+        [$a4, $a3, $a2] = $ambang;
+        return $nilai >= $a4 ? 4 : ($nilai >= $a3 ? 3 : ($nilai >= $a2 ? 2 : 1));
+    }
+
+    /** Rata-rata sub-skor, dibulatkan 2 desimal, dibatasi 1..4. */
+    protected function avg(array $scores): float
+    {
+        $vals = array_filter($scores, fn($v) => $v !== null);
+        if (!$vals) return 1.0;
+        return max(1.0, min(4.0, round(array_sum($vals) / count($vals), 2)));
     }
 
     public function buildLkpsTable(string $kodeTabel, int $prodiId, ?int $tahunAkademikId = null): array
