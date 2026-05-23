@@ -106,6 +106,13 @@ $cardBorder = $skorFinal !== null
         <div class="row">
             <!-- Rubrik -->
             <div class="col-md-8">
+                <?php if ($hasAuto): ?>
+                <div class="alert alert-info py-1 px-2 small mb-2">
+                    <i class="bi bi-cpu"></i> <strong>Dasar auto-skor:</strong>
+                    <?= esc($autoBasis[$b['kode']] ?? 'Dihitung otomatis dari data prodi.') ?>
+                    <span class="text-muted d-block mt-1"><i class="bi bi-exclamation-triangle"></i> Estimasi awal — harap diverifikasi sesuai bukti & rubrik resmi, lalu isi skor manual bila perlu.</span>
+                </div>
+                <?php endif ?>
                 <?php if (!empty($b['deskripsi'])): ?>
                 <p class="text-muted small mb-2"><i class="bi bi-info-circle"></i> <?= esc($b['deskripsi']) ?></p>
                 <?php endif ?>

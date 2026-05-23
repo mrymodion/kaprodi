@@ -23,9 +23,18 @@ class Driver implements AccreditationDriver
     public function code(): string { return 'lam-infokom-2.0-d3'; }
     public function name(): string { return 'LAM INFOKOM 2.0 D3'; }
 
+    /** Penjelasan dasar perhitungan auto-skor terakhir: [kode_butir => teks]. */
+    protected array $explain = [];
+
+    public function explanations(): array
+    {
+        return $this->explain;
+    }
+
     public function computeScores(int $prodiId, ?int $tahunAkademikId = null): array
     {
         $scores = [];
+        $this->explain = [];
         $db = Database::connect();
 
         // ── C1: DTPR ──────────────────────────────────────────────────────────
@@ -39,6 +48,7 @@ class Driver implements AccreditationDriver
                 ->countAllResults();
             $pctS3 = $s3 / $jumlahDosen * 100;
             $scores['C1.3'] = $pctS3 >= 30 ? 4 : ($pctS3 >= 20 ? 3 : ($pctS3 >= 10 ? 2 : 1));
+            $this->explain['C1.3'] = sprintf('Dosen S3: %d dari %d (%.0f%%). Ambang 4=≥30%%, 3=≥20%%, 2=≥10%%.', $s3, $jumlahDosen, $pctS3);
 
             // % LK+GB → C1.x (ambang: ≥30%=4, ≥20%=3, ≥10%=2, <10%=1)
             $lkGb = $db->table('dosen')
@@ -47,6 +57,7 @@ class Driver implements AccreditationDriver
                 ->countAllResults();
             $pctLkGb = $lkGb / $jumlahDosen * 100;
             $scores['C1.4'] = $pctLkGb >= 30 ? 4 : ($pctLkGb >= 20 ? 3 : ($pctLkGb >= 10 ? 2 : 1));
+            $this->explain['C1.4'] = sprintf('Lektor Kepala+Guru Besar: %d dari %d (%.0f%%). Ambang 4=≥30%%, 3=≥20%%, 2=≥10%%.', $lkGb, $jumlahDosen, $pctLkGb);
 
             // % Serdos (≥80%=4, ≥60%=3, ≥40%=2, <40%=1)
             $serdos = $db->table('dosen')
@@ -54,6 +65,7 @@ class Driver implements AccreditationDriver
                 ->countAllResults();
             $pctSerdos = $serdos / $jumlahDosen * 100;
             $scores['C1.5'] = $pctSerdos >= 80 ? 4 : ($pctSerdos >= 60 ? 3 : ($pctSerdos >= 40 ? 2 : 1));
+            $this->explain['C1.5'] = sprintf('Bersertifikat pendidik: %d dari %d (%.0f%%). Ambang 4=≥80%%, 3=≥60%%, 2=≥40%%.', $serdos, $jumlahDosen, $pctSerdos);
 
             // % Linier (≥80%=4, ≥60%=3, ≥40%=2, <40%=1)
             $linier = $db->table('dosen')
@@ -61,6 +73,7 @@ class Driver implements AccreditationDriver
                 ->countAllResults();
             $pctLinier = $linier / $jumlahDosen * 100;
             $scores['C1.6'] = $pctLinier >= 80 ? 4 : ($pctLinier >= 60 ? 3 : ($pctLinier >= 40 ? 2 : 1));
+            $this->explain['C1.6'] = sprintf('DTPR linier: %d dari %d (%.0f%%). Ambang 4=≥80%%, 3=≥60%%, 2=≥40%%.', $linier, $jumlahDosen, $pctLinier);
         }
 
         // Rasio Dosen:Mahasiswa (D3 ideal 1:20 → 4; 1:25→3; 1:30→2; >30→1)
@@ -69,6 +82,7 @@ class Driver implements AccreditationDriver
         if ($jumlahDosen > 0) {
             $rasio = $jumlahMhs / $jumlahDosen;
             $scores['C1.2'] = $rasio <= 20 ? 4 : ($rasio <= 25 ? 3 : ($rasio <= 30 ? 2 : 1));
+            $this->explain['C1.2'] = sprintf('Rasio dosen:mahasiswa = 1:%.1f (%d mhs / %d dosen). Ambang 4=≤20, 3=≤25, 2=≤30.', $rasio, $jumlahMhs, $jumlahDosen);
         }
 
         // EWMP rata-rata total SKS (normal 12-16 → 4; 10-12 → 3; 8-10 → 2; <8 → 1)
@@ -81,6 +95,7 @@ class Driver implements AccreditationDriver
             if ($ewmpAvg && $ewmpAvg['avg_sks']) {
                 $avg = (float)$ewmpAvg['avg_sks'];
                 $scores['C1.7'] = ($avg >= 12 && $avg <= 16) ? 4 : ($avg >= 10 ? 3 : ($avg >= 8 ? 2 : 1));
+                $this->explain['C1.7'] = sprintf('Rata-rata EWMP = %.1f SKS. Normal 12-16 SKS (skor 4).', $avg);
             }
         }
 
@@ -132,6 +147,7 @@ class Driver implements AccreditationDriver
         if ($kpl && $kpl['rata']) {
             // Asumsi butir terkait kepuasan pengguna lulusan ada di C2 output
             $scores['C2.20'] = $this->clamp((float)$kpl['rata']);
+            $this->explain['C2.20'] = sprintf('Rata-rata kepuasan pengguna lulusan (7 aspek) = %.2f dari 4.', (float)$kpl['rata']);
         }
 
         // Contoh: masa tunggu kerja - skor 4 jika rata2 < 3 bulan, 3 jika <6, 2 jika <12, 1 jika >=12
@@ -143,6 +159,7 @@ class Driver implements AccreditationDriver
         if ($ts && $ts['rata']) {
             $rata = (float)$ts['rata'];
             $scores['C2.16'] = $rata < 3 ? 4 : ($rata < 6 ? 3 : ($rata < 12 ? 2 : 1));
+            $this->explain['C2.16'] = sprintf('Rata-rata masa tunggu kerja = %.1f bulan. Ambang 4=<3, 3=<6, 2=<12.', $rata);
         }
 
         // Contoh: kesesuaian bidang kerja - % "sesuai" atau "sangat sesuai"
@@ -154,6 +171,7 @@ class Driver implements AccreditationDriver
         if ($kes && (int)$kes['total'] > 0) {
             $persen = ((int)$kes['sesuai'] / (int)$kes['total']) * 100;
             $scores['C2.17'] = $persen >= 80 ? 4 : ($persen >= 60 ? 3 : ($persen >= 40 ? 2 : 1));
+            $this->explain['C2.17'] = sprintf('Kesesuaian bidang kerja = %.0f%% (%d dari %d lulusan terlacak). Ambang 4=≥80%%, 3=≥60%%.', $persen, (int)$kes['sesuai'], (int)$kes['total']);
         }
 
         // ── C3: Penelitian ────────────────────────────────────────────────────

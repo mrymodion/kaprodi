@@ -26,6 +26,7 @@ class Driver extends D3Driver
     {
         $db     = Database::connect();
         $scores = [];
+        $this->explain = [];
 
         $jumlahDosen = (int) $db->table('dosen')
             ->where(['prodi_id' => $prodiId, 'aktif' => 1])->countAllResults();
@@ -58,6 +59,7 @@ class Driver extends D3Driver
             $sub[] = $rasio <= 20 ? 4 : ($rasio <= 25 ? 3 : ($rasio <= 30 ? 2 : 1));
 
             $scores['2.2.A'] = $this->avg($sub);
+            $this->explain['2.2.A'] = 'Komposit DTPR & penerimaan maba: %S3, %Lektor Kepala+GB, %serdos, %linieritas, rasio dosen:mahasiswa (rata-rata, skala 1-4).';
         }
 
         // ── 2.2.B — Pelaksanaan isi pembelajaran & kurikulum OBE ──────────────
@@ -91,6 +93,7 @@ class Driver extends D3Driver
                 }
             }
             if ($sub) $scores['2.2.B'] = $this->avg($sub);
+            if ($sub) $this->explain['2.2.B'] = 'Komposit kurikulum OBE: jumlah CPL, coverage CPL-MK, ketercapaian CPL (rata-rata, skala 1-4).';
         }
 
         // ── 2.2.D — Pelaksanaan kompetensi lulusan (tracer + kepuasan pengguna) ─
@@ -119,6 +122,7 @@ class Driver extends D3Driver
             $sub[] = max(1, min(4, (int) round((float) $kpl->r)));
         }
         if ($sub) $scores['2.2.D'] = $this->avg($sub);
+        if ($sub) $this->explain['2.2.D'] = 'Komposit kompetensi lulusan: masa tunggu kerja, kesesuaian bidang, kepuasan pengguna (rata-rata, skala 1-4).';
 
         // ── 3.2.C — Pelaksanaan luaran penelitian (hibah/publikasi/HKI) ───────
         $pen = $db->query("
@@ -139,6 +143,7 @@ class Driver extends D3Driver
             $sub[] = $this->band($hki / $jumlahDosen, [1, 0.5, 0.2]);
 
             $scores['3.2.C'] = $this->avg($sub);
+            $this->explain['3.2.C'] = 'Komposit luaran penelitian: penelitian/dosen, %eksternal, publikasi/dosen, HKI/dosen (rata-rata, skala 1-4).';
         }
 
         // ── 4.2.C — Pelaksanaan luaran PkM (hibah/kerjasama/diseminasi) ───────
@@ -158,6 +163,7 @@ class Driver extends D3Driver
             $sub[] = $ksIntl >= 5 ? 4 : ($ksIntl >= 3 ? 3 : ($ksIntl >= 1 ? 2 : 1));
 
             $scores['4.2.C'] = $this->avg($sub);
+            $this->explain['4.2.C'] = 'Komposit luaran PkM: PkM/dosen, %eksternal, kerjasama internasional (rata-rata, skala 1-4).';
         }
 
         return $scores;
