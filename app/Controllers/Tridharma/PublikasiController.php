@@ -115,7 +115,7 @@ class PublikasiController extends BaseController
     public function storeHki()
     {
         $prodiId = $this->getProdiId();
-        $data    = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status']);
+        $data    = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status','link_bukti']);
         $data['prodi_id']   = $prodiId;
         if (!$this->validateData($data, $this->hkiModel->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
@@ -138,7 +138,7 @@ class PublikasiController extends BaseController
     public function updateHki(int $id)
     {
         $item = $this->hkiModel->findOrFail($id);
-        $data = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status']);
+        $data = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status','link_bukti']);
         $data['prodi_id'] = (int) $item['prodi_id'];
         if (!$this->validateData($data, $this->hkiModel->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());

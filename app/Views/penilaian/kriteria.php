@@ -132,7 +132,7 @@ $cardBorder = $skorFinal !== null
             <!-- Form input skor manual -->
             <?php if ($canInput): ?>
             <div class="col-md-4">
-                <form method="post" action="<?= site_url("penilaian/skor/{$b['id']}/save") ?>">
+                <form method="post" action="<?= site_url("penilaian/skor/{$b['id']}/save") ?>" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <?php if ($taId): ?><input type="hidden" name="tahun_akademik_id" value="<?= $taId ?>"><?php endif ?>
 
@@ -156,13 +156,20 @@ $cardBorder = $skorFinal !== null
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label fw-semibold small">Link Bukti (Google Drive)</label>
-                        <input type="url" name="link_bukti" class="form-control form-control-sm"
-                            placeholder="https://drive.google.com/..." value="<?= esc($b['link_bukti'] ?? '', 'attr') ?>">
-                        <small class="text-muted">Tempel link Google Drive dokumen pendukung (pastikan akses "siapa saja yang memiliki link").</small>
-                        <?php if (!empty($b['link_bukti'])): ?>
-                        <div class="mt-1"><a href="<?= esc($b['link_bukti'], 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Buka bukti</a></div>
+                        <label class="form-label fw-semibold small">Bukti (PDF)</label>
+                        <?php $bk = $b['link_bukti'] ?? ''; $isUrl = str_starts_with((string)$bk, 'http'); ?>
+                        <?php if (!empty($bk)): ?>
+                        <div class="mb-1 small">
+                            <?php if ($isUrl): ?>
+                                <a href="<?= esc($bk, 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Bukti (link lama)</a>
+                            <?php else: ?>
+                                <a href="<?= site_url('penilaian/bukti/' . $bk) ?>" target="_blank"><i class="bi bi-file-earmark-pdf text-danger"></i> Lihat bukti PDF</a>
+                            <?php endif ?>
+                            <label class="ms-2 text-danger"><input type="checkbox" name="hapus_bukti" value="1"> hapus</label>
+                        </div>
                         <?php endif ?>
+                        <input type="file" name="bukti_pdf" class="form-control form-control-sm" accept="application/pdf">
+                        <small class="text-muted">Unggah PDF (otomatis dikompres bila Ghostscript terpasang). Maks <?= (int) env('storage.maxUploadMb', 20) ?> MB.</small>
                     </div>
 
                     <?php if ($b['skor_updated_at']): ?>
@@ -184,8 +191,14 @@ $cardBorder = $skorFinal !== null
                     <small><?= nl2br(esc($b['catatan'])) ?></small>
                 </div>
                 <?php endif ?>
-                <?php if (!empty($b['link_bukti'])): ?>
-                <div class="mt-1"><a href="<?= esc($b['link_bukti'], 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Buka bukti</a></div>
+                <?php if (!empty($b['link_bukti'])): $bk = $b['link_bukti']; ?>
+                <div class="mt-1">
+                    <?php if (str_starts_with((string)$bk, 'http')): ?>
+                        <a href="<?= esc($bk, 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Buka bukti</a>
+                    <?php else: ?>
+                        <a href="<?= site_url('penilaian/bukti/' . $bk) ?>" target="_blank"><i class="bi bi-file-earmark-pdf text-danger"></i> Lihat bukti PDF</a>
+                    <?php endif ?>
+                </div>
                 <?php endif ?>
             </div>
             <?php endif ?>

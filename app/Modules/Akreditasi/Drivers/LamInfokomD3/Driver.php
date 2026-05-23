@@ -521,7 +521,7 @@ class Driver implements AccreditationDriver
         $db = Database::connect();
         return $db->query("
             SELECT p.judul, d.nama AS ketua, p.sumber_dana, p.nama_sumber_dana,
-                   p.jumlah_dana, p.tahun_pelaksanaan, p.libatkan_mahasiswa, p.jumlah_mhs_terlibat
+                   p.jumlah_dana, p.tahun_pelaksanaan, p.libatkan_mahasiswa, p.jumlah_mhs_terlibat, p.link_bukti
             FROM penelitian p
             LEFT JOIN dosen d ON d.id = p.ketua_dosen_id
             WHERE p.prodi_id = ?
@@ -535,7 +535,7 @@ class Driver implements AccreditationDriver
         return $db->query("
             SELECT p.judul, d.nama AS ketua, p.sumber_dana, p.nama_sumber_dana,
                    p.jumlah_dana, p.mitra, p.lokasi, p.tahun_pelaksanaan,
-                   p.libatkan_mahasiswa, p.jumlah_mhs_terlibat
+                   p.libatkan_mahasiswa, p.jumlah_mhs_terlibat, p.link_bukti
             FROM pkm p
             LEFT JOIN dosen d ON d.id = p.ketua_dosen_id
             WHERE p.prodi_id = ?
@@ -547,7 +547,7 @@ class Driver implements AccreditationDriver
     {
         $db = Database::connect();
         return $db->query("
-            SELECT jenis, judul, penulis, nama_media, tahun, volume, doi, sitasi, sinta_score
+            SELECT jenis, judul, penulis, nama_media, tahun, volume, doi, sitasi, sinta_score, url
             FROM publikasi
             WHERE prodi_id = ? AND kategori = ?
             ORDER BY tahun DESC
@@ -558,7 +558,7 @@ class Driver implements AccreditationDriver
     {
         $db = Database::connect();
         return $db->query("
-            SELECT jenis, judul, no_hki, tahun, pemilik, status
+            SELECT jenis, judul, no_hki, tahun, pemilik, status, link_bukti
             FROM hki
             WHERE prodi_id = ? AND kategori = ?
             ORDER BY tahun DESC

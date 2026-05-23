@@ -92,22 +92,66 @@ class PenilaianController extends BaseController
 
         $prodiId  = $this->getProdiId();
         $taId     = $this->request->getPost('tahun_akademik_id') ?: null;
+        $taIdInt  = $taId ? (int) $taId : null;
         $skor     = $this->request->getPost('skor_manual') !== '' ? (float)$this->request->getPost('skor_manual') : null;
         $catatan  = $this->request->getPost('catatan');
-        $linkBukti = trim((string)$this->request->getPost('link_bukti'));
         $userId   = (int)auth()->user()->id;
 
         if ($skor !== null && ($skor < 1 || $skor > 4)) {
             return redirect()->back()->with('error', 'Skor harus antara 1-4.');
         }
 
-        if ($linkBukti !== '' && !filter_var($linkBukti, FILTER_VALIDATE_URL)) {
-            return redirect()->back()->withInput()->with('error', 'Link bukti harus berupa URL yang valid (diawali http:// atau https://).');
+        // Bukti PDF: pertahankan yang lama kecuali ada unggahan baru / minta hapus
+        $store     = new \App\Services\EvidenceStorage();
+        $existing  = (new \App\Models\ButirSkorModel())->getByButir($prodiId, $butirId, $taIdInt);
+        $linkBukti = $existing['link_bukti'] ?? null;
+        $isLocal   = fn($v) => $v && !str_starts_with((string) $v, 'http');
+        $info      = '';
+
+        if ($this->request->getPost('hapus_bukti')) {
+            if ($isLocal($linkBukti)) $store->delete($linkBukti);
+            $linkBukti = null;
         }
 
-        $this->engine->saveSkorManual($prodiId, $butirId, $taId ? (int)$taId : null, $skor, $catatan, $userId, $linkBukti === '' ? null : $linkBukti);
+        $file = $this->request->getFile('bukti_pdf');
+        if ($file && $file->isValid() && $file->getSize() > 0) {
+            $res = $store->storePdf($file);
+            if (!$res['ok']) {
+                return redirect()->back()->withInput()->with('error', 'Gagal unggah bukti: ' . $res['error']);
+            }
+            if ($isLocal($linkBukti)) $store->delete($linkBukti); // hapus file lama
+            $linkBukti = $res['name'];
+            $info = $res['compressed']
+                ? sprintf(' Bukti PDF dikompres %s → %s.', $this->fmtBytes($res['before']), $this->fmtBytes($res['after']))
+                : ' Bukti PDF tersimpan (kompresi dilewati — Ghostscript tidak terpasang).';
+        }
 
-        return redirect()->back()->with('success', 'Skor berhasil disimpan.');
+        $this->engine->saveSkorManual($prodiId, $butirId, $taIdInt, $skor, $catatan, $userId, $linkBukti);
+
+        return redirect()->back()->with('success', 'Skor berhasil disimpan.' . $info);
+    }
+
+    /** Unduh / tampilkan berkas bukti PDF. */
+    public function bukti(string $name)
+    {
+        if (!auth()->user()->can('penilaian.input')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+        $name = basename($name);
+        $path = WRITEPATH . 'bukti/' . $name;
+        if (!is_file($path)) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Berkas bukti tidak ditemukan.');
+        }
+        return $this->response->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="' . $name . '"')
+            ->setBody(file_get_contents($path));
+    }
+
+    private function fmtBytes(int $b): string
+    {
+        if ($b >= 1048576) return number_format($b / 1048576, 1) . ' MB';
+        if ($b >= 1024) return number_format($b / 1024, 0) . ' KB';
+        return $b . ' B';
     }
 
     /** Jalankan auto-skor dari driver untuk semua butir. */

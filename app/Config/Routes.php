@@ -78,6 +78,11 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/delete', 'TendikController::delete/$1');
     });
 
+    // Dokumen eviden (PDF) untuk dosen & tendik
+    $routes->post('dokumen/(:segment)/(:num)/upload', 'DokumenController::upload/$1/$2');
+    $routes->get('dokumen/(:num)/lihat',              'DokumenController::lihat/$1');
+    $routes->post('dokumen/(:num)/delete',            'DokumenController::delete/$1');
+
     // Borang LKPS pelengkap (generik): tata-pamong, spmi, fleksibilitas, rekognisi, pengembangan-dtpr, tata-kelola
     $routes->group('borang', ['filter' => 'permission:prodi.manage'], function ($routes) {
         $routes->get('(:segment)',                'BorangController::index/$1');
@@ -166,11 +171,14 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('download/(:any)',     'Lkps\LkpsController::download/$1');
     });
 
+    // Dashboard Kesiapan Akreditasi
+    $routes->get('kesiapan', 'KesiapanController::index', ['filter' => 'permission:penilaian.input']);
+
     // Penilaian LAM
     $routes->group('penilaian', ['filter' => 'permission:penilaian.input'], function ($routes) {
-        $routes->get('/',                    'Penilaian\PenilaianController::index');
-        $routes->get('kriteria/(:num)',      'Penilaian\PenilaianController::kriteria/$1');
+        $routes->get('/',                    'Penilaian\PenilaianController::index');        $routes->get('kriteria/(:num)',      'Penilaian\PenilaianController::kriteria/$1');
         $routes->post('skor/(:num)/save',    'Penilaian\PenilaianController::saveSkor/$1');
+        $routes->get('bukti/(:segment)',     'Penilaian\PenilaianController::bukti/$1');
         $routes->post('run-auto',            'Penilaian\PenilaianController::runAuto');
     });
 

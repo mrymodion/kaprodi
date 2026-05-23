@@ -13,7 +13,7 @@ class HkiModel extends AppModel
 
     protected $allowedFields = [
         'prodi_id', 'kategori', 'jenis', 'judul', 'no_hki',
-        'tahun', 'pemilik', 'status', 'created_at',
+        'tahun', 'pemilik', 'status', 'link_bukti', 'created_at',
     ];
 
     protected $validationRules = [

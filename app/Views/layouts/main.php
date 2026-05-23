@@ -140,6 +140,7 @@ if ($isSuperadmin) {
             <?php if ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate')): ?>
                 <div class="nav-section">Akreditasi</div>
                 <nav class="nav flex-column">
+                    <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'kesiapan') ? 'active' : '' ?>" href="<?= site_url('kesiapan') ?>"><i class="bi bi-clipboard-data"></i> Kesiapan Akreditasi</a><?php endif ?>
                     <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'penilaian') ? 'active' : '' ?>" href="<?= site_url('penilaian') ?>"><i class="bi bi-clipboard-check"></i> Penilaian LAM</a><?php endif ?>
                     <?php if ($can('lkps.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'lkps') ? 'active' : '' ?>" href="<?= site_url('lkps') ?>"><i class="bi bi-file-earmark-spreadsheet"></i> LKPS</a><?php endif ?>
                     <?php if ($can('led.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'led') ? 'active' : '' ?>" href="<?= site_url('led') ?>"><i class="bi bi-file-earmark-word"></i> LED</a><?php endif ?>

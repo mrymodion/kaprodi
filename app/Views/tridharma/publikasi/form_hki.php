@@ -56,6 +56,11 @@
                     <label class="form-label fw-semibold">Pemilik / Inventor</label>
                     <textarea name="pemilik" class="form-control" rows="2" placeholder="Nama-nama pemilik/inventor"><?= esc(old('pemilik', $item['pemilik'] ?? '')) ?></textarea>
                 </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Link Bukti (eviden)</label>
+                    <input type="url" name="link_bukti" class="form-control" placeholder="https://... (sertifikat HKI)" value="<?= esc(old('link_bukti', $item['link_bukti'] ?? '')) ?>">
+                    <small class="text-muted">Akan tampil sebagai link yang dapat diklik di LKPS.</small>
+                </div>
             </div>
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button>
