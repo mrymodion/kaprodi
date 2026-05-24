@@ -181,6 +181,69 @@ class DosenController extends BaseController
         return redirect()->back()->with('success', "Password direset. Password baru: {$password} (sampaikan ke dosen).");
     }
 
+    /** Tautkan akun Shield yang sudah ada ke record dosen ini (cari via username atau email). */
+    public function tautkanAkun(int $id)
+    {
+        $dosen = $this->model->findOrFail($id);
+        if (!empty($dosen['user_id'])) {
+            return redirect()->back()->with('error', 'Dosen ini sudah memiliki akun tertaut.');
+        }
+
+        $input = trim((string) $this->request->getPost('username_or_email'));
+        if ($input === '') {
+            return redirect()->back()->with('error', 'Masukkan username atau email akun yang akan ditautkan.');
+        }
+
+        $um   = new UserModel();
+        $db   = Database::connect();
+        $user = null;
+
+        if (filter_var($input, FILTER_VALIDATE_EMAIL)) {
+            $row = $db->table('auth_identities')
+                ->where('secret', $input)->where('type', 'email_password')
+                ->get()->getRowArray();
+            if ($row) {
+                $user = $um->findById((int) $row['user_id']);
+            }
+        } else {
+            $user = $um->where('username', $input)->first();
+        }
+
+        if (!$user) {
+            return redirect()->back()->with('error', "Akun dengan username/email "{$input}" tidak ditemukan.");
+        }
+
+        // Pastikan tidak sudah ditautkan ke dosen lain
+        $terkait = $this->model->where('user_id', (int) $user->id)->first();
+        if ($terkait) {
+            $namaTerkait = esc($terkait['nama']);
+            return redirect()->back()->with('error', "Akun ini sudah tertaut ke dosen lain ({$namaTerkait}).");
+        }
+
+        $this->model->update($id, ['user_id' => (int) $user->id]);
+
+        // Tambahkan ke user_prodi jika belum ada
+        $exists = $db->table('user_prodi')
+            ->where('user_id', (int) $user->id)
+            ->where('prodi_id', (int) $dosen['prodi_id'])
+            ->countAllResults();
+        if (!$exists) {
+            $db->table('user_prodi')->insert([
+                'user_id'    => (int) $user->id,
+                'prodi_id'   => (int) $dosen['prodi_id'],
+                'peran'      => 'dosen',
+                'is_default' => 1,
+            ]);
+        }
+
+        if (!$user->inGroup('dosen')) {
+            $user->addGroup('dosen');
+        }
+
+        return redirect()->back()->with('success',
+            "Akun "{$user->username}" berhasil ditautkan ke dosen {$dosen['nama']}.");
+    }
+
     private function emailDipakai(string $email): bool
     {
         return (bool) Database::connect()->table('auth_identities')
