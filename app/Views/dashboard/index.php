@@ -21,6 +21,7 @@
 <div class="card shadow-sm">
     <div class="card-header bg-white"><strong>Daftar Program Studi</strong></div>
     <div class="card-body p-0">
+        <div class="table-responsive">
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
@@ -40,6 +41,7 @@
             <?php endforeach ?>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 

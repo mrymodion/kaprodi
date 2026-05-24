@@ -8,6 +8,7 @@
 <?php if (session('error')): ?><div class="alert alert-danger"><?= esc(session('error')) ?></div><?php endif ?>
 
 <div class="card shadow-sm"><div class="card-body p-0">
+<div class="table-responsive">
 <table class="table table-hover mb-0">
     <thead class="table-light">
         <tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Prodi & Peran</th><th>Aksi</th></tr>
@@ -31,5 +32,6 @@
     <?php endforeach ?>
     </tbody>
 </table>
+</div>
 </div></div>
 <?= $this->endSection() ?>

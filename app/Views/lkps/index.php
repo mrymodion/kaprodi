@@ -59,6 +59,7 @@ foreach ($tabelList as $t) $byKriteria[$t['kriteria_kode'] ?: 'lainnya'][] = $t;
                     <span class="badge bg-<?= $kriteriaColors[$kriteria] ?? 'secondary' ?>"><?= esc($kriteria) ?></span>
                     <strong class="ms-1"><?= count($tabels) ?> tabel</strong>
                 </div>
+                <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0">
                     <tbody>
                     <?php foreach ($tabels as $t): ?>
@@ -80,6 +81,7 @@ foreach ($tabelList as $t) $byKriteria[$t['kriteria_kode'] ?: 'lainnya'][] = $t;
                     <?php endforeach ?>
                     </tbody>
                 </table>
+                </div>
                 <?php endforeach ?>
                 <?php if (empty($tabelList)): ?>
                 <div class="text-center text-muted p-4">Belum ada definisi tabel LKPS.</div>
