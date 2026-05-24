@@ -163,19 +163,33 @@ class LedContextBuilder
                 }
             }
 
-            // Rekognisi DTPR (reviewer/editor/keynote/asesor/penghargaan).
+            // Rekognisi DTPR (reviewer/editor/keynote/asesor/penghargaan). Bukti naratif/kualitatif SDM.
             if ($this->db->tableExists('rekognisi_dosen')) {
                 $rek = $this->db->query("
                     SELECT COUNT(*) AS jml,
                            COUNT(DISTINCT dosen_id) AS dosen,
-                           SUM(CASE WHEN tingkat = 'internasional' THEN 1 ELSE 0 END) AS intl
+                           SUM(CASE WHEN tingkat = 'internasional' THEN 1 ELSE 0 END) AS intl,
+                           SUM(CASE WHEN tingkat = 'nasional' THEN 1 ELSE 0 END) AS nas,
+                           SUM(CASE WHEN tingkat = 'lokal' THEN 1 ELSE 0 END) AS lok
                     FROM rekognisi_dosen WHERE prodi_id = ?
                 ", [$prodiId])->getRowArray();
                 if ($rek && (int) $rek['jml'] > 0) {
                     $out[] = sprintf(
-                        '  - Rekognisi DTPR: %d kegiatan oleh %d dosen (%d berskala internasional).',
-                        (int) $rek['jml'], (int) $rek['dosen'], (int) $rek['intl']
+                        '  - Rekognisi/pengakuan kepakaran DTPR: %d kegiatan oleh %d dosen (internasional %d, nasional %d, lokal %d).',
+                        (int) $rek['jml'], (int) $rek['dosen'], (int) $rek['intl'], (int) $rek['nas'], (int) $rek['lok']
                     );
+                    // Rincian per jenis rekognisi (membantu asesor menilai ragam pengakuan).
+                    $perJenis = $this->db->query("
+                        SELECT jenis, COUNT(*) AS n FROM rekognisi_dosen WHERE prodi_id = ? GROUP BY jenis ORDER BY n DESC
+                    ", [$prodiId])->getResultArray();
+                    $labels = \App\Models\RekognisiDosenModel::JENIS_LABELS;
+                    $parts = [];
+                    foreach ($perJenis as $pj) {
+                        $parts[] = ($labels[$pj['jenis']] ?? $pj['jenis']) . ': ' . (int) $pj['n'];
+                    }
+                    if ($parts) {
+                        $out[] = '    Ragam: ' . implode('; ', $parts) . '.';
+                    }
                 }
             }
 

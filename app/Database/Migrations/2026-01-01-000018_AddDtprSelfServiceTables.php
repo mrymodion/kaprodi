@@ -9,7 +9,11 @@ use CodeIgniter\Database\Migration;
  *  - pengembangan_dtpr.dosen_id : tautkan catatan pengembangan ke dosen tertentu
  *  - hki.dosen_id               : tautkan luaran HKI ke dosen pemilik
  *  - rekognisi_dosen            : tabel baru rekognisi/pengakuan DTPR (reviewer, editor,
- *                                 keynote, asesor, penghargaan, dll) — LKPS 3.A.3 / C3
+ *                                 keynote, asesor, penghargaan, dll). CATATAN: pada instrumen
+ *                                 LAM INFOKOM yang ter-seed, rekognisi dosen TIDAK memiliki
+ *                                 tabel LKPS ter-skor tersendiri; data ini dipakai sebagai
+ *                                 bukti naratif/kualitatif (narasi LED SDM/C3) dan lampiran
+ *                                 pelengkap, bukan indikator yang dinilai langsung.
  */
 class AddDtprSelfServiceTables extends Migration
 {

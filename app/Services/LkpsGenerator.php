@@ -113,6 +113,11 @@ class LkpsGenerator
             $this->buildTabelSheet($sheet, $t, $rows);
         }
 
+        // Lampiran pelengkap (di luar tabel LKPS resmi instrumen): Rekognisi DTPR.
+        if ($this->db->tableExists('rekognisi_dosen')) {
+            $this->buildRekognisiSheet($spreadsheet->createSheet(), $prodiId);
+        }
+
         $spreadsheet->setActiveSheetIndex(0);
 
         $filename = sprintf(
@@ -264,6 +269,83 @@ class LkpsGenerator
                 'borders' => [
                     'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']],
                 ],
+            ]);
+        }
+        for ($c = 'A'; $c <= $lastCol; $c++) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+        $sheet->getRowDimension($startRow)->setRowHeight(30);
+    }
+
+    /**
+     * Lampiran pelengkap: Rekognisi DTPR. BUKAN tabel LKPS resmi instrumen —
+     * disertakan sebagai bukti pendukung naratif (SDM/C3) bagi asesor.
+     */
+    private function buildRekognisiSheet(Worksheet $sheet, int $prodiId): void
+    {
+        $sheet->setTitle('Rekognisi DTPR');
+        $sheet->setCellValue('A1', 'Lampiran — Rekognisi/Pengakuan Kepakaran DTPR');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(12);
+        $sheet->setCellValue('A2', '(Lampiran pendukung di luar tabel LKPS resmi instrumen — bukti naratif kriteria SDM)');
+        $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(9)->getColor()->setRGB('888888');
+
+        $rows = $this->db->query("
+            SELECT TRIM(CONCAT(COALESCE(d.gelar_depan,''), ' ', COALESCE(d.nama,''), COALESCE(CONCAT(', ', d.gelar_belakang), ''))) AS dosen,
+                   r.jenis, r.judul, r.penyelenggara, r.tingkat, r.tahun, r.link_bukti
+            FROM rekognisi_dosen r
+            LEFT JOIN dosen d ON d.id = r.dosen_id
+            WHERE r.prodi_id = ?
+            ORDER BY r.tahun DESC, d.nama
+        ", [$prodiId])->getResultArray();
+
+        $headers  = ['No', 'Nama DTPR', 'Jenis Rekognisi', 'Judul/Kegiatan', 'Penyelenggara', 'Tingkat', 'Tahun', 'Bukti'];
+        $labels   = \App\Models\RekognisiDosenModel::JENIS_LABELS;
+        $startRow = 4;
+
+        $col = 'A';
+        foreach ($headers as $h) {
+            $sheet->setCellValue("{$col}{$startRow}", $h);
+            $col++;
+        }
+        $lastCol = Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->getStyle("A{$startRow}:{$lastCol}{$startRow}")->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0D3B8C']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+        ]);
+
+        $dataRow = $startRow + 1; $no = 1;
+        foreach ($rows as $r) {
+            $vals = [
+                $no++, $r['dosen'] ?: '-', $labels[$r['jenis']] ?? $r['jenis'], $r['judul'],
+                $r['penyelenggara'] ?: '-', ucfirst((string) $r['tingkat']), $r['tahun'] ?: '-', $r['link_bukti'] ?: '-',
+            ];
+            $col = 'A';
+            foreach ($vals as $v) {
+                $coord = "{$col}{$dataRow}";
+                $str = (string) $v;
+                if (\App\Services\EvidenceStorage::isStoredFile($str)) {
+                    helper('url');
+                    $sheet->setCellValue($coord, 'Lihat bukti');
+                    $sheet->getCell($coord)->getHyperlink()->setUrl(site_url('eviden/file/' . $str));
+                    $sheet->getStyle($coord)->getFont()->setUnderline(true)->getColor()->setRGB('0D6EFD');
+                } elseif ($str !== '' && preg_match('#^https?://#i', $str)) {
+                    $sheet->setCellValue($coord, 'Lihat bukti');
+                    $sheet->getCell($coord)->getHyperlink()->setUrl($str);
+                    $sheet->getStyle($coord)->getFont()->setUnderline(true)->getColor()->setRGB('0D6EFD');
+                } else {
+                    $sheet->setCellValue($coord, $str);
+                }
+                $col++;
+            }
+            $dataRow++;
+        }
+
+        if ($dataRow === $startRow + 1) {
+            $sheet->setCellValue("A{$dataRow}", '(belum ada data rekognisi)');
+        } else {
+            $sheet->getStyle("A{$startRow}:{$lastCol}" . ($dataRow - 1))->applyFromArray([
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
             ]);
         }
         for ($c = 'A'; $c <= $lastCol; $c++) {
