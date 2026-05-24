@@ -25,12 +25,19 @@ class LedContextBuilder
     /** Maks baris detail tabel agar prompt tidak membengkak. */
     private const MAX_ROWS = 60;
 
-    /** Pemetaan kriteria → kode tabel LKPS yang relevan. */
+    /**
+     * Pemetaan kriteria → kode tabel LKPS yang relevan (selaras seeder LAM INFOKOM):
+     *   C1 Budaya Mutu, C2 Relevansi Pendidikan, C3 Relevansi Penelitian,
+     *   C4 Relevansi PkM, C5 Akuntabilitas, C6 Diferensiasi Misi.
+     * Daftar mahasiswa mentah (2.A.1) sengaja dilewati — sudah terwakili ringkasan.
+     */
     private const KRITERIA_TABEL = [
-        'C1' => ['1.A.4'],
-        'C2' => ['2.A.1', '2.B.4', '2.B.5', '2.B.6'],
-        'C3' => ['3.A.2', '3.C.2', '3.C.3', '3.C.1'],
-        'C4' => ['4.A.2', '4.C.2', '4.C.3', '4.C.1'],
+        'C1' => ['1.A.1', '1.B', '1.A.2', '1.A.3', '1.A.4', '1.A.5'],
+        'C2' => ['2.B.1', '2.B.2', '2.B.3', '2.B.4', '2.B.5', '2.B.6', '2.C', '2.D'],
+        'C3' => ['3.A.1', '3.A.2', '3.A.3', '3.C.1', '3.C.2', '3.C.3'],
+        'C4' => ['4.A.1', '4.A.2', '4.C.1', '4.C.2', '4.C.3'],
+        'C5' => ['5.1', '5.2'],
+        'C6' => ['6'],
     ];
 
     public function __construct()
@@ -63,6 +70,11 @@ class LedContextBuilder
                     $parts[] = $this->renderTabel($kode, $rows);
                 }
             }
+        }
+
+        // Kriteria Relevansi Penelitian: tambahkan produktivitas riset per DTPR (OpenAlex).
+        if ($kriteriaKode === 'C3') {
+            $parts[] = $this->metrikDosen($prodiId);
         }
 
         $parts[] = "CATATAN PENTING: Gunakan HANYA angka dan fakta di atas. "
@@ -273,6 +285,35 @@ class LedContextBuilder
         }
 
         return implode("\n", $out);
+    }
+
+    /** Tabel metrik riset per DTPR dari OpenAlex (h-index, sitasi, karya), bila tersedia. */
+    private function metrikDosen(int $prodiId): string
+    {
+        if (!$this->db->fieldExists('h_index', 'dosen')) {
+            return '';
+        }
+        $rows = $this->db->table('dosen')
+            ->select('nama, jabatan_akademik, h_index, i10_index, sitasi_total, karya_total')
+            ->where(['prodi_id' => $prodiId, 'aktif' => 1])
+            ->where('metrik_updated_at IS NOT NULL')
+            ->orderBy('sitasi_total', 'DESC')
+            ->get()->getResultArray();
+
+        if (empty($rows)) {
+            return '';
+        }
+
+        $lines = ['Nama | Jabatan | h-index | i10 | Sitasi | Karya'];
+        foreach ($rows as $r) {
+            $lines[] = sprintf(
+                '%s | %s | %d | %d | %d | %d',
+                $r['nama'], $r['jabatan_akademik'] ?: '-',
+                (int) $r['h_index'], (int) $r['i10_index'],
+                (int) $r['sitasi_total'], (int) $r['karya_total']
+            );
+        }
+        return "=== PRODUKTIVITAS RISET DTPR (sumber OpenAlex) ===\n" . implode("\n", $lines);
     }
 
     private function renderTabel(string $kode, array $rows): string
