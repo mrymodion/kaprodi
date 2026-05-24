@@ -192,13 +192,14 @@ foreach ($dosenList as $dd) {
                                 <th>Kategori</th>
                                 <th>No. HKI</th>
                                 <th>Tahun</th>
+                                <th>DTPR</th>
                                 <th>Status</th>
                                 <?php if ($canManage): ?><th></th><?php endif ?>
                             </tr>
                         </thead>
                         <tbody>
                         <?php if (empty($hkiList)): ?>
-                            <tr><td colspan="8" class="text-center text-muted py-4">Belum ada data HKI.</td></tr>
+                            <tr><td colspan="9" class="text-center text-muted py-4">Belum ada data HKI.</td></tr>
                         <?php else: ?>
                         <?php foreach ($hkiList as $i => $h): ?>
                         <tr>
@@ -208,6 +209,13 @@ foreach ($dosenList as $dd) {
                             <td><span class="badge <?= $h['kategori']==='penelitian'?'bg-primary':'bg-success' ?>"><?= $h['kategori'] ?></span></td>
                             <td><?= esc($h['no_hki'] ?? '-') ?></td>
                             <td><?= esc($h['tahun'] ?? '-') ?></td>
+                            <td><?php $hd = (int) ($h['dosen_id'] ?? 0); ?>
+                                <?php if ($hd && isset($dosenNama[$hd])): ?>
+                                    <span class="badge bg-light text-dark border"><?= esc($dosenNama[$hd]) ?></span>
+                                <?php else: ?>
+                                    <span class="text-muted small">-</span>
+                                <?php endif ?>
+                            </td>
                             <td><span class="badge <?= $h['status']==='granted'?'bg-success':'bg-warning text-dark' ?>"><?= $h['status'] ?></span></td>
                             <?php if ($canManage): ?>
                             <td>

@@ -57,6 +57,17 @@
                     <textarea name="pemilik" class="form-control" rows="2" placeholder="Nama-nama pemilik/inventor"><?= esc(old('pemilik', $item['pemilik'] ?? '')) ?></textarea>
                 </div>
                 <div class="col-12">
+                    <label class="form-label fw-semibold">DTPR Pemilik (tautkan ke dosen)</label>
+                    <select name="dosen_id" class="form-select">
+                        <option value="">— belum ditautkan —</option>
+                        <?php foreach (($dosenList ?? []) as $d): ?>
+                            <?php $nm = trim(($d['gelar_depan'] ? $d['gelar_depan'] . ' ' : '') . $d['nama'] . ($d['gelar_belakang'] ? ', ' . $d['gelar_belakang'] : '')); ?>
+                            <option value="<?= (int) $d['id'] ?>" <?= (int) old('dosen_id', $item['dosen_id'] ?? 0) === (int) $d['id'] ? 'selected' : '' ?>><?= esc($nm) ?></option>
+                        <?php endforeach ?>
+                    </select>
+                    <small class="text-muted">Menautkan HKI ke dosen membuatnya tampil di "HKI Saya" dosen tersebut dan terhitung pada keterlibatan DTPR.</small>
+                </div>
+                <div class="col-12">
                     <label class="form-label fw-semibold">Bukti (PDF) — sertifikat HKI</label>
                     <?php $bk = old('link_bukti', $item['link_bukti'] ?? ''); ?>
                     <?php if (!empty($bk)): ?>
