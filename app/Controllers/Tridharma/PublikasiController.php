@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 use App\Models\PublikasiModel;
 use App\Models\HkiModel;
 use App\Models\ProdiModel;
+use App\Models\DosenModel;
+use App\Services\OpenAlexClient;
 
 class PublikasiController extends BaseController
 {
@@ -99,6 +101,102 @@ class PublikasiController extends BaseController
         $this->model->findOrFail($id);
         $this->model->delete($id);
         return redirect()->to(site_url('publikasi'))->with('success', 'Publikasi berhasil dihapus.');
+    }
+
+    // ---------- CARI PUBLIKASI (OpenAlex) ----------
+
+    public function cariPublikasi(): string
+    {
+        $prodiId = $this->getProdiId();
+        $dosen   = $prodiId ? (new DosenModel())->listByProdi($prodiId) : [];
+        return view('tridharma/publikasi/cari', [
+            'dosen'   => $dosen,
+            'prodiId' => $prodiId,
+        ]);
+    }
+
+    public function searchPublikasi()
+    {
+        $orcid = (string) $this->request->getPost('orcid');
+        $nama  = (string) $this->request->getPost('nama');
+
+        $res = (new OpenAlexClient())->searchWorks($orcid, $nama);
+        if (empty($res['ok'])) {
+            return $this->response->setJSON(['ok' => false, 'error' => $res['error'] ?? 'Pencarian gagal.']);
+        }
+
+        // Tandai publikasi yang DOI-nya sudah ada untuk prodi ini agar tidak diimpor ganda.
+        $prodiId = $this->getProdiId();
+        $existing = [];
+        if ($prodiId) {
+            $rows = $this->model->select('doi')
+                ->where('prodi_id', $prodiId)
+                ->where('doi !=', '')
+                ->findAll();
+            foreach ($rows as $r) {
+                if (!empty($r['doi'])) {
+                    $existing[strtolower(trim($r['doi']))] = true;
+                }
+            }
+        }
+        foreach ($res['items'] as &$it) {
+            $it['exists'] = $it['doi'] !== '' && isset($existing[strtolower($it['doi'])]);
+        }
+        unset($it);
+
+        return $this->response->setJSON(['ok' => true, 'items' => $res['items']]);
+    }
+
+    public function importPublikasi()
+    {
+        $prodiId = $this->getProdiId();
+        if (!$prodiId) {
+            return redirect()->to(site_url('publikasi'))->with('error', 'Prodi aktif belum dipilih.');
+        }
+
+        $rows = $this->request->getPost('rows');
+        if (!is_array($rows) || $rows === []) {
+            return redirect()->to(site_url('publikasi/cari'))->with('error', 'Tidak ada publikasi yang dipilih.');
+        }
+
+        $allowedJenis = array_keys(PublikasiModel::JENIS_LABELS);
+        $now = date('Y-m-d H:i:s');
+        $imported = 0; $skipped = 0;
+
+        foreach ($rows as $r) {
+            $judul = trim((string) ($r['judul'] ?? ''));
+            if (strlen($judul) < 5) { $skipped++; continue; }
+
+            $doi = trim((string) ($r['doi'] ?? ''));
+            // Lewati bila DOI sudah ada untuk prodi ini.
+            if ($doi !== '' && $this->model->where('prodi_id', $prodiId)->where('doi', $doi)->countAllResults() > 0) {
+                $skipped++; continue;
+            }
+
+            $jenis = (string) ($r['jenis'] ?? '');
+            if (!in_array($jenis, $allowedJenis, true)) {
+                $jenis = 'jurnal_internasional';
+            }
+
+            $this->model->insert([
+                'prodi_id'   => $prodiId,
+                'kategori'   => 'penelitian',
+                'jenis'      => $jenis,
+                'judul'      => $judul,
+                'penulis'    => trim((string) ($r['penulis'] ?? '')),
+                'nama_media' => trim((string) ($r['nama_media'] ?? '')),
+                'tahun'      => (int) ($r['tahun'] ?? 0) ?: null,
+                'volume'     => trim((string) ($r['volume'] ?? '')) ?: null,
+                'doi'        => $doi ?: null,
+                'url'        => trim((string) ($r['url'] ?? '')) ?: null,
+                'sitasi'     => (int) ($r['sitasi'] ?? 0),
+                'created_at' => $now,
+            ]);
+            $imported++;
+        }
+
+        $msg = "{$imported} publikasi diimpor" . ($skipped ? ", {$skipped} dilewati (duplikat/tidak valid)" : '') . '. Harap verifikasi & lengkapi data.';
+        return redirect()->to(site_url('publikasi'))->with('success', $msg);
     }
 
     // ---------- HKI ----------

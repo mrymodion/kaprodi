@@ -212,6 +212,9 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     // Publikasi & HKI (Tabel 3.C.2, 3.C.3, 4.C.2, 4.C.3)
     $routes->group('publikasi', ['filter' => 'permission:tridharma.manage'], function ($routes) {
         $routes->get('/',                   'Tridharma\PublikasiController::index');
+        $routes->get('cari',                'Tridharma\PublikasiController::cariPublikasi');
+        $routes->post('cari/search',        'Tridharma\PublikasiController::searchPublikasi');
+        $routes->post('cari/import',        'Tridharma\PublikasiController::importPublikasi');
         $routes->get('create',              'Tridharma\PublikasiController::createPublikasi');
         $routes->post('store',              'Tridharma\PublikasiController::storePublikasi');
         $routes->get('(:num)/edit',         'Tridharma\PublikasiController::editPublikasi/$1');

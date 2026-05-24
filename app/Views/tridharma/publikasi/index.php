@@ -11,6 +11,7 @@ $hkiLabels   = \App\Models\HkiModel::JENIS_LABELS;
     <h4 class="mb-0"><i class="bi bi-file-earmark-text"></i> Publikasi & HKI</h4>
     <?php if ($canManage): ?>
     <div class="btn-group">
+        <a href="<?= site_url('publikasi/cari') ?>" class="btn btn-info btn-sm"><i class="bi bi-search"></i> Cari Publikasi (OpenAlex)</a>
         <a href="<?= site_url('publikasi/create') ?>" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Tambah Publikasi</a>
         <a href="<?= site_url('publikasi/hki/create') ?>" class="btn btn-outline-primary btn-sm"><i class="bi bi-shield-check"></i> Tambah HKI</a>
     </div>
