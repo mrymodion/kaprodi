@@ -16,6 +16,15 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 <?php endif ?>
 
+<?php if ($slug === 'spmi' && !empty($auditorStat) && (int) ($auditorStat['total'] ?? 0) > 0): ?>
+<div class="alert alert-info d-flex justify-content-between align-items-center small">
+    <span><i class="bi bi-people"></i> Menurut <a href="<?= site_url('spmi/auditor') ?>">Registry Auditor</a>, prodi ini memiliki
+        <strong><?= (int) $auditorStat['total'] ?></strong> auditor (<strong><?= (int) $auditorStat['bersertifikat'] ?></strong> bersertifikat).
+        Pastikan angka di kolom auditor unit konsisten dengan data ini.</span>
+    <a href="<?= site_url('spmi/auditor') ?>" class="btn btn-sm btn-outline-info"><i class="bi bi-person-vcard"></i> Registry</a>
+</div>
+<?php endif ?>
+
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
