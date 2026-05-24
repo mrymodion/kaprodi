@@ -163,6 +163,19 @@ class AiController extends BaseController
         if ($tracer && (int) $tracer->n > 0) {
             $lines[] = sprintf('Tracer study: %d responden, rata-rata masa tunggu %.1f bulan.', (int) $tracer->n, (float) $tracer->a);
         }
+
+        // Kematangan SPMI (PPEPP & Audit Mutu Internal).
+        if ($db->tableExists('ppepp')) {
+            $ppepp = (int) $db->table('ppepp')->where('prodi_id', $prodiId)->countAllResults();
+            if ($ppepp > 0) $lines[] = "Siklus PPEPP terdokumentasi: {$ppepp} entri.";
+        }
+        if ($db->tableExists('ami_temuan')) {
+            $ami = $db->query("SELECT COUNT(*) t, SUM(CASE WHEN status='selesai' THEN 1 ELSE 0 END) s FROM ami_temuan WHERE prodi_id=?", [$prodiId])->getRowArray();
+            if ($ami && (int) $ami['t'] > 0) {
+                $lines[] = sprintf('Audit Mutu Internal: %d temuan, %d selesai ditindaklanjuti.', (int) $ami['t'], (int) $ami['s']);
+            }
+        }
+
         return implode("\n", $lines);
     }
 

@@ -288,7 +288,71 @@ class LedContextBuilder
             ? 'Kerjasama (total ' . array_sum($ks) . '): ' . $this->fmtGroup($ks)
             : 'Kerjasama: (belum ada data)';
 
+        // SPMI — Sistem Penjaminan Mutu Internal (PPEPP, AMI, dokumen mutu, auditor).
+        foreach ($this->ringkasSpmi($prodiId) as $line) {
+            $out[] = $line;
+        }
+
         return implode("\n", $out);
+    }
+
+    /** Ringkasan kematangan SPMI: siklus PPEPP, temuan AMI, dokumen mutu, auditor. */
+    private function ringkasSpmi(int $prodiId): array
+    {
+        $out = [];
+
+        if ($this->db->tableExists('ppepp')) {
+            $p = $this->db->query("
+                SELECT COUNT(*) AS total, COUNT(DISTINCT siklus) AS siklus, COUNT(DISTINCT tahap) AS tahap
+                FROM ppepp WHERE prodi_id = ?
+            ", [$prodiId])->getRowArray();
+            if ($p && (int) $p['total'] > 0) {
+                $out[] = sprintf(
+                    'Siklus PPEPP terdokumentasi: %d entri pada %d siklus; %d dari 5 tahap (Penetapan–Peningkatan) terisi.',
+                    (int) $p['total'], (int) $p['siklus'], (int) $p['tahap']
+                );
+            } else {
+                $out[] = 'Siklus PPEPP: (belum didokumentasikan)';
+            }
+        }
+
+        if ($this->db->tableExists('ami_temuan')) {
+            $a = $this->db->query("
+                SELECT COUNT(*) AS total,
+                       SUM(CASE WHEN status = 'selesai' THEN 1 ELSE 0 END) AS selesai,
+                       SUM(CASE WHEN status = 'terbuka' THEN 1 ELSE 0 END) AS terbuka
+                FROM ami_temuan WHERE prodi_id = ?
+            ", [$prodiId])->getRowArray();
+            if ($a && (int) $a['total'] > 0) {
+                $tot = (int) $a['total'];
+                $out[] = sprintf(
+                    'Audit Mutu Internal: %d temuan; %d selesai ditindaklanjuti (%.0f%%), %d masih terbuka.',
+                    $tot, (int) $a['selesai'], (int) $a['selesai'] / $tot * 100, (int) $a['terbuka']
+                );
+            }
+        }
+
+        if ($this->db->tableExists('dokumen_mutu')) {
+            $d = (int) $this->db->table('dokumen_mutu')->where('prodi_id', $prodiId)->countAllResults();
+            if ($d > 0) {
+                $jenis = $this->db->query("SELECT jenis, COUNT(*) n FROM dokumen_mutu WHERE prodi_id = ? GROUP BY jenis", [$prodiId])->getResultArray();
+                $labels = \App\Controllers\Spmi\SpmiController::DOK_JENIS;
+                $parts = [];
+                foreach ($jenis as $j) {
+                    $parts[] = ($labels[$j['jenis']] ?? $j['jenis']) . ': ' . (int) $j['n'];
+                }
+                $out[] = 'Dokumen mutu SPMI: ' . $d . ' dokumen (' . implode('; ', $parts) . ').';
+            }
+        }
+
+        if ($this->db->tableExists('spmi_auditor')) {
+            $au = $this->db->query("SELECT COUNT(*) total, SUM(tersertifikasi) bersertifikat FROM spmi_auditor WHERE prodi_id = ?", [$prodiId])->getRowArray();
+            if ($au && (int) $au['total'] > 0) {
+                $out[] = sprintf('Auditor mutu internal: %d orang (%d bersertifikat).', (int) $au['total'], (int) $au['bersertifikat']);
+            }
+        }
+
+        return $out;
     }
 
     private function ringkasTridharma(string $tabel, int $prodiId, string $label): string
