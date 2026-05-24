@@ -35,7 +35,7 @@ class AkunController extends BaseController
         }
         $db = Database::connect();
         $stats = [
-            'publikasi'  => (int) $db->table('publikasi')->where('dosen_id', $d['id'])->countAllResults(),
+            'publikasi'  => (int) $db->table('publikasi_dosen')->where('dosen_id', $d['id'])->countAllResults(),
             'penelitian' => (int) $db->table('penelitian')->where('ketua_dosen_id', $d['id'])->countAllResults(),
             'pkm'        => (int) $db->table('pkm')->where('ketua_dosen_id', $d['id'])->countAllResults(),
             'dokumen'    => (int) $db->table('dokumen_eviden')->where(['ref_table' => 'dosen', 'ref_id' => $d['id']])->countAllResults(),

@@ -258,7 +258,8 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('(:num)/edit',         'Tridharma\PublikasiController::editPublikasi/$1');
         $routes->post('(:num)/update',      'Tridharma\PublikasiController::updatePublikasi/$1');
         $routes->post('(:num)/delete',      'Tridharma\PublikasiController::deletePublikasi/$1');
-        $routes->post('(:num)/dosen',       'Tridharma\PublikasiController::tetapkanDosen/$1');
+        $routes->get('(:num)/pemilik',      'Tridharma\PublikasiController::pemilikPublikasi/$1');
+        $routes->post('(:num)/pemilik',     'Tridharma\PublikasiController::simpanPemilik/$1');
         $routes->get('hki/create',          'Tridharma\PublikasiController::createHki');
         $routes->post('hki/store',          'Tridharma\PublikasiController::storeHki');
         $routes->get('hki/(:num)/edit',     'Tridharma\PublikasiController::editHki/$1');
