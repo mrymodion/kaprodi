@@ -125,11 +125,24 @@ class PublikasiModel extends AppModel
         return $out;
     }
 
-    public function listByProdi(int $prodiId, string $kategori = ''): array
+    public function listByProdi(int $prodiId, string $kategori = '', bool $onlyUnclaimed = false): array
     {
         $q = $this->where('prodi_id', $prodiId)->orderBy('tahun DESC, judul ASC');
         if ($kategori) $q->where('kategori', $kategori);
+        if ($onlyUnclaimed) {
+            $q->whereNotIn('id', function ($builder) {
+                return $builder->select('DISTINCT publikasi_id')->from('publikasi_dosen');
+            });
+        }
         return $q->findAll();
+    }
+
+    public function countUnclaimedByProdi(int $prodiId): int
+    {
+        return (int) $this->where('prodi_id', $prodiId)
+            ->whereNotIn('id', function ($builder) {
+                return $builder->select('DISTINCT publikasi_id')->from('publikasi_dosen');
+            })->countAllResults();
     }
 
     public function summaryByProdi(int $prodiId): array

@@ -36,13 +36,24 @@ foreach ($dosenList as $dd) {
 <?php endif ?>
 
 <!-- Filter -->
-<form class="row g-2 mb-3" method="get">
+<form class="row g-2 mb-3 align-items-center" method="get">
     <div class="col-auto">
         <select name="kategori" class="form-select form-select-sm">
             <option value="">Semua Kategori</option>
             <option value="penelitian" <?= $kategori==='penelitian'?'selected':'' ?>>Penelitian</option>
             <option value="pkm" <?= $kategori==='pkm'?'selected':'' ?>>PkM</option>
         </select>
+    </div>
+    <div class="col-auto">
+        <div class="form-check form-check-inline mb-0">
+            <input class="form-check-input" type="checkbox" name="klaim" value="unclaimed" id="chkUnclaimed" <?= ($klaimFilter ?? false) ? 'checked' : '' ?> onchange="this.form.submit()">
+            <label class="form-check-label small" for="chkUnclaimed">
+                Hanya belum diklaim
+                <?php if (($unclaimedCount ?? 0) > 0): ?>
+                    <span class="badge bg-warning text-dark"><?= $unclaimedCount ?></span>
+                <?php endif ?>
+            </label>
+        </div>
     </div>
     <div class="col-auto">
         <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-funnel"></i> Filter</button>
