@@ -144,7 +144,12 @@ class PublikasiController extends BaseController
         }
         unset($it);
 
-        return $this->response->setJSON(['ok' => true, 'items' => $res['items']]);
+        return $this->response->setJSON([
+            'ok'       => true,
+            'items'    => $res['items'],
+            'csrfName' => csrf_token(),
+            'csrfHash' => csrf_hash(),
+        ]);
     }
 
     public function importPublikasi()
@@ -164,6 +169,9 @@ class PublikasiController extends BaseController
         $imported = 0; $skipped = 0;
 
         foreach ($rows as $r) {
+            // Hanya impor baris yang dicentang (checkbox mengirim [sel]).
+            if (empty($r['sel'])) { continue; }
+
             $judul = trim((string) ($r['judul'] ?? ''));
             if (strlen($judul) < 5) { $skipped++; continue; }
 
@@ -193,6 +201,10 @@ class PublikasiController extends BaseController
                 'created_at' => $now,
             ]);
             $imported++;
+        }
+
+        if ($imported === 0 && $skipped === 0) {
+            return redirect()->to(site_url('publikasi/cari'))->with('error', 'Tidak ada publikasi yang dipilih.');
         }
 
         $msg = "{$imported} publikasi diimpor" . ($skipped ? ", {$skipped} dilewati (duplikat/tidak valid)" : '') . '. Harap verifikasi & lengkapi data.';
