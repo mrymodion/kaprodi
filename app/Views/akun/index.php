@@ -53,6 +53,33 @@
     <?php endforeach ?>
 </div>
 
+<?php if (!empty($checklist)): ?>
+<div class="card mb-3">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-check2-square"></i> Kelengkapan Data Akreditasi</span>
+        <span class="badge <?= $persen >= 100 ? 'bg-success' : ($persen >= 60 ? 'bg-warning text-dark' : 'bg-danger') ?>"><?= $persen ?>%</span>
+    </div>
+    <div class="card-body">
+        <div class="progress mb-3" style="height:8px">
+            <div class="progress-bar <?= $persen >= 100 ? 'bg-success' : ($persen >= 60 ? 'bg-warning' : 'bg-danger') ?>" style="width:<?= $persen ?>%"></div>
+        </div>
+        <div class="row g-2">
+            <?php foreach ($checklist as $c): ?>
+            <div class="col-md-6">
+                <a href="<?= site_url($c['url']) ?>" class="text-decoration-none">
+                    <div class="d-flex align-items-center gap-2 small <?= $c['done'] ? 'text-success' : 'text-body' ?>">
+                        <i class="bi <?= $c['done'] ? 'bi-check-circle-fill' : 'bi-circle text-muted' ?>"></i>
+                        <span><?= esc($c['label']) ?></span>
+                        <?php if (!$c['done']): ?><i class="bi bi-arrow-right-short text-primary ms-auto"></i><?php endif ?>
+                    </div>
+                </a>
+            </div>
+            <?php endforeach ?>
+        </div>
+    </div>
+</div>
+<?php endif ?>
+
 <div class="alert alert-info small">
     <i class="bi bi-info-circle"></i> Lengkapi & perbarui data Anda agar borang akreditasi prodi akurat.
     Pastikan <strong>ORCID</strong> terisi agar metrik sitasi dapat disinkronkan otomatis.

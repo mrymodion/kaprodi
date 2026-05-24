@@ -141,6 +141,10 @@ if ($isSuperadmin) {
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/publikasi') ? 'active' : '' ?>" href="<?= site_url('akun/publikasi') ?>"><i class="bi bi-file-earmark-text"></i> Publikasi Saya</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/penelitian') ? 'active' : '' ?>" href="<?= site_url('akun/penelitian') ?>"><i class="bi bi-journal-text"></i> Penelitian Saya</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/pkm') ? 'active' : '' ?>" href="<?= site_url('akun/pkm') ?>"><i class="bi bi-megaphone"></i> PkM Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/hki') ? 'active' : '' ?>" href="<?= site_url('akun/hki') ?>"><i class="bi bi-shield-check"></i> HKI Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/rekognisi') ? 'active' : '' ?>" href="<?= site_url('akun/rekognisi') ?>"><i class="bi bi-award"></i> Rekognisi Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/pengembangan') ? 'active' : '' ?>" href="<?= site_url('akun/pengembangan') ?>"><i class="bi bi-mortarboard"></i> Pengembangan Diri</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/ewmp') ? 'active' : '' ?>" href="<?= site_url('akun/ewmp') ?>"><i class="bi bi-table"></i> EWMP Saya</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/profil') ? 'active' : '' ?>" href="<?= site_url('akun/profil') ?>"><i class="bi bi-pencil-square"></i> Edit Profil</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/password') ? 'active' : '' ?>" href="<?= site_url('akun/password') ?>"><i class="bi bi-key"></i> Ganti Password</a>
                 </nav>

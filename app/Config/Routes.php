@@ -58,6 +58,26 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('pkm/(:num)/edit',            'Akun\KaryaController::pkmEdit/$1');
         $routes->post('pkm/(:num)/update',         'Akun\KaryaController::pkmUpdate/$1');
         $routes->post('pkm/(:num)/delete',         'Akun\KaryaController::pkmDelete/$1');
+
+        // EWMP milik dosen
+        $routes->get('ewmp',                       'Akun\DtprController::ewmp');
+        $routes->post('ewmp',                      'Akun\DtprController::ewmpStore');
+
+        // Pengembangan diri (LKPS 3.A.3)
+        $routes->get('pengembangan',               'Akun\DtprController::pengembangan');
+        $routes->post('pengembangan',              'Akun\DtprController::pengembanganStore');
+        $routes->post('pengembangan/(:num)/delete','Akun\DtprController::pengembanganDelete/$1');
+
+        // HKI milik dosen (3.C.3 / 4.C.3)
+        $routes->get('hki',                        'Akun\DtprController::hki');
+        $routes->post('hki/baru',                  'Akun\DtprController::hkiStore');
+        $routes->post('hki/(:num)/klaim',          'Akun\DtprController::hkiKlaim/$1');
+        $routes->post('hki/(:num)/delete',         'Akun\DtprController::hkiDelete/$1');
+
+        // Rekognisi dosen (C3)
+        $routes->get('rekognisi',                  'Akun\DtprController::rekognisi');
+        $routes->post('rekognisi/baru',            'Akun\DtprController::rekognisiStore');
+        $routes->post('rekognisi/(:num)/delete',   'Akun\DtprController::rekognisiDelete/$1');
     });
 
     // Pemilih prodi aktif (khusus superadmin)
