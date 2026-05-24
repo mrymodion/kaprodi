@@ -156,6 +156,32 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:segment)/(:num)/delete', 'BorangController::delete/$1/$2');
     });
 
+    // SPMI — Sistem Penjaminan Mutu Internal (PPEPP, AMI/temuan, dokumen mutu, auditor)
+    $routes->group('spmi', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('ppepp',                   'Spmi\SpmiController::ppepp');
+        $routes->get('ppepp/baru',              'Spmi\SpmiController::ppeppForm');
+        $routes->post('ppepp/baru',             'Spmi\SpmiController::ppeppStore');
+        $routes->get('ppepp/(:num)/edit',       'Spmi\SpmiController::ppeppForm/$1');
+        $routes->post('ppepp/(:num)/update',    'Spmi\SpmiController::ppeppStore/$1');
+        $routes->post('ppepp/(:num)/delete',    'Spmi\SpmiController::ppeppDelete/$1');
+
+        $routes->get('ami',                     'Spmi\SpmiController::ami');
+        $routes->get('ami/baru',                'Spmi\SpmiController::amiForm');
+        $routes->post('ami/baru',               'Spmi\SpmiController::amiStore');
+        $routes->get('ami/(:num)/edit',         'Spmi\SpmiController::amiForm/$1');
+        $routes->post('ami/(:num)/update',      'Spmi\SpmiController::amiStore/$1');
+        $routes->post('ami/(:num)/delete',      'Spmi\SpmiController::amiDelete/$1');
+
+        $routes->get('dokumen',                 'Spmi\SpmiController::dokumen');
+        $routes->post('dokumen/baru',           'Spmi\SpmiController::dokumenStore');
+        $routes->post('dokumen/(:num)/update',  'Spmi\SpmiController::dokumenStore/$1');
+        $routes->post('dokumen/(:num)/delete',  'Spmi\SpmiController::dokumenDelete/$1');
+
+        $routes->get('auditor',                 'Spmi\SpmiController::auditor');
+        $routes->post('auditor/baru',           'Spmi\SpmiController::auditorStore');
+        $routes->post('auditor/(:num)/delete',  'Spmi\SpmiController::auditorDelete/$1');
+    });
+
     // Admin
     $routes->group('admin', function ($routes) {
         $routes->get('users',              'Admin\UserManagement::index');

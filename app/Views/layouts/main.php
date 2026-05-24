@@ -180,6 +180,14 @@ if ($isSuperadmin) {
                         </a>
                     <?php endforeach ?>
                 </nav>
+
+                <div class="nav-section">SPMI</div>
+                <nav class="nav flex-column">
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/ppepp') ? 'active' : '' ?>" href="<?= site_url('spmi/ppepp') ?>"><i class="bi bi-arrow-repeat"></i> Siklus PPEPP</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/ami') ? 'active' : '' ?>" href="<?= site_url('spmi/ami') ?>"><i class="bi bi-clipboard-check"></i> Audit Mutu Internal</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/dokumen') ? 'active' : '' ?>" href="<?= site_url('spmi/dokumen') ?>"><i class="bi bi-folder-check"></i> Dokumen Mutu</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/auditor') ? 'active' : '' ?>" href="<?= site_url('spmi/auditor') ?>"><i class="bi bi-person-vcard"></i> Registry Auditor</a>
+                </nav>
             <?php endif ?>
             <?php if ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate')): ?>
                 <div class="nav-section">Akreditasi</div>
