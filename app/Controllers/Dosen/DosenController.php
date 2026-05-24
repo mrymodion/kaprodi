@@ -7,6 +7,8 @@ use App\Controllers\Concerns\ExcelImport;
 use App\Models\DosenModel;
 use App\Models\DosenEwmpModel;
 use Config\Database;
+use CodeIgniter\Shield\Models\UserModel;
+use CodeIgniter\Shield\Entities\User;
 
 class DosenController extends BaseController
 {
@@ -116,6 +118,96 @@ class DosenController extends BaseController
         $this->model->findOrFail($id);
         $this->model->update($id, ['aktif' => 0]);
         return redirect()->to(site_url('dosen'))->with('success', 'Dosen dinonaktifkan.');
+    }
+
+    /** Buat akun login untuk seorang dosen (peran 'dosen'), tertaut ke record-nya. */
+    public function buatAkun(int $id)
+    {
+        $dosen = $this->model->findOrFail($id);
+        if (!empty($dosen['user_id'])) {
+            return redirect()->back()->with('error', 'Dosen ini sudah memiliki akun.');
+        }
+        $email = trim((string) ($dosen['email'] ?? ''));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return redirect()->back()->with('error', 'Lengkapi email dosen yang valid terlebih dahulu (dipakai untuk login).');
+        }
+
+        $um = new UserModel();
+        if ($this->emailDipakai($email)) {
+            return redirect()->back()->with('error', "Email {$email} sudah dipakai akun lain.");
+        }
+
+        $username = $this->usernameUnik($dosen['nidn'] ?? '', $email);
+        $password = $this->passwordAcak();
+
+        $user = new User([
+            'username' => $username,
+            'email'    => $email,
+            'password' => $password,
+        ]);
+        $um->save($user);
+        $user = $um->findById($um->getInsertID());
+        $user->addGroup('dosen');
+
+        $this->model->update($id, ['user_id' => (int) $user->id]);
+
+        $db = Database::connect();
+        $db->table('user_prodi')->insert([
+            'user_id'    => (int) $user->id,
+            'prodi_id'   => (int) $dosen['prodi_id'],
+            'peran'      => 'dosen',
+            'is_default' => 1,
+        ]);
+
+        return redirect()->back()->with('success',
+            "Akun dosen dibuat. Email: {$email} — Password: {$password} (catat & sampaikan ke dosen; minta segera ganti password setelah login).");
+    }
+
+    /** Reset password akun dosen. */
+    public function resetAkun(int $id)
+    {
+        $dosen = $this->model->findOrFail($id);
+        if (empty($dosen['user_id'])) {
+            return redirect()->back()->with('error', 'Dosen ini belum memiliki akun.');
+        }
+        $um = new UserModel();
+        $user = $um->findById((int) $dosen['user_id']);
+        if (!$user) {
+            return redirect()->back()->with('error', 'Akun tertaut tidak ditemukan.');
+        }
+        $password = $this->passwordAcak();
+        $user->password = $password;
+        $um->save($user);
+        return redirect()->back()->with('success', "Password direset. Password baru: {$password} (sampaikan ke dosen).");
+    }
+
+    private function emailDipakai(string $email): bool
+    {
+        return (bool) Database::connect()->table('auth_identities')
+            ->where('secret', $email)->where('type', 'email_password')->countAllResults();
+    }
+
+    private function usernameUnik(?string $nidn, string $email): string
+    {
+        $base = trim((string) $nidn) !== '' ? preg_replace('/[^a-zA-Z0-9._]/', '', (string) $nidn)
+            : preg_replace('/[^a-zA-Z0-9._]/', '', explode('@', $email)[0]);
+        $base = $base !== '' ? $base : 'dosen';
+        $um = new UserModel();
+        $u = $base; $i = 1;
+        while ($um->where('username', $u)->first()) {
+            $u = $base . $i; $i++;
+        }
+        return $u;
+    }
+
+    private function passwordAcak(int $len = 10): string
+    {
+        $chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $out = '';
+        for ($i = 0; $i < $len; $i++) {
+            $out .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+        return $out;
     }
 
     /** Perbarui metrik penelitian (h-index, sitasi, jumlah karya) dari OpenAlex via ORCID. */

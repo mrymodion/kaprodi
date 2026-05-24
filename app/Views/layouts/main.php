@@ -21,6 +21,7 @@ $appPt   = env('app.namaPT', '');
 
 // Pemilih prodi aktif (khusus superadmin): daftar prodi + nama yang aktif
 $isSuperadmin    = $user && $user->inGroup('superadmin');
+$isDosen         = $user && $user->inGroup('dosen');
 $prodiSwitcher   = [];
 $activeProdiNama = null;
 if ($isSuperadmin) {
@@ -133,6 +134,14 @@ if ($isSuperadmin) {
             <nav class="nav flex-column">
                 <a class="nav-link active" href="<?= site_url('/') ?>"><i class="bi bi-speedometer2"></i> Dashboard</a>
             </nav>
+            <?php if ($isDosen): ?>
+                <div class="nav-section">Akun Saya</div>
+                <nav class="nav flex-column">
+                    <a class="nav-link <?= uri_string() === 'akun' ? 'active' : '' ?>" href="<?= site_url('akun') ?>"><i class="bi bi-person-circle"></i> Profil Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/profil') ? 'active' : '' ?>" href="<?= site_url('akun/profil') ?>"><i class="bi bi-pencil-square"></i> Edit Profil</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/password') ? 'active' : '' ?>" href="<?= site_url('akun/password') ?>"><i class="bi bi-key"></i> Ganti Password</a>
+                </nav>
+            <?php endif ?>
             <?php if ($can('prodi.manage') || $can('dosen.manage') || $can('mahasiswa.manage')): ?>
                 <div class="nav-section">Data Akreditasi</div>
                 <nav class="nav flex-column">

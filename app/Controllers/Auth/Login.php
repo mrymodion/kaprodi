@@ -18,9 +18,19 @@ class Login extends BaseController
             return view('auth/install_required');
         }
         if (auth()->loggedIn()) {
-            return redirect()->to('/');
+            return redirect()->to($this->homeFor());
         }
         return view('auth/login');
+    }
+
+    /** Tujuan setelah login: dosen biasa (tanpa hak kelola) diarahkan ke area Profil Saya. */
+    private function homeFor(): string
+    {
+        $u = auth()->user();
+        if ($u && $u->inGroup('dosen') && !$u->can('dosen.manage')) {
+            return '/akun';
+        }
+        return '/';
     }
 
     public function attempt()
@@ -47,7 +57,7 @@ class Login extends BaseController
         if (!$result->isOK()) {
             return redirect()->back()->withInput()->with('error', $result->reason());
         }
-        return redirect()->to('/');
+        return redirect()->to($this->homeFor());
     }
 
     public function logout()

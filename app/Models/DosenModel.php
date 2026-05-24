@@ -13,7 +13,7 @@ class DosenModel extends AppModel
     protected $useTimestamps  = true;
 
     protected $allowedFields = [
-        'prodi_id', 'nidn', 'nip', 'nama', 'gelar_depan', 'gelar_belakang',
+        'prodi_id', 'user_id', 'nidn', 'nip', 'nama', 'gelar_depan', 'gelar_belakang',
         'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'email', 'no_hp',
         'pendidikan_terakhir', 'bidang_keahlian', 'linieritas', 'jabatan_akademik',
         'no_sk_jad', 'tgl_sk_jad', 'sertifikat_pendidik', 'no_serdos',
@@ -30,6 +30,12 @@ class DosenModel extends AppModel
     protected $validationMessages = [
         'nidn' => ['regex_match' => 'NIDN harus berupa 10 digit angka (atau dikosongkan untuk dosen tanpa NIDN).'],
     ];
+
+    /** Record dosen yang tertaut ke akun (user) tertentu, atau null. */
+    public function findByUserId(int $userId): ?array
+    {
+        return $this->where('user_id', $userId)->first();
+    }
 
     public function listByProdi(int $prodiId): array
     {

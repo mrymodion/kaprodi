@@ -23,6 +23,15 @@ $routes->post('kepuasan/isi/(:segment)', 'Tracer\PublicKepuasanController::submi
 $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     $routes->get('/', 'Dashboard::index');
 
+    // Area self-service dosen ("Profil Saya")
+    $routes->group('akun', function ($routes) {
+        $routes->get('/',          'Akun\AkunController::index');
+        $routes->get('profil',     'Akun\AkunController::profil');
+        $routes->post('profil',    'Akun\AkunController::saveProfil');
+        $routes->get('password',   'Akun\AkunController::password');
+        $routes->post('password',  'Akun\AkunController::savePassword');
+    });
+
     // Pemilih prodi aktif (khusus superadmin)
     $routes->get('prodi/switch/(:num)', 'ProdiSwitchController::switch/$1');
 
@@ -256,6 +265,8 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('import/template',          'Dosen\DosenController::importTemplate');
         $routes->post('import',                  'Dosen\DosenController::importStore');
         $routes->post('metrik/update',           'Dosen\DosenController::updateMetrik');
+        $routes->post('(:num)/akun',             'Dosen\DosenController::buatAkun/$1');
+        $routes->post('(:num)/akun/reset',       'Dosen\DosenController::resetAkun/$1');
         $routes->get('ewmp/import',              'Dosen\DosenController::ewmpImportForm');
         $routes->get('ewmp/import/template',     'Dosen\DosenController::ewmpImportTemplate');
         $routes->post('ewmp/import',             'Dosen\DosenController::ewmpImportStore');

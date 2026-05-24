@@ -12,7 +12,7 @@ class PublikasiModel extends AppModel
     protected $useTimestamps = false;
 
     protected $allowedFields = [
-        'prodi_id', 'kategori', 'jenis', 'judul', 'penulis',
+        'prodi_id', 'dosen_id', 'kategori', 'jenis', 'judul', 'penulis',
         'nama_media', 'tahun', 'volume', 'doi', 'url', 'sitasi', 'sinta_score',
         'created_at',
     ];
