@@ -48,8 +48,31 @@ class KaryaController extends BaseController
     {
         $d = $this->dosen();
         if (!$d) return view('akun/not_linked');
-        $list = (new PublikasiModel())->listByDosen((int) $d['id']);
-        return view('akun/publikasi/index', ['list' => $list, 'jenis' => PublikasiModel::JENIS_LABELS]);
+        $model     = new PublikasiModel();
+        $list      = $model->listByDosen((int) $d['id']);
+        $unclaimed = $model->listUnclaimedByProdi((int) $d['prodi_id']);
+        return view('akun/publikasi/index', [
+            'list'      => $list,
+            'unclaimed' => $unclaimed,
+            'jenis'     => PublikasiModel::JENIS_LABELS,
+        ]);
+    }
+
+    /** Dosen mengklaim publikasi prodi yang belum dimiliki siapa pun (set dosen_id = dirinya). */
+    public function publikasiKlaim(int $id)
+    {
+        $d = $this->dosen();
+        if (!$d) return view('akun/not_linked');
+        $model = new PublikasiModel();
+        $item  = $model->find($id);
+        if (!$item || (int) $item['prodi_id'] !== (int) $d['prodi_id']) {
+            return redirect()->to(site_url('akun/publikasi'))->with('error', 'Publikasi tidak ditemukan di prodi Anda.');
+        }
+        if (!empty($item['dosen_id'])) {
+            return redirect()->to(site_url('akun/publikasi'))->with('error', 'Publikasi ini sudah dimiliki dosen lain.');
+        }
+        $model->update($id, ['dosen_id' => (int) $d['id']]);
+        return redirect()->to(site_url('akun/publikasi'))->with('success', 'Publikasi diklaim sebagai milik Anda.');
     }
 
     public function publikasiCreate()

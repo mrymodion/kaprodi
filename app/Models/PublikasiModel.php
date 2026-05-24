@@ -43,6 +43,14 @@ class PublikasiModel extends AppModel
         return $this->where('dosen_id', $dosenId)->orderBy('tahun DESC, judul ASC')->findAll();
     }
 
+    /** Publikasi prodi yang belum dimiliki dosen mana pun (untuk diklaim). */
+    public function listUnclaimedByProdi(int $prodiId): array
+    {
+        return $this->where('prodi_id', $prodiId)
+            ->groupStart()->where('dosen_id', null)->orWhere('dosen_id', 0)->groupEnd()
+            ->orderBy('tahun DESC, judul ASC')->findAll();
+    }
+
     public function listByProdi(int $prodiId, string $kategori = ''): array
     {
         $q = $this->where('prodi_id', $prodiId)->orderBy('tahun DESC, judul ASC');

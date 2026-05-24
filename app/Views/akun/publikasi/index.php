@@ -53,4 +53,41 @@
     </div>
 </div>
 
+<?php if (!empty($unclaimed)): ?>
+<div class="card mt-4 border-warning">
+    <div class="card-header bg-warning-subtle fw-semibold">
+        <i class="bi bi-inbox"></i> Publikasi Prodi Belum Bertuan (<?= count($unclaimed) ?>)
+    </div>
+    <div class="card-body">
+        <p class="small text-muted mb-3">Publikasi berikut sudah ada di data prodi (mis. diimpor oleh admin) tetapi belum ditautkan ke dosen mana pun. Klik <strong>Klaim</strong> pada yang merupakan karya Anda agar muncul di daftar publikasi Anda.</p>
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0 align-middle">
+                <thead class="table-light">
+                    <tr><th>#</th><th>Judul</th><th>Penulis</th><th>Media / Tahun</th><th></th></tr>
+                </thead>
+                <tbody>
+                <?php foreach ($unclaimed as $i => $p): ?>
+                    <tr>
+                        <td><?= $i + 1 ?></td>
+                        <td>
+                            <?= esc($p['judul']) ?>
+                            <?php if ($p['doi']): ?><br><small><a href="https://doi.org/<?= esc($p['doi']) ?>" target="_blank" rel="noopener"><?= esc($p['doi']) ?></a></small><?php endif ?>
+                        </td>
+                        <td><small><?= esc($p['penulis'] ?? '') ?></small></td>
+                        <td><small><?= esc($p['nama_media'] ?? '') ?><?= $p['tahun'] ? ' (' . $p['tahun'] . ')' : '' ?></small></td>
+                        <td class="text-end text-nowrap">
+                            <form method="post" action="<?= site_url("akun/publikasi/{$p['id']}/klaim") ?>" class="d-inline" onsubmit="return confirm('Klaim publikasi ini sebagai milik Anda?')">
+                                <?= csrf_field() ?>
+                                <button class="btn btn-sm btn-outline-success py-0 px-2"><i class="bi bi-hand-index"></i> Klaim</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<?php endif ?>
+
 <?= $this->endSection() ?>
