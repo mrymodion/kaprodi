@@ -71,17 +71,22 @@ class PublikasiController extends BaseController
 
     public function index(): string
     {
-        $prodiId  = $this->getProdiId();
-        $kategori = $this->request->getGet('kategori') ?? '';
-        $pubList  = $prodiId ? $this->model->listByProdi($prodiId, $kategori) : [];
-        $hkiList  = $prodiId ? $this->hkiModel->listByProdi($prodiId, $kategori) : [];
-        $pubSum   = $prodiId ? $this->model->summaryByProdi($prodiId) : [];
-        $hkiSum   = $prodiId ? $this->hkiModel->summaryByProdi($prodiId) : [];
+        $prodiId       = $this->getProdiId();
+        $kategori      = $this->request->getGet('kategori') ?? '';
+        $klaimFilter   = $this->request->getGet('klaim') === 'unclaimed';
+        $pubList       = $prodiId ? $this->model->listByProdi($prodiId, $kategori, $klaimFilter) : [];
+        $hkiList       = $prodiId ? $this->hkiModel->listByProdi($prodiId, $kategori) : [];
+        $pubSum        = $prodiId ? $this->model->summaryByProdi($prodiId) : [];
+        $hkiSum        = $prodiId ? $this->hkiModel->summaryByProdi($prodiId) : [];
+        $unclaimedCount = $prodiId ? $this->model->countUnclaimedByProdi($prodiId) : 0;
 
         $dosenList = $prodiId ? (new DosenModel())->listByProdi($prodiId) : [];
         $ownerMap  = $pubList ? $this->model->dosenIdsForMany(array_column($pubList, 'id')) : [];
 
-        return view('tridharma/publikasi/index', compact('pubList', 'hkiList', 'pubSum', 'hkiSum', 'prodiId', 'kategori', 'dosenList', 'ownerMap'));
+        return view('tridharma/publikasi/index', compact(
+            'pubList', 'hkiList', 'pubSum', 'hkiSum', 'prodiId', 'kategori',
+            'dosenList', 'ownerMap', 'klaimFilter', 'unclaimedCount'
+        ));
     }
 
     public function createPublikasi(): string
