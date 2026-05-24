@@ -48,6 +48,17 @@
                 <label class="form-label fw-semibold">Kriteria Terkait</label>
                 <input type="text" name="kriteria" class="form-control" placeholder="mis. C3 / 3.2.A" value="<?= esc(old('kriteria', $item['kriteria'] ?? '')) ?>">
             </div>
+            <div class="col-md-8">
+                <label class="form-label fw-semibold">Standar Mutu Terkait</label>
+                <select name="standar_mutu_id" class="form-select">
+                    <option value="">— tidak ditautkan —</option>
+                    <?php foreach (($standarList ?? []) as $s): ?>
+                        <option value="<?= (int) $s['id'] ?>" <?= (int) old('standar_mutu_id', $item['standar_mutu_id'] ?? 0) === (int) $s['id'] ? 'selected' : '' ?>>
+                            <?= esc(($s['kode'] ? $s['kode'] . ' — ' : '') . $s['nama']) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+            </div>
             <div class="col-12">
                 <label class="form-label fw-semibold">Deskripsi Temuan <span class="text-danger">*</span></label>
                 <textarea name="deskripsi" class="form-control" rows="3" required><?= esc(old('deskripsi', $item['deskripsi'] ?? '')) ?></textarea>
@@ -67,6 +78,15 @@
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Auditor</label>
                 <input type="text" name="auditor" class="form-control" value="<?= esc(old('auditor', $item['auditor'] ?? '')) ?>">
+            </div>
+            <div class="col-12"><hr class="my-1"><small class="text-muted fw-semibold">Verifikasi penutupan (isi bila status Selesai)</small></div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Tanggal Verifikasi</label>
+                <input type="date" name="tanggal_verifikasi" class="form-control" value="<?= esc(old('tanggal_verifikasi', $item['tanggal_verifikasi'] ?? '')) ?>">
+            </div>
+            <div class="col-md-9">
+                <label class="form-label fw-semibold">Verifikator</label>
+                <input type="text" name="verifikator" class="form-control" placeholder="Nama verifikator penutupan temuan" value="<?= esc(old('verifikator', $item['verifikator'] ?? '')) ?>">
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Bukti (PDF)</label>

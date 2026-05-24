@@ -352,6 +352,29 @@ class LedContextBuilder
             }
         }
 
+        if ($this->db->tableExists('standar_mutu')) {
+            $s = $this->db->query("
+                SELECT COUNT(*) total,
+                       SUM(CASE WHEN status='tercapai' THEN 1 ELSE 0 END) tercapai,
+                       SUM(CASE WHEN kategori='melampaui' THEN 1 ELSE 0 END) melampaui
+                FROM standar_mutu WHERE prodi_id = ?
+            ", [$prodiId])->getRowArray();
+            if ($s && (int) $s['total'] > 0) {
+                $tot = (int) $s['total'];
+                $out[] = sprintf(
+                    'Standar mutu ditetapkan: %d standar (%d tercapai, %.0f%%; %d melampaui SN-Dikti).',
+                    $tot, (int) $s['tercapai'], (int) $s['tercapai'] / $tot * 100, (int) $s['melampaui']
+                );
+            }
+        }
+
+        if ($this->db->tableExists('tinjauan_manajemen')) {
+            $rtm = $this->db->query("SELECT COUNT(*) total, SUM(CASE WHEN status='selesai' THEN 1 ELSE 0 END) selesai FROM tinjauan_manajemen WHERE prodi_id = ?", [$prodiId])->getRowArray();
+            if ($rtm && (int) $rtm['total'] > 0) {
+                $out[] = sprintf('Rapat Tinjauan Manajemen: %d kali terdokumentasi (%d tindak lanjut selesai).', (int) $rtm['total'], (int) $rtm['selesai']);
+            }
+        }
+
         return $out;
     }
 

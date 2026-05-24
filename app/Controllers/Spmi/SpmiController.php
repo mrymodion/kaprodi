@@ -25,6 +25,10 @@ class SpmiController extends BaseController
     ];
     public const AMI_KATEGORI = ['mayor' => 'Mayor', 'minor' => 'Minor', 'observasi' => 'Observasi'];
     public const AMI_STATUS   = ['terbuka' => 'Terbuka', 'proses' => 'Proses', 'selesai' => 'Selesai'];
+    public const STD_KATEGORI = ['sndikti' => 'SN-Dikti', 'melampaui' => 'Melampaui SN-Dikti'];
+    public const STD_STATUS   = ['tercapai' => 'Tercapai', 'sebagian' => 'Tercapai Sebagian', 'belum' => 'Belum Tercapai'];
+    public const RTM_STATUS   = ['terbuka' => 'Terbuka', 'proses' => 'Proses', 'selesai' => 'Selesai'];
+    public const SURVEI_INTERNAL = ['mahasiswa' => 'Mahasiswa', 'dosen' => 'Dosen', 'tendik' => 'Tenaga Kependidikan'];
 
     private function db()
     {
@@ -121,10 +125,12 @@ class SpmiController extends BaseController
 
     public function amiForm(int $id = 0): string
     {
-        $item = $id ? $this->db()->table('ami_temuan')->where(['id' => $id, 'prodi_id' => $this->prodiId()])->get()->getRowArray() : null;
+        $prodiId = $this->prodiId();
+        $item = $id ? $this->db()->table('ami_temuan')->where(['id' => $id, 'prodi_id' => $prodiId])->get()->getRowArray() : null;
         return view('spmi/ami/form', [
             'item' => $item, 'taList' => $this->taList(),
             'kategori' => self::AMI_KATEGORI, 'status' => self::AMI_STATUS,
+            'standarList' => $prodiId ? $this->db()->table('standar_mutu')->select('id, kode, nama')->where('prodi_id', $prodiId)->orderBy('kode, nama')->get()->getResultArray() : [],
         ]);
     }
 
@@ -147,6 +153,9 @@ class SpmiController extends BaseController
             'tindak_lanjut'     => trim((string) $this->request->getPost('tindak_lanjut')) ?: null,
             'status'            => array_key_exists($st, self::AMI_STATUS) ? $st : 'terbuka',
             'auditor'           => trim((string) $this->request->getPost('auditor')) ?: null,
+            'standar_mutu_id'   => (int) ($this->request->getPost('standar_mutu_id') ?: 0) ?: null,
+            'tanggal_verifikasi' => $this->request->getPost('tanggal_verifikasi') ?: null,
+            'verifikator'       => trim((string) $this->request->getPost('verifikator')) ?: null,
         ];
         if (strlen($data['lingkup']) < 2 || strlen($data['deskripsi']) < 3) {
             return redirect()->back()->withInput()->with('error', 'Isi lingkup dan deskripsi temuan.');
@@ -267,5 +276,138 @@ class SpmiController extends BaseController
     {
         $this->db()->table('spmi_auditor')->where(['id' => $id, 'prodi_id' => $this->prodiId()])->delete();
         return redirect()->to(site_url('spmi/auditor'))->with('success', 'Auditor dihapus.');
+    }
+
+    // ───────────────────────── TINJAUAN MANAJEMEN (RTM) ─────────────────────────
+
+    public function rtm(): string
+    {
+        $prodiId = $this->prodiId();
+        $rows = $prodiId ? $this->db()->table('tinjauan_manajemen')->where('prodi_id', $prodiId)
+            ->orderBy('tanggal DESC, id DESC')->get()->getResultArray() : [];
+        return view('spmi/rtm/index', ['rows' => $rows, 'status' => self::RTM_STATUS]);
+    }
+
+    public function rtmForm(int $id = 0): string
+    {
+        $item = $id ? $this->db()->table('tinjauan_manajemen')->where(['id' => $id, 'prodi_id' => $this->prodiId()])->get()->getRowArray() : null;
+        return view('spmi/rtm/form', ['item' => $item, 'status' => self::RTM_STATUS]);
+    }
+
+    public function rtmStore(int $id = 0)
+    {
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return redirect()->back()->with('error', 'Prodi aktif belum dipilih.');
+        $st = (string) $this->request->getPost('status');
+        $data = [
+            'prodi_id'         => $prodiId,
+            'tanggal'          => $this->request->getPost('tanggal') ?: null,
+            'agenda'           => trim((string) $this->request->getPost('agenda')),
+            'keputusan'        => trim((string) $this->request->getPost('keputusan')) ?: null,
+            'penanggung_jawab' => trim((string) $this->request->getPost('penanggung_jawab')) ?: null,
+            'tindak_lanjut'    => trim((string) $this->request->getPost('tindak_lanjut')) ?: null,
+            'status'           => array_key_exists($st, self::RTM_STATUS) ? $st : 'terbuka',
+        ];
+        if (strlen($data['agenda']) < 3) {
+            return redirect()->back()->withInput()->with('error', 'Isi agenda RTM (min. 3 karakter).');
+        }
+        $existing = $id ? $this->db()->table('tinjauan_manajemen')->where(['id' => $id, 'prodi_id' => $prodiId])->get()->getRowArray() : null;
+        $res = (new EvidenceStorage())->syncUpload($this->request->getFile('link_bukti'), (bool) $this->request->getPost('hapus_link_bukti'), $existing['link_bukti'] ?? null);
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
+        $data['link_bukti'] = $res['value'];
+        if ($id && $existing) {
+            $this->db()->table('tinjauan_manajemen')->where('id', $id)->update($data);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $this->db()->table('tinjauan_manajemen')->insert($data);
+        }
+        return redirect()->to(site_url('spmi/rtm'))->with('success', 'Tinjauan manajemen disimpan.');
+    }
+
+    public function rtmDelete(int $id)
+    {
+        $this->db()->table('tinjauan_manajemen')->where(['id' => $id, 'prodi_id' => $this->prodiId()])->delete();
+        return redirect()->to(site_url('spmi/rtm'))->with('success', 'Data dihapus.');
+    }
+
+    // ───────────────────────── REGISTER STANDAR MUTU ─────────────────────────
+
+    public function standar(): string
+    {
+        $prodiId = $this->prodiId();
+        $rows = $prodiId ? $this->db()->table('standar_mutu')->where('prodi_id', $prodiId)
+            ->orderBy("FIELD(kategori,'sndikti','melampaui'), kode, nama")->get()->getResultArray() : [];
+        $ringkas = ['total' => count($rows), 'tercapai' => 0, 'sebagian' => 0, 'belum' => 0, 'melampaui' => 0];
+        foreach ($rows as $r) {
+            $ringkas[$r['status']] = ($ringkas[$r['status']] ?? 0) + 1;
+            if ($r['kategori'] === 'melampaui') $ringkas['melampaui']++;
+        }
+        return view('spmi/standar/index', [
+            'rows' => $rows, 'ringkas' => $ringkas,
+            'kategori' => self::STD_KATEGORI, 'status' => self::STD_STATUS,
+        ]);
+    }
+
+    public function standarForm(int $id = 0): string
+    {
+        $item = $id ? $this->db()->table('standar_mutu')->where(['id' => $id, 'prodi_id' => $this->prodiId()])->get()->getRowArray() : null;
+        return view('spmi/standar/form', ['item' => $item, 'kategori' => self::STD_KATEGORI, 'status' => self::STD_STATUS]);
+    }
+
+    public function standarStore(int $id = 0)
+    {
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return redirect()->back()->with('error', 'Prodi aktif belum dipilih.');
+        $kat = (string) $this->request->getPost('kategori');
+        $st  = (string) $this->request->getPost('status');
+        $data = [
+            'prodi_id'   => $prodiId,
+            'kategori'   => array_key_exists($kat, self::STD_KATEGORI) ? $kat : 'sndikti',
+            'kode'       => trim((string) $this->request->getPost('kode')) ?: null,
+            'nama'       => trim((string) $this->request->getPost('nama')),
+            'pernyataan' => trim((string) $this->request->getPost('pernyataan')) ?: null,
+            'indikator'  => trim((string) $this->request->getPost('indikator')) ?: null,
+            'target'     => trim((string) $this->request->getPost('target')) ?: null,
+            'capaian'    => trim((string) $this->request->getPost('capaian')) ?: null,
+            'status'     => array_key_exists($st, self::STD_STATUS) ? $st : 'belum',
+        ];
+        if (strlen($data['nama']) < 3) {
+            return redirect()->back()->withInput()->with('error', 'Isi nama standar (min. 3 karakter).');
+        }
+        $existing = $id ? $this->db()->table('standar_mutu')->where(['id' => $id, 'prodi_id' => $prodiId])->get()->getRowArray() : null;
+        $res = (new EvidenceStorage())->syncUpload($this->request->getFile('link_bukti'), (bool) $this->request->getPost('hapus_link_bukti'), $existing['link_bukti'] ?? null);
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
+        $data['link_bukti'] = $res['value'];
+        if ($id && $existing) {
+            $this->db()->table('standar_mutu')->where('id', $id)->update($data);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $this->db()->table('standar_mutu')->insert($data);
+        }
+        return redirect()->to(site_url('spmi/standar'))->with('success', 'Standar mutu disimpan.');
+    }
+
+    public function standarDelete(int $id)
+    {
+        $this->db()->table('standar_mutu')->where(['id' => $id, 'prodi_id' => $this->prodiId()])->delete();
+        return redirect()->to(site_url('spmi/standar'))->with('success', 'Standar dihapus.');
+    }
+
+    // ───────────────────────── REKAP KEPUASAN INTERNAL ─────────────────────────
+
+    public function kepuasan(): string
+    {
+        $prodiId = $this->prodiId();
+        $rows = $prodiId ? $this->db()->table('survei s')
+            ->select('s.id, s.judul, s.target, s.periode, s.mulai, s.selesai, COUNT(r.id) AS responden')
+            ->join('survei_response r', 'r.survei_id = s.id', 'left')
+            ->where('s.prodi_id', $prodiId)
+            ->whereIn('s.target', array_keys(self::SURVEI_INTERNAL))
+            ->groupBy('s.id')->orderBy('s.target, s.id DESC')->get()->getResultArray() : [];
+        $grup = [];
+        foreach ($rows as $r) {
+            $grup[$r['target']][] = $r;
+        }
+        return view('spmi/kepuasan/index', ['grup' => $grup, 'targetLabel' => self::SURVEI_INTERNAL]);
     }
 }

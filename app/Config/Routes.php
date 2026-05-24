@@ -180,6 +180,22 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('auditor',                 'Spmi\SpmiController::auditor');
         $routes->post('auditor/baru',           'Spmi\SpmiController::auditorStore');
         $routes->post('auditor/(:num)/delete',  'Spmi\SpmiController::auditorDelete/$1');
+
+        $routes->get('rtm',                     'Spmi\SpmiController::rtm');
+        $routes->get('rtm/baru',                'Spmi\SpmiController::rtmForm');
+        $routes->post('rtm/baru',               'Spmi\SpmiController::rtmStore');
+        $routes->get('rtm/(:num)/edit',         'Spmi\SpmiController::rtmForm/$1');
+        $routes->post('rtm/(:num)/update',      'Spmi\SpmiController::rtmStore/$1');
+        $routes->post('rtm/(:num)/delete',      'Spmi\SpmiController::rtmDelete/$1');
+
+        $routes->get('standar',                 'Spmi\SpmiController::standar');
+        $routes->get('standar/baru',            'Spmi\SpmiController::standarForm');
+        $routes->post('standar/baru',           'Spmi\SpmiController::standarStore');
+        $routes->get('standar/(:num)/edit',     'Spmi\SpmiController::standarForm/$1');
+        $routes->post('standar/(:num)/update',  'Spmi\SpmiController::standarStore/$1');
+        $routes->post('standar/(:num)/delete',  'Spmi\SpmiController::standarDelete/$1');
+
+        $routes->get('kepuasan',                'Spmi\SpmiController::kepuasan');
     });
 
     // Admin

@@ -183,8 +183,11 @@ if ($isSuperadmin) {
 
                 <div class="nav-section">SPMI</div>
                 <nav class="nav flex-column">
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/standar') ? 'active' : '' ?>" href="<?= site_url('spmi/standar') ?>"><i class="bi bi-rulers"></i> Standar Mutu</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/ppepp') ? 'active' : '' ?>" href="<?= site_url('spmi/ppepp') ?>"><i class="bi bi-arrow-repeat"></i> Siklus PPEPP</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/ami') ? 'active' : '' ?>" href="<?= site_url('spmi/ami') ?>"><i class="bi bi-clipboard-check"></i> Audit Mutu Internal</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/rtm') ? 'active' : '' ?>" href="<?= site_url('spmi/rtm') ?>"><i class="bi bi-people-fill"></i> Tinjauan Manajemen</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/kepuasan') ? 'active' : '' ?>" href="<?= site_url('spmi/kepuasan') ?>"><i class="bi bi-emoji-smile"></i> Rekap Kepuasan</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/dokumen') ? 'active' : '' ?>" href="<?= site_url('spmi/dokumen') ?>"><i class="bi bi-folder-check"></i> Dokumen Mutu</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/auditor') ? 'active' : '' ?>" href="<?= site_url('spmi/auditor') ?>"><i class="bi bi-person-vcard"></i> Registry Auditor</a>
                 </nav>
