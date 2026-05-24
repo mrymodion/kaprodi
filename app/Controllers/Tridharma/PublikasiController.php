@@ -9,6 +9,7 @@ use App\Models\ProdiModel;
 use App\Models\DosenModel;
 use App\Services\OpenAlexClient;
 use App\Services\CrossrefClient;
+use App\Services\SemanticScholarClient;
 
 class PublikasiController extends BaseController
 {
@@ -149,8 +150,12 @@ class PublikasiController extends BaseController
         $nama   = (string) $this->request->getPost('nama');
         $source = (string) $this->request->getPost('source');
 
-        $client = $source === 'crossref' ? new CrossrefClient() : new OpenAlexClient();
-        $res    = $client->searchWorks($orcid, $nama);
+        $client = match ($source) {
+            'crossref'        => new CrossrefClient(),
+            'semanticscholar' => new SemanticScholarClient(),
+            default           => new OpenAlexClient(),
+        };
+        $res = $client->searchWorks($orcid, $nama);
         if (empty($res['ok'])) {
             return $this->response->setJSON(['ok' => false, 'error' => $res['error'] ?? 'Pencarian gagal.']);
         }

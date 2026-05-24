@@ -13,8 +13,9 @@
 <?php endif ?>
 
 <div class="alert alert-info small">
-    <i class="bi bi-info-circle"></i> Sumber gratis & terbuka: <strong>OpenAlex</strong> (cakupan luas, ada jumlah sitasi) atau <strong>Crossref</strong> (metadata DOI penerbit).
-    Pencarian berdasarkan <strong>ORCID</strong> jauh lebih akurat daripada nama. Hasil adalah <em>alat bantu impor</em> —
+    <i class="bi bi-info-circle"></i> Sumber gratis: <strong>OpenAlex</strong> (cakupan luas + sitasi), <strong>Crossref</strong> (metadata DOI penerbit),
+    atau <strong>Semantic Scholar</strong> (berbasis penulis — <em>nama wajib diisi</em>; ada batas permintaan).
+    Untuk OpenAlex/Crossref, <strong>ORCID</strong> jauh lebih akurat. Hasil adalah <em>alat bantu impor</em> —
     harap verifikasi setiap publikasi (kepenulisan & jenis) sebelum & sesudah impor.
 </div>
 
@@ -26,6 +27,7 @@
                 <select id="selSource" class="form-select">
                     <option value="openalex">OpenAlex</option>
                     <option value="crossref">Crossref</option>
+                    <option value="semanticscholar">Semantic Scholar</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -119,8 +121,9 @@
 
     sel.addEventListener('change', function () {
         var opt = sel.options[sel.selectedIndex];
+        // Isi keduanya: OpenAlex/Crossref utamakan ORCID; Semantic Scholar butuh nama.
         inOrcid.value = sel.value || '';
-        inNama.value = sel.value ? '' : (opt.dataset.nama || '');
+        inNama.value = opt.dataset.nama || '';
     });
 
     function refreshImportBtn() {
