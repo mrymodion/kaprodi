@@ -33,20 +33,22 @@
 <div class="row g-3 mb-3">
     <?php
     $cards = [
-        ['Publikasi', $stats['publikasi'], 'bi-file-earmark-text', 'primary'],
-        ['Penelitian (ketua)', $stats['penelitian'], 'bi-journal-text', 'success'],
-        ['PkM (ketua)', $stats['pkm'], 'bi-megaphone', 'warning'],
-        ['Dokumen', $stats['dokumen'], 'bi-folder2-open', 'info'],
+        ['Publikasi', $stats['publikasi'], 'bi-file-earmark-text', 'primary', site_url('akun/publikasi')],
+        ['Penelitian (ketua)', $stats['penelitian'], 'bi-journal-text', 'success', site_url('akun/penelitian')],
+        ['PkM (ketua)', $stats['pkm'], 'bi-megaphone', 'warning', site_url('akun/pkm')],
+        ['Dokumen', $stats['dokumen'], 'bi-folder2-open', 'info', '#dokumen'],
     ];
-    foreach ($cards as [$lbl, $val, $ic, $col]): ?>
+    foreach ($cards as [$lbl, $val, $ic, $col, $url]): ?>
     <div class="col-6 col-md-3">
+        <a href="<?= $url ?>" class="text-decoration-none">
         <div class="card h-100 text-center border-<?= $col ?>">
             <div class="card-body p-2">
                 <i class="bi <?= $ic ?> fs-4 text-<?= $col ?>"></i>
-                <div class="fs-4 fw-bold"><?= $val ?></div>
+                <div class="fs-4 fw-bold text-body"><?= $val ?></div>
                 <div class="small text-muted"><?= $lbl ?></div>
             </div>
         </div>
+        </a>
     </div>
     <?php endforeach ?>
 </div>

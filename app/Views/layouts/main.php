@@ -138,6 +138,9 @@ if ($isSuperadmin) {
                 <div class="nav-section">Akun Saya</div>
                 <nav class="nav flex-column">
                     <a class="nav-link <?= uri_string() === 'akun' ? 'active' : '' ?>" href="<?= site_url('akun') ?>"><i class="bi bi-person-circle"></i> Profil Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/publikasi') ? 'active' : '' ?>" href="<?= site_url('akun/publikasi') ?>"><i class="bi bi-file-earmark-text"></i> Publikasi Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/penelitian') ? 'active' : '' ?>" href="<?= site_url('akun/penelitian') ?>"><i class="bi bi-journal-text"></i> Penelitian Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/pkm') ? 'active' : '' ?>" href="<?= site_url('akun/pkm') ?>"><i class="bi bi-megaphone"></i> PkM Saya</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/profil') ? 'active' : '' ?>" href="<?= site_url('akun/profil') ?>"><i class="bi bi-pencil-square"></i> Edit Profil</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/password') ? 'active' : '' ?>" href="<?= site_url('akun/password') ?>"><i class="bi bi-key"></i> Ganti Password</a>
                 </nav>

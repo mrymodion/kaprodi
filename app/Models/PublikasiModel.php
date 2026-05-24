@@ -38,6 +38,11 @@ class PublikasiModel extends AppModel
         'book_chapter'                        => 'Book Chapter',
     ];
 
+    public function listByDosen(int $dosenId): array
+    {
+        return $this->where('dosen_id', $dosenId)->orderBy('tahun DESC, judul ASC')->findAll();
+    }
+
     public function listByProdi(int $prodiId, string $kategori = ''): array
     {
         $q = $this->where('prodi_id', $prodiId)->orderBy('tahun DESC, judul ASC');
