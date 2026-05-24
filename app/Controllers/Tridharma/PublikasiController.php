@@ -35,6 +35,33 @@ class PublikasiController extends BaseController
         return session('active_prodi_id') ? (int)session('active_prodi_id') : null;
     }
 
+    /**
+     * Set DOI & judul-ternormalisasi publikasi yang sudah ada untuk prodi ini, untuk anti-duplikat impor.
+     *
+     * @return array{0:array<string,true>,1:array<string,true>}
+     */
+    private function existingKeys(?int $prodiId): array
+    {
+        $doi = []; $title = [];
+        if ($prodiId) {
+            foreach ($this->model->select('doi, judul')->where('prodi_id', $prodiId)->findAll() as $r) {
+                $d = strtolower(trim((string) ($r['doi'] ?? '')));
+                if ($d !== '') { $doi[$d] = true; }
+                $t = $this->normTitle((string) ($r['judul'] ?? ''));
+                if ($t !== '') { $title[$t] = true; }
+            }
+        }
+        return [$doi, $title];
+    }
+
+    /** Normalisasi judul untuk pencocokan: huruf kecil, buang tanda baca, rapikan spasi. */
+    private function normTitle(string $s): string
+    {
+        $s = strtolower(trim($s));
+        $s = preg_replace('/[^a-z0-9]+/u', ' ', $s);
+        return trim((string) preg_replace('/\s+/', ' ', $s));
+    }
+
     // ---------- PUBLIKASI ----------
 
     public function index(): string
@@ -128,22 +155,14 @@ class PublikasiController extends BaseController
             return $this->response->setJSON(['ok' => false, 'error' => $res['error'] ?? 'Pencarian gagal.']);
         }
 
-        // Tandai publikasi yang DOI-nya sudah ada untuk prodi ini agar tidak diimpor ganda.
+        // Tandai publikasi yang sudah ada untuk prodi ini (DOI sama, atau—bila tanpa DOI—judul sama).
         $prodiId = $this->getProdiId();
-        $existing = [];
-        if ($prodiId) {
-            $rows = $this->model->select('doi')
-                ->where('prodi_id', $prodiId)
-                ->where('doi !=', '')
-                ->findAll();
-            foreach ($rows as $r) {
-                if (!empty($r['doi'])) {
-                    $existing[strtolower(trim($r['doi']))] = true;
-                }
-            }
-        }
+        [$existingDoi, $existingTitle] = $this->existingKeys($prodiId);
         foreach ($res['items'] as &$it) {
-            $it['exists'] = $it['doi'] !== '' && isset($existing[strtolower($it['doi'])]);
+            $doiKey   = strtolower(trim($it['doi']));
+            $titleKey = $this->normTitle($it['judul']);
+            $it['exists'] = ($doiKey !== '' && isset($existingDoi[$doiKey]))
+                || ($titleKey !== '' && isset($existingTitle[$titleKey]));
         }
         unset($it);
 
@@ -171,6 +190,9 @@ class PublikasiController extends BaseController
         $now = date('Y-m-d H:i:s');
         $imported = 0; $skipped = 0;
 
+        // Kunci yang sudah ada di DB + yang baru diimpor pada batch ini (cegah duplikat dalam satu kali impor).
+        [$seenDoi, $seenTitle] = $this->existingKeys($prodiId);
+
         foreach ($rows as $r) {
             // Hanya impor baris yang dicentang (checkbox mengirim [sel]).
             if (empty($r['sel'])) { continue; }
@@ -178,9 +200,12 @@ class PublikasiController extends BaseController
             $judul = trim((string) ($r['judul'] ?? ''));
             if (strlen($judul) < 5) { $skipped++; continue; }
 
-            $doi = trim((string) ($r['doi'] ?? ''));
-            // Lewati bila DOI sudah ada untuk prodi ini.
-            if ($doi !== '' && $this->model->where('prodi_id', $prodiId)->where('doi', $doi)->countAllResults() > 0) {
+            $doi      = trim((string) ($r['doi'] ?? ''));
+            $doiKey   = strtolower($doi);
+            $titleKey = $this->normTitle($judul);
+
+            // Lewati bila DOI sama, atau—bila tanpa DOI—judul sama (di DB atau dalam batch ini).
+            if (($doiKey !== '' && isset($seenDoi[$doiKey])) || ($titleKey !== '' && isset($seenTitle[$titleKey]))) {
                 $skipped++; continue;
             }
 
@@ -203,6 +228,8 @@ class PublikasiController extends BaseController
                 'sitasi'     => (int) ($r['sitasi'] ?? 0),
                 'created_at' => $now,
             ]);
+            if ($doiKey !== '')   { $seenDoi[$doiKey] = true; }
+            if ($titleKey !== '') { $seenTitle[$titleKey] = true; }
             $imported++;
         }
 
