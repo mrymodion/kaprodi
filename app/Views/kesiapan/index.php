@@ -93,6 +93,17 @@ $butirPct = $butirTotal ? round($butirDinilai / $butirTotal * 100) : 0;
     </div>
 </div>
 
+<div class="card mt-4">
+    <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-robot"></i> Ringkasan Eksekutif (AI)</span>
+        <button type="button" id="btnAiRingkasan" class="btn btn-sm btn-outline-info"><i class="bi bi-magic"></i> Buat dengan AI</button>
+    </div>
+    <div class="card-body">
+        <textarea id="ringkasanOut" class="form-control" rows="8" placeholder="Klik 'Buat dengan AI' untuk menghasilkan draf ringkasan eksekutif dari data prodi (skor, dosen, mahasiswa, tracer, dll). Hasilnya dapat Anda salin ke LED."></textarea>
+        <small class="text-muted">Draf otomatis — harap ditinjau & disesuaikan sebelum dipakai.</small>
+    </div>
+</div>
+
 <div class="mt-4 d-flex gap-2 flex-wrap">
     <a href="<?= site_url('lkps') ?>" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Generate LKPS</a>
     <a href="<?= site_url('led') ?>" class="btn btn-outline-primary"><i class="bi bi-file-earmark-word"></i> Generate LED</a>
@@ -100,5 +111,17 @@ $butirPct = $butirTotal ? round($butirDinilai / $butirTotal * 100) : 0;
 </div>
 
 <?php endif ?>
+
+<script>
+document.getElementById('btnAiRingkasan')?.addEventListener('click', function () {
+    var b = this, orig = b.innerHTML, out = document.getElementById('ringkasanOut');
+    b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membuat...';
+    fetch('<?= site_url('ai/draft/ringkasan') ?>', {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(function (r) { return r.json(); }).then(function (d) {
+            if (d && d.ok) { out.value = d.text; } else { alert(d && d.error ? d.error : 'Gagal membuat ringkasan.'); }
+        }).catch(function () { alert('Gagal menghubungi server.'); })
+          .finally(function () { b.disabled = false; b.innerHTML = orig; });
+});
+</script>
 
 <?= $this->endSection() ?>

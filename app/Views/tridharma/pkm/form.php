@@ -84,6 +84,8 @@
 
                 <div class="col-12">
                     <label class="form-label fw-semibold">Dampak / Luaran</label>
+                    <button type="button" class="btn btn-sm btn-outline-info mb-1 ms-2 btn-ai-borang"
+                        data-jenis="dampak_pkm" data-target="dampak" data-ctx='{"judul":"judul"}'><i class="bi bi-robot"></i> Bantu AI</button>
                     <textarea name="dampak" class="form-control" rows="2"><?= esc(old('dampak', $item['dampak'] ?? '')) ?></textarea>
                 </div>
 
@@ -141,5 +143,7 @@
         </form>
     </div>
 </div>
+
+<?= view("partials/ai_borang_script") ?>
 
 <?= $this->endSection() ?>

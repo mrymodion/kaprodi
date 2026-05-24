@@ -26,6 +26,9 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     // Pemilih prodi aktif (khusus superadmin)
     $routes->get('prodi/switch/(:num)', 'ProdiSwitchController::switch/$1');
 
+    // Bantuan draf Groq AI (vmts, tupoksi, dampak_pkm, manfaat_kerjasama, ringkasan)
+    $routes->post('ai/draft/(:segment)', 'AiController::draft/$1');
+
     // Manajemen Prodi
     $routes->group('prodi', ['filter' => 'permission:prodi.manage'], function ($routes) {
         $routes->get('/',              'ProdiController::index');

@@ -68,6 +68,8 @@
 
                 <div class="col-12">
                     <label class="form-label fw-semibold">Manfaat Kerjasama</label>
+                    <button type="button" class="btn btn-sm btn-outline-info mb-1 ms-2 btn-ai-borang"
+                        data-jenis="manfaat_kerjasama" data-target="manfaat" data-ctx='{"mitra":"nama_mitra","bidang":"bidang"}'><i class="bi bi-robot"></i> Bantu AI</button>
                     <textarea name="manfaat" class="form-control" rows="2"><?= esc(old('manfaat', $item['manfaat'] ?? '')) ?></textarea>
                 </div>
 
@@ -84,5 +86,7 @@
         </form>
     </div>
 </div>
+
+<?= view("partials/ai_borang_script") ?>
 
 <?= $this->endSection() ?>

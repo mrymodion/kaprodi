@@ -33,6 +33,11 @@
                         <input type="file" name="<?= $name ?>" class="form-control" accept="application/pdf">
                         <small class="text-muted">Unggah PDF (maks <?= (int) env('storage.maxUploadMb', 20) ?> MB, dikompres bila Ghostscript ada).</small>
                     <?php elseif ($f[1] === 'textarea'): ?>
+                        <?php if ($name === 'tupoksi'): ?>
+                        <button type="button" class="btn btn-sm btn-outline-info mb-1 btn-ai-borang"
+                            data-jenis="tupoksi" data-target="tupoksi"
+                            data-ctx='{"unit":"unit_kerja","jabatan":"jabatan"}'><i class="bi bi-robot"></i> Bantu AI</button>
+                        <?php endif ?>
                         <textarea name="<?= $name ?>" class="form-control" rows="3"><?= esc($val) ?></textarea>
                     <?php elseif ($f[1] === 'number'): ?>
                         <input type="number" name="<?= $name ?>" class="form-control" value="<?= esc($val) ?>">
@@ -62,5 +67,7 @@
         </div>
     </form>
 </div></div>
+
+<?= view('partials/ai_borang_script') ?>
 
 <?= $this->endSection() ?>
