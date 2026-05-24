@@ -50,7 +50,7 @@ class PublikasiController extends BaseController
         $doi = []; $title = [];
         if ($prodiId) {
             foreach ($this->model->select('doi, judul')->where('prodi_id', $prodiId)->findAll() as $r) {
-                $d = strtolower(trim((string) ($r['doi'] ?? '')));
+                $d = PublikasiModel::normDoi($r['doi'] ?? '');
                 if ($d !== '') { $doi[$d] = true; }
                 $t = $this->normTitle((string) ($r['judul'] ?? ''));
                 if ($t !== '') { $title[$t] = true; }
@@ -105,6 +105,7 @@ class PublikasiController extends BaseController
             'kategori','jenis','judul','penulis','nama_media','tahun','volume','doi','url','sitasi','sinta_score',
         ]);
         $data['prodi_id']   = $prodiId;
+        $data['doi']        = PublikasiModel::normDoi($data['doi'] ?? '') ?: null;
         if (!$this->validateData($data, $this->model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -130,6 +131,7 @@ class PublikasiController extends BaseController
             'kategori','jenis','judul','penulis','nama_media','tahun','volume','doi','url','sitasi','sinta_score',
         ]);
         $data['prodi_id'] = (int) $item['prodi_id'];
+        $data['doi']      = PublikasiModel::normDoi($data['doi'] ?? '') ?: null;
         if (!$this->validateData($data, $this->model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -180,7 +182,7 @@ class PublikasiController extends BaseController
         $prodiId = $this->getProdiId();
         [$existingDoi, $existingTitle] = $this->existingKeys($prodiId);
         foreach ($res['items'] as &$it) {
-            $doiKey   = strtolower(trim($it['doi']));
+            $doiKey   = PublikasiModel::normDoi($it['doi']);
             $titleKey = $this->normTitle($it['judul']);
             $it['exists'] = ($doiKey !== '' && isset($existingDoi[$doiKey]))
                 || ($titleKey !== '' && isset($existingTitle[$titleKey]));
@@ -222,8 +224,8 @@ class PublikasiController extends BaseController
             $judul = trim((string) ($r['judul'] ?? ''));
             if (strlen($judul) < 5) { $skipped++; continue; }
 
-            $doi      = trim((string) ($r['doi'] ?? ''));
-            $doiKey   = strtolower($doi);
+            $doi      = PublikasiModel::normDoi($r['doi'] ?? '');
+            $doiKey   = $doi;
             $titleKey = $this->normTitle($judul);
 
             // Lewati bila DOI sama, atau—bila tanpa DOI—judul sama (di DB atau dalam batch ini).
@@ -329,7 +331,8 @@ class PublikasiController extends BaseController
 
         $byDoi = [];
         foreach ($rows as $r) {
-            $byDoi[strtolower(trim((string) $r['doi']))][] = $r;
+            $key = PublikasiModel::normDoi($r['doi'] ?? '');
+            if ($key !== '') { $byDoi[$key][] = $r; }
         }
 
         $counts = (new OpenAlexClient())->citationsByDois(array_keys($byDoi));

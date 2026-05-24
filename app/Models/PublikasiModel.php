@@ -38,6 +38,15 @@ class PublikasiModel extends AppModel
         'book_chapter'                        => 'Book Chapter',
     ];
 
+    /** Bentuk kanonik DOI: buang prefiks resolver & spasi, huruf kecil. Dipakai untuk simpan & cocok-anti-duplikat. */
+    public static function normDoi(?string $doi): string
+    {
+        $doi = trim((string) $doi);
+        if ($doi === '') return '';
+        $doi = preg_replace('#^https?://(dx\.)?doi\.org/#i', '', $doi);
+        return strtolower(trim($doi));
+    }
+
     public function listByDosen(int $dosenId): array
     {
         return $this->select('publikasi.*')
