@@ -17,6 +17,9 @@
 
 <div class="card">
     <div class="card-body">
+        <div class="d-flex justify-content-end mb-2">
+            <button type="button" id="btnAiVmts" class="btn btn-sm btn-outline-info"><i class="bi bi-robot"></i> Bantu AI — Draf VMTS</button>
+        </div>
         <form method="post" action="<?= site_url('vmts/save') ?>">
             <?= csrf_field() ?>
             <div class="mb-3">
@@ -59,5 +62,23 @@
         </form>
     </div>
 </div>
+
+<script>
+document.getElementById('btnAiVmts')?.addEventListener('click', function () {
+    var b = this, orig = b.innerHTML;
+    if (!confirm('Buat draf VMTS dengan AI? Isian saat ini akan ditimpa.')) return;
+    b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membuat...';
+    fetch('<?= site_url('ai/draft/vmts') ?>', {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json()).then(function (d) {
+            if (d && d.ok && d.vmts) {
+                document.querySelector('[name="visi"]').value = d.vmts.visi || '';
+                document.querySelector('[name="misi"]').value = d.vmts.misi || '';
+                document.querySelector('[name="tujuan"]').value = d.vmts.tujuan || '';
+                document.querySelector('[name="strategi"]').value = d.vmts.strategi || '';
+            } else { alert(d && d.error ? d.error : 'Gagal membuat draf.'); }
+        }).catch(() => alert('Gagal menghubungi server.'))
+          .finally(() => { b.disabled = false; b.innerHTML = orig; });
+});
+</script>
 
 <?= $this->endSection() ?>
