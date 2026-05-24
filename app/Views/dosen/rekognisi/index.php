@@ -3,7 +3,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-award"></i> Rekognisi DTPR Prodi</h4>
-    <a href="<?= site_url('dosen') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+    <div class="d-flex gap-2">
+        <?php if (!empty($list)): ?><a href="<?= site_url('dosen/rekognisi/export') ?>" class="btn btn-sm btn-success"><i class="bi bi-file-earmark-excel"></i> Ekspor Excel</a><?php endif ?>
+        <a href="<?= site_url('dosen') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+    </div>
 </div>
 
 <?php if (session('success')): ?>

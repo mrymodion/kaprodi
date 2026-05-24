@@ -89,4 +89,36 @@ class RekognisiController extends BaseController
         }
         return redirect()->to(site_url('dosen/rekognisi'))->with('success', 'Rekognisi dihapus.');
     }
+
+    /** Ekspor rekap rekognisi DTPR prodi ke Excel (.xlsx) untuk lampiran borang. */
+    public function export()
+    {
+        $prodiId = $this->prodiId();
+        $list    = $prodiId ? $this->model->listByProdi($prodiId) : [];
+        $labels  = RekognisiDosenModel::JENIS_LABELS;
+
+        $ss    = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $ss->getActiveSheet();
+        $sheet->setTitle('Rekognisi DTPR');
+        $sheet->fromArray(['No', 'Nama DTPR', 'Jenis Rekognisi', 'Judul/Kegiatan', 'Penyelenggara', 'Tingkat', 'Tahun', 'Bukti'], null, 'A1');
+        $sheet->getStyle('A1:H1')->getFont()->setBold(true);
+
+        $row = 2;
+        foreach ($list as $i => $r) {
+            $nm = trim(($r['gelar_depan'] ? $r['gelar_depan'] . ' ' : '') . $r['dosen_nama'] . ($r['gelar_belakang'] ? ', ' . $r['gelar_belakang'] : ''));
+            $sheet->fromArray([
+                $i + 1, $nm, $labels[$r['jenis']] ?? $r['jenis'], $r['judul'],
+                $r['penyelenggara'] ?? '-', ucfirst($r['tingkat']), $r['tahun'] ?? '-', $r['link_bukti'] ?? '-',
+            ], null, 'A' . $row);
+            $row++;
+        }
+        foreach (range('A', 'H') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'Rekognisi_DTPR_' . date('Ymd_His') . '.xlsx';
+        $tmp = tempnam(sys_get_temp_dir(), 'rek') . '.xlsx';
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($ss))->save($tmp);
+        return $this->response->download($tmp, null)->setFileName($filename);
+    }
 }
