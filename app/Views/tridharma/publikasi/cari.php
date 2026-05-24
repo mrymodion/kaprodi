@@ -4,7 +4,7 @@
 <?php $jenisLabels = \App\Models\PublikasiModel::JENIS_LABELS; ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0"><i class="bi bi-search"></i> Cari Publikasi (OpenAlex)</h4>
+    <h4 class="mb-0"><i class="bi bi-search"></i> Cari Publikasi</h4>
     <a href="<?= site_url('publikasi') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
 </div>
 
@@ -13,14 +13,22 @@
 <?php endif ?>
 
 <div class="alert alert-info small">
-    <i class="bi bi-info-circle"></i> Sumber data: <strong>OpenAlex</strong> (gratis, terbuka). Pencarian berdasarkan <strong>ORCID</strong> jauh lebih akurat daripada nama.
-    Hasil adalah <em>alat bantu impor</em> — harap verifikasi setiap publikasi (kepenulisan & jenis) sebelum & sesudah impor.
+    <i class="bi bi-info-circle"></i> Sumber gratis & terbuka: <strong>OpenAlex</strong> (cakupan luas, ada jumlah sitasi) atau <strong>Crossref</strong> (metadata DOI penerbit).
+    Pencarian berdasarkan <strong>ORCID</strong> jauh lebih akurat daripada nama. Hasil adalah <em>alat bantu impor</em> —
+    harap verifikasi setiap publikasi (kepenulisan & jenis) sebelum & sesudah impor.
 </div>
 
 <div class="card mb-3">
     <div class="card-body">
         <div class="row g-2 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">Sumber Data</label>
+                <select id="selSource" class="form-select">
+                    <option value="openalex">OpenAlex</option>
+                    <option value="crossref">Crossref</option>
+                </select>
+            </div>
+            <div class="col-md-3">
                 <label class="form-label fw-semibold small">Pilih Dosen (mengisi otomatis)</label>
                 <select id="selDosen" class="form-select">
                     <option value="">— Pilih dosen —</option>
@@ -31,11 +39,11 @@
                     <?php endforeach ?>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label fw-semibold small">ORCID</label>
                 <input type="text" id="inOrcid" class="form-control" placeholder="0000-0000-0000-0000">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label fw-semibold small">atau Nama</label>
                 <input type="text" id="inNama" class="form-control" placeholder="Nama penulis">
             </div>
@@ -133,6 +141,7 @@
         var fd = new URLSearchParams();
         fd.append('orcid', inOrcid.value.trim());
         fd.append('nama', inNama.value.trim());
+        fd.append('source', document.getElementById('selSource').value);
         fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
         fetch('<?= site_url('publikasi/cari/search') ?>', {
             method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}, body: fd
