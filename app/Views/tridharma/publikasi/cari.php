@@ -12,11 +12,12 @@
 <div class="alert alert-danger"><?= esc(session('error')) ?></div>
 <?php endif ?>
 
-<div class="alert alert-info small">
-    <i class="bi bi-info-circle"></i> Sumber gratis: <strong>OpenAlex</strong> (cakupan luas + sitasi), <strong>Crossref</strong> (metadata DOI penerbit),
-    atau <strong>Semantic Scholar</strong> (berbasis penulis — <em>nama wajib diisi</em>; ada batas permintaan).
-    Untuk OpenAlex/Crossref, <strong>ORCID</strong> jauh lebih akurat. Hasil adalah <em>alat bantu impor</em> —
-    harap verifikasi setiap publikasi (kepenulisan & jenis) sebelum & sesudah impor.
+<div class="alert alert-info small mb-3">
+    <i class="bi bi-info-circle"></i> Semua sumber gratis. <strong>OpenAlex</strong> (cakupan luas + sitasi) &middot;
+    <strong>Crossref</strong> (metadata DOI) &middot; <strong>Semantic Scholar</strong> (berbasis penulis, ada batas permintaan) &middot;
+    <strong>DBLP</strong> (khusus Ilmu Komputer) &middot; <strong>ORCID</strong> (karya yang diklaim dosen — paling akurat per-orang) &middot;
+    <strong>arXiv</strong> (preprint) &middot; <strong>Impor dari DOI</strong> (tempel DOI).
+    <br>ORCID/Impor-DOI butuh ORCID/DOI; DBLP/arXiv/Semantic Scholar butuh nama. Hasil adalah <em>alat bantu</em> — verifikasi sebelum & sesudah impor.
 </div>
 
 <div class="card mb-3">
@@ -28,6 +29,10 @@
                     <option value="openalex">OpenAlex</option>
                     <option value="crossref">Crossref</option>
                     <option value="semanticscholar">Semantic Scholar</option>
+                    <option value="dblp">DBLP (Ilmu Komputer)</option>
+                    <option value="orcid">ORCID (profil dosen)</option>
+                    <option value="arxiv">arXiv (preprint)</option>
+                    <option value="doi">Impor dari DOI</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -46,7 +51,7 @@
                 <input type="text" id="inOrcid" class="form-control" placeholder="0000-0000-0000-0000">
             </div>
             <div class="col-md-2">
-                <label class="form-label fw-semibold small">atau Nama</label>
+                <label class="form-label fw-semibold small" id="lblNama">atau Nama</label>
                 <input type="text" id="inNama" class="form-control" placeholder="Nama penulis">
             </div>
             <div class="col-md-2">
@@ -118,10 +123,25 @@
     var btnImport = document.getElementById('btnImport');
     var btnSelAll = document.getElementById('btnSelAll');
     var tpl = document.getElementById('rowTpl');
+    var selSource = document.getElementById('selSource');
+    var lblNama = document.getElementById('lblNama');
+
+    function applySource() {
+        var s = selSource.value;
+        if (s === 'doi') {
+            lblNama.textContent = 'Daftar DOI';
+            inNama.placeholder = 'Tempel DOI (pisah koma/spasi)';
+        } else {
+            lblNama.textContent = 'atau Nama';
+            inNama.placeholder = 'Nama penulis';
+        }
+    }
+    selSource.addEventListener('change', applySource);
+    applySource();
 
     sel.addEventListener('change', function () {
         var opt = sel.options[sel.selectedIndex];
-        // Isi keduanya: OpenAlex/Crossref utamakan ORCID; Semantic Scholar butuh nama.
+        // Isi keduanya: OpenAlex/Crossref utamakan ORCID; Semantic Scholar/DBLP/arXiv butuh nama.
         inOrcid.value = sel.value || '';
         inNama.value = opt.dataset.nama || '';
     });
@@ -155,6 +175,7 @@
                 var f = document.querySelector('input[name="' + d.csrfName + '"]');
                 if (f) f.value = d.csrfHash;
             }
+            if (d.warn) { alert(d.warn); }
             wrap.classList.toggle('d-none', d.items.length === 0);
             emptyMsg.classList.toggle('d-none', d.items.length !== 0);
             document.getElementById('hasilCount').textContent = d.items.length;

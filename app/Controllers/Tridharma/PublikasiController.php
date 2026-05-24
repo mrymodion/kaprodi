@@ -10,6 +10,10 @@ use App\Models\DosenModel;
 use App\Services\OpenAlexClient;
 use App\Services\CrossrefClient;
 use App\Services\SemanticScholarClient;
+use App\Services\DblpClient;
+use App\Services\OrcidClient;
+use App\Services\ArxivClient;
+use App\Services\DoiImportClient;
 
 class PublikasiController extends BaseController
 {
@@ -153,6 +157,10 @@ class PublikasiController extends BaseController
         $client = match ($source) {
             'crossref'        => new CrossrefClient(),
             'semanticscholar' => new SemanticScholarClient(),
+            'dblp'            => new DblpClient(),
+            'orcid'           => new OrcidClient(),
+            'arxiv'           => new ArxivClient(),
+            'doi'             => new DoiImportClient(),
             default           => new OpenAlexClient(),
         };
         $res = $client->searchWorks($orcid, $nama);
@@ -174,6 +182,7 @@ class PublikasiController extends BaseController
         return $this->response->setJSON([
             'ok'       => true,
             'items'    => $res['items'],
+            'warn'     => $res['error'] ?? null,
             'csrfName' => csrf_token(),
             'csrfHash' => csrf_hash(),
         ]);
