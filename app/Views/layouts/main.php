@@ -65,6 +65,13 @@ if ($isSuperadmin) {
         }
         /* Cegah tabel lebar memecah layout di mobile */
         .table-responsive { -webkit-overflow-scrolling: touch; }
+        /* Grup tombol ikut membungkus bila sempit */
+        .btn-group { flex-wrap: wrap; }
+        /* Header halaman (judul + tombol aksi) membungkus rapi di layar kecil */
+        @media (max-width: 575.98px) {
+            .d-flex.justify-content-between.align-items-center { flex-wrap: wrap; gap: .5rem; }
+            main.col-md-10 h4 { font-size: 1.15rem; }
+        }
     </style>
 </head>
 <body>
