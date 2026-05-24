@@ -441,10 +441,18 @@ class Driver implements AccreditationDriver
     {
         $db = Database::connect();
         return $db->query("
-            SELECT jenis, judul, penulis, nama_media, tahun, volume, doi, sitasi, sinta_score, url
-            FROM publikasi
-            WHERE prodi_id = ? AND kategori = ?
-            ORDER BY tahun DESC
+            SELECT p.jenis, p.judul, p.penulis,
+                   GROUP_CONCAT(
+                       CONCAT(COALESCE(d.gelar_depan,''), IF(d.gelar_depan IS NOT NULL AND d.gelar_depan <> '', ' ', ''), d.nama)
+                       ORDER BY d.nama SEPARATOR '; '
+                   ) AS dtpr_penulis,
+                   p.nama_media, p.tahun, p.volume, p.doi, p.sitasi, p.sinta_score, p.url
+            FROM publikasi p
+            LEFT JOIN publikasi_dosen pd ON pd.publikasi_id = p.id
+            LEFT JOIN dosen d ON d.id = pd.dosen_id AND d.prodi_id = p.prodi_id
+            WHERE p.prodi_id = ? AND p.kategori = ?
+            GROUP BY p.id
+            ORDER BY p.tahun DESC
         ", [$prodiId, $kategori])->getResultArray();
     }
 
@@ -452,10 +460,13 @@ class Driver implements AccreditationDriver
     {
         $db = Database::connect();
         return $db->query("
-            SELECT jenis, judul, no_hki, tahun, pemilik, status, link_bukti
-            FROM hki
-            WHERE prodi_id = ? AND kategori = ?
-            ORDER BY tahun DESC
+            SELECT h.jenis, h.judul, h.no_hki, h.tahun, h.pemilik,
+                   TRIM(CONCAT(COALESCE(d.gelar_depan,''), ' ', COALESCE(d.nama,''))) AS dtpr_pemilik,
+                   h.status, h.link_bukti
+            FROM hki h
+            LEFT JOIN dosen d ON d.id = h.dosen_id AND d.prodi_id = h.prodi_id
+            WHERE h.prodi_id = ? AND h.kategori = ?
+            ORDER BY h.tahun DESC
         ", [$prodiId, $kategori])->getResultArray();
     }
 

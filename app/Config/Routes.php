@@ -58,6 +58,26 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('pkm/(:num)/edit',            'Akun\KaryaController::pkmEdit/$1');
         $routes->post('pkm/(:num)/update',         'Akun\KaryaController::pkmUpdate/$1');
         $routes->post('pkm/(:num)/delete',         'Akun\KaryaController::pkmDelete/$1');
+
+        // EWMP milik dosen
+        $routes->get('ewmp',                       'Akun\DtprController::ewmp');
+        $routes->post('ewmp',                      'Akun\DtprController::ewmpStore');
+
+        // Pengembangan diri (LKPS 3.A.3)
+        $routes->get('pengembangan',               'Akun\DtprController::pengembangan');
+        $routes->post('pengembangan',              'Akun\DtprController::pengembanganStore');
+        $routes->post('pengembangan/(:num)/delete','Akun\DtprController::pengembanganDelete/$1');
+
+        // HKI milik dosen (3.C.3 / 4.C.3)
+        $routes->get('hki',                        'Akun\DtprController::hki');
+        $routes->post('hki/baru',                  'Akun\DtprController::hkiStore');
+        $routes->post('hki/(:num)/klaim',          'Akun\DtprController::hkiKlaim/$1');
+        $routes->post('hki/(:num)/delete',         'Akun\DtprController::hkiDelete/$1');
+
+        // Rekognisi dosen (C3)
+        $routes->get('rekognisi',                  'Akun\DtprController::rekognisi');
+        $routes->post('rekognisi/baru',            'Akun\DtprController::rekognisiStore');
+        $routes->post('rekognisi/(:num)/delete',   'Akun\DtprController::rekognisiDelete/$1');
     });
 
     // Pemilih prodi aktif (khusus superadmin)
@@ -134,6 +154,48 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('(:segment)/(:num)/edit',    'BorangController::edit/$1/$2');
         $routes->post('(:segment)/(:num)/update', 'BorangController::update/$1/$2');
         $routes->post('(:segment)/(:num)/delete', 'BorangController::delete/$1/$2');
+    });
+
+    // SPMI — Sistem Penjaminan Mutu Internal (PPEPP, AMI/temuan, dokumen mutu, auditor)
+    $routes->group('spmi', ['filter' => 'permission:prodi.manage'], function ($routes) {
+        $routes->get('ppepp',                   'Spmi\SpmiController::ppepp');
+        $routes->get('ppepp/baru',              'Spmi\SpmiController::ppeppForm');
+        $routes->post('ppepp/baru',             'Spmi\SpmiController::ppeppStore');
+        $routes->get('ppepp/(:num)/edit',       'Spmi\SpmiController::ppeppForm/$1');
+        $routes->post('ppepp/(:num)/update',    'Spmi\SpmiController::ppeppStore/$1');
+        $routes->post('ppepp/(:num)/delete',    'Spmi\SpmiController::ppeppDelete/$1');
+
+        $routes->get('ami',                     'Spmi\SpmiController::ami');
+        $routes->get('ami/baru',                'Spmi\SpmiController::amiForm');
+        $routes->post('ami/baru',               'Spmi\SpmiController::amiStore');
+        $routes->get('ami/(:num)/edit',         'Spmi\SpmiController::amiForm/$1');
+        $routes->post('ami/(:num)/update',      'Spmi\SpmiController::amiStore/$1');
+        $routes->post('ami/(:num)/delete',      'Spmi\SpmiController::amiDelete/$1');
+
+        $routes->get('dokumen',                 'Spmi\SpmiController::dokumen');
+        $routes->post('dokumen/baru',           'Spmi\SpmiController::dokumenStore');
+        $routes->post('dokumen/(:num)/update',  'Spmi\SpmiController::dokumenStore/$1');
+        $routes->post('dokumen/(:num)/delete',  'Spmi\SpmiController::dokumenDelete/$1');
+
+        $routes->get('auditor',                 'Spmi\SpmiController::auditor');
+        $routes->post('auditor/baru',           'Spmi\SpmiController::auditorStore');
+        $routes->post('auditor/(:num)/delete',  'Spmi\SpmiController::auditorDelete/$1');
+
+        $routes->get('rtm',                     'Spmi\SpmiController::rtm');
+        $routes->get('rtm/baru',                'Spmi\SpmiController::rtmForm');
+        $routes->post('rtm/baru',               'Spmi\SpmiController::rtmStore');
+        $routes->get('rtm/(:num)/edit',         'Spmi\SpmiController::rtmForm/$1');
+        $routes->post('rtm/(:num)/update',      'Spmi\SpmiController::rtmStore/$1');
+        $routes->post('rtm/(:num)/delete',      'Spmi\SpmiController::rtmDelete/$1');
+
+        $routes->get('standar',                 'Spmi\SpmiController::standar');
+        $routes->get('standar/baru',            'Spmi\SpmiController::standarForm');
+        $routes->post('standar/baru',           'Spmi\SpmiController::standarStore');
+        $routes->get('standar/(:num)/edit',     'Spmi\SpmiController::standarForm/$1');
+        $routes->post('standar/(:num)/update',  'Spmi\SpmiController::standarStore/$1');
+        $routes->post('standar/(:num)/delete',  'Spmi\SpmiController::standarDelete/$1');
+
+        $routes->get('kepuasan',                'Spmi\SpmiController::kepuasan');
     });
 
     // Admin
@@ -301,6 +363,10 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('ewmp/import',              'Dosen\DosenController::ewmpImportForm');
         $routes->get('ewmp/import/template',     'Dosen\DosenController::ewmpImportTemplate');
         $routes->post('ewmp/import',             'Dosen\DosenController::ewmpImportStore');
+        $routes->get('rekognisi',                'Dosen\RekognisiController::index');
+        $routes->get('rekognisi/export',         'Dosen\RekognisiController::export');
+        $routes->post('rekognisi',               'Dosen\RekognisiController::store');
+        $routes->post('rekognisi/(:num)/delete', 'Dosen\RekognisiController::delete/$1');
         $routes->get('(:num)',                   'Dosen\DosenController::show/$1');
         $routes->get('(:num)/edit',              'Dosen\DosenController::edit/$1');
         $routes->post('(:num)/update',           'Dosen\DosenController::update/$1');

@@ -1,0 +1,81 @@
+<?= $this->extend('layouts/main') ?>
+<?= $this->section('content') ?>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-mortarboard"></i> Pengembangan Diri Saya</h4>
+</div>
+
+<?php if (session('success')): ?>
+<div class="alert alert-success alert-dismissible fade show"><i class="bi bi-check-circle"></i> <?= esc(session('success')) ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+<?php endif ?>
+<?php if (session('error')): ?>
+<div class="alert alert-danger alert-dismissible fade show"><?= esc(session('error')) ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+<?php endif ?>
+
+<div class="alert alert-info small"><i class="bi bi-info-circle"></i> Catat pelatihan, sertifikasi, workshop, atau kegiatan peningkatan kompetensi yang Anda ikuti (LKPS 3.A.3).</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-success text-white fw-semibold">Tambah Kegiatan Pengembangan</div>
+    <div class="card-body">
+        <form method="post" action="<?= site_url('akun/pengembangan') ?>" class="row g-2">
+            <?= csrf_field() ?>
+            <div class="col-md-5">
+                <label class="form-label small mb-0">Jenis / Nama Kegiatan <span class="text-danger">*</span></label>
+                <input type="text" name="jenis_pengembangan" class="form-control form-control-sm" placeholder="mis. Sertifikasi AWS, Workshop Data Science" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-0">Tahun Akademik</label>
+                <select name="tahun_akademik_id" class="form-select form-select-sm">
+                    <option value="">—</option>
+                    <?php foreach ($taList as $ta): ?>
+                        <option value="<?= $ta['id'] ?>"><?= esc($ta['kode']) ?><?= $ta['is_ts'] ? ' (TS)' : '' ?></option>
+                    <?php endforeach ?>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-0">Jumlah</label>
+                <input type="number" name="jumlah" class="form-control form-control-sm" min="1" value="1">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-sm btn-primary w-100"><i class="bi bi-plus-circle"></i> Tambah</button>
+            </div>
+            <div class="col-12">
+                <label class="form-label small mb-0">Link Bukti (opsional)</label>
+                <input type="url" name="link_bukti" class="form-control form-control-sm" placeholder="https://...">
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0 align-middle">
+                <thead class="table-light"><tr><th>#</th><th>Kegiatan</th><th>TA</th><th class="text-center">Jumlah</th><th>Bukti</th><th></th></tr></thead>
+                <tbody>
+                <?php if (empty($list)): ?>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Belum ada data.</td></tr>
+                <?php else: foreach ($list as $i => $r): ?>
+                    <tr>
+                        <td><?= $i + 1 ?></td>
+                        <td><?= esc($r['jenis_pengembangan']) ?></td>
+                        <td><small><?= esc($r['ta_kode'] ?? '-') ?></small></td>
+                        <td class="text-center"><?= (int) $r['jumlah'] ?></td>
+                        <td><?php if (!empty($r['link_bukti'])): ?><a href="<?= esc($r['link_bukti']) ?>" target="_blank" rel="noopener"><i class="bi bi-link-45deg"></i></a><?php else: ?><span class="text-muted">-</span><?php endif ?></td>
+                        <td class="text-end">
+                            <form method="post" action="<?= site_url("akun/pengembangan/{$r['id']}/delete") ?>" class="d-inline" onsubmit="return confirm('Hapus data ini?')">
+                                <?= csrf_field() ?>
+                                <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; endif ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<?= $this->endSection() ?>

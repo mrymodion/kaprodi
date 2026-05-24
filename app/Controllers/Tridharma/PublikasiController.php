@@ -365,10 +365,12 @@ class PublikasiController extends BaseController
 
     public function createHki(): string
     {
+        $prodiId = $this->getProdiId();
         return view('tridharma/publikasi/form_hki', [
-            'item'   => null,
-            'action' => site_url('publikasi/hki/store'),
-            'jenis'  => HkiModel::JENIS_LABELS,
+            'item'      => null,
+            'action'    => site_url('publikasi/hki/store'),
+            'jenis'     => HkiModel::JENIS_LABELS,
+            'dosenList' => $prodiId ? (new DosenModel())->listByProdi($prodiId) : [],
         ]);
     }
 
@@ -377,6 +379,7 @@ class PublikasiController extends BaseController
         $prodiId = $this->getProdiId();
         $data    = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status']);
         $data['prodi_id']   = $prodiId;
+        $data['dosen_id']   = (int) $this->request->getPost('dosen_id') ?: null;
         if (!$this->validateData($data, $this->hkiModel->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -392,9 +395,10 @@ class PublikasiController extends BaseController
     {
         $item = $this->hkiModel->findOrFail($id);
         return view('tridharma/publikasi/form_hki', [
-            'item'   => $item,
-            'action' => site_url("publikasi/hki/{$id}/update"),
-            'jenis'  => HkiModel::JENIS_LABELS,
+            'item'      => $item,
+            'action'    => site_url("publikasi/hki/{$id}/update"),
+            'jenis'     => HkiModel::JENIS_LABELS,
+            'dosenList' => (new DosenModel())->listByProdi((int) $item['prodi_id']),
         ]);
     }
 
@@ -403,6 +407,7 @@ class PublikasiController extends BaseController
         $item = $this->hkiModel->findOrFail($id);
         $data = $this->request->getPost(['kategori','jenis','judul','no_hki','tahun','pemilik','status']);
         $data['prodi_id'] = (int) $item['prodi_id'];
+        $data['dosen_id'] = (int) $this->request->getPost('dosen_id') ?: null;
         if (!$this->validateData($data, $this->hkiModel->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }

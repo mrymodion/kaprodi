@@ -162,6 +162,50 @@ class LedContextBuilder
                     );
                 }
             }
+
+            // Rekognisi DTPR (reviewer/editor/keynote/asesor/penghargaan). Bukti naratif/kualitatif SDM.
+            if ($this->db->tableExists('rekognisi_dosen')) {
+                $rek = $this->db->query("
+                    SELECT COUNT(*) AS jml,
+                           COUNT(DISTINCT dosen_id) AS dosen,
+                           SUM(CASE WHEN tingkat = 'internasional' THEN 1 ELSE 0 END) AS intl,
+                           SUM(CASE WHEN tingkat = 'nasional' THEN 1 ELSE 0 END) AS nas,
+                           SUM(CASE WHEN tingkat = 'lokal' THEN 1 ELSE 0 END) AS lok
+                    FROM rekognisi_dosen WHERE prodi_id = ?
+                ", [$prodiId])->getRowArray();
+                if ($rek && (int) $rek['jml'] > 0) {
+                    $out[] = sprintf(
+                        '  - Rekognisi/pengakuan kepakaran DTPR: %d kegiatan oleh %d dosen (internasional %d, nasional %d, lokal %d).',
+                        (int) $rek['jml'], (int) $rek['dosen'], (int) $rek['intl'], (int) $rek['nas'], (int) $rek['lok']
+                    );
+                    // Rincian per jenis rekognisi (membantu asesor menilai ragam pengakuan).
+                    $perJenis = $this->db->query("
+                        SELECT jenis, COUNT(*) AS n FROM rekognisi_dosen WHERE prodi_id = ? GROUP BY jenis ORDER BY n DESC
+                    ", [$prodiId])->getResultArray();
+                    $labels = \App\Models\RekognisiDosenModel::JENIS_LABELS;
+                    $parts = [];
+                    foreach ($perJenis as $pj) {
+                        $parts[] = ($labels[$pj['jenis']] ?? $pj['jenis']) . ': ' . (int) $pj['n'];
+                    }
+                    if ($parts) {
+                        $out[] = '    Ragam: ' . implode('; ', $parts) . '.';
+                    }
+                }
+            }
+
+            // Pengembangan diri DTPR (pelatihan/sertifikasi/workshop).
+            $peng = $this->db->table('pengembangan_dtpr')->where('prodi_id', $prodiId)->countAllResults();
+            if ($peng > 0) {
+                $pengDosen = 0;
+                if ($this->db->fieldExists('dosen_id', 'pengembangan_dtpr')) {
+                    $pd = $this->db->query("SELECT COUNT(DISTINCT dosen_id) AS n FROM pengembangan_dtpr WHERE prodi_id = ? AND dosen_id IS NOT NULL", [$prodiId])->getRowArray();
+                    $pengDosen = (int) ($pd['n'] ?? 0);
+                }
+                $out[] = sprintf(
+                    '  - Pengembangan kompetensi DTPR: %d kegiatan tercatat%s.',
+                    $peng, $pengDosen > 0 ? " (melibatkan {$pengDosen} dosen)" : ''
+                );
+            }
         } else {
             $out[] = 'Dosen Tetap (DTPR): (belum ada data)';
         }
@@ -212,6 +256,26 @@ class LedContextBuilder
                 (int) ($ps['sitasi'] ?? 0), (int) ($ps['tersitasi'] ?? 0),
                 (int) ($ps['ber_doi'] ?? 0), $total ? (int) $ps['ber_doi'] / $total * 100 : 0
             );
+            // Cakupan DTPR yang memiliki minimal 1 publikasi (via pivot).
+            $dtprPub = $this->db->query("
+                SELECT
+                    COUNT(DISTINCT d.id) AS jml_dosen,
+                    COUNT(DISTINCT pd.dosen_id) AS dosen_ada_pub
+                FROM dosen d
+                LEFT JOIN publikasi_dosen pd ON pd.dosen_id = d.id
+                LEFT JOIN publikasi p ON p.id = pd.publikasi_id AND p.prodi_id = ?
+                WHERE d.prodi_id = ? AND d.aktif = 1
+            ", [$prodiId, $prodiId])->getRowArray();
+            $jmlDosen  = (int) ($dtprPub['jml_dosen'] ?? 0);
+            $dosenPub  = (int) ($dtprPub['dosen_ada_pub'] ?? 0);
+            $dosenNoPub = $jmlDosen - $dosenPub;
+            if ($jmlDosen > 0) {
+                $out[] = sprintf(
+                    '  - Keterlibatan DTPR: %d dari %d dosen aktif memiliki publikasi tercatat%s.',
+                    $dosenPub, $jmlDosen,
+                    $dosenNoPub > 0 ? "; {$dosenNoPub} dosen belum memiliki publikasi" : ''
+                );
+            }
         } else {
             $out[] = 'Publikasi ilmiah: (belum ada data)';
         }
@@ -224,7 +288,94 @@ class LedContextBuilder
             ? 'Kerjasama (total ' . array_sum($ks) . '): ' . $this->fmtGroup($ks)
             : 'Kerjasama: (belum ada data)';
 
+        // SPMI — Sistem Penjaminan Mutu Internal (PPEPP, AMI, dokumen mutu, auditor).
+        foreach ($this->ringkasSpmi($prodiId) as $line) {
+            $out[] = $line;
+        }
+
         return implode("\n", $out);
+    }
+
+    /** Ringkasan kematangan SPMI: siklus PPEPP, temuan AMI, dokumen mutu, auditor. */
+    private function ringkasSpmi(int $prodiId): array
+    {
+        $out = [];
+
+        if ($this->db->tableExists('ppepp')) {
+            $p = $this->db->query("
+                SELECT COUNT(*) AS total, COUNT(DISTINCT siklus) AS siklus, COUNT(DISTINCT tahap) AS tahap
+                FROM ppepp WHERE prodi_id = ?
+            ", [$prodiId])->getRowArray();
+            if ($p && (int) $p['total'] > 0) {
+                $out[] = sprintf(
+                    'Siklus PPEPP terdokumentasi: %d entri pada %d siklus; %d dari 5 tahap (Penetapan–Peningkatan) terisi.',
+                    (int) $p['total'], (int) $p['siklus'], (int) $p['tahap']
+                );
+            } else {
+                $out[] = 'Siklus PPEPP: (belum didokumentasikan)';
+            }
+        }
+
+        if ($this->db->tableExists('ami_temuan')) {
+            $a = $this->db->query("
+                SELECT COUNT(*) AS total,
+                       SUM(CASE WHEN status = 'selesai' THEN 1 ELSE 0 END) AS selesai,
+                       SUM(CASE WHEN status = 'terbuka' THEN 1 ELSE 0 END) AS terbuka
+                FROM ami_temuan WHERE prodi_id = ?
+            ", [$prodiId])->getRowArray();
+            if ($a && (int) $a['total'] > 0) {
+                $tot = (int) $a['total'];
+                $out[] = sprintf(
+                    'Audit Mutu Internal: %d temuan; %d selesai ditindaklanjuti (%.0f%%), %d masih terbuka.',
+                    $tot, (int) $a['selesai'], (int) $a['selesai'] / $tot * 100, (int) $a['terbuka']
+                );
+            }
+        }
+
+        if ($this->db->tableExists('dokumen_mutu')) {
+            $d = (int) $this->db->table('dokumen_mutu')->where('prodi_id', $prodiId)->countAllResults();
+            if ($d > 0) {
+                $jenis = $this->db->query("SELECT jenis, COUNT(*) n FROM dokumen_mutu WHERE prodi_id = ? GROUP BY jenis", [$prodiId])->getResultArray();
+                $labels = \App\Controllers\Spmi\SpmiController::DOK_JENIS;
+                $parts = [];
+                foreach ($jenis as $j) {
+                    $parts[] = ($labels[$j['jenis']] ?? $j['jenis']) . ': ' . (int) $j['n'];
+                }
+                $out[] = 'Dokumen mutu SPMI: ' . $d . ' dokumen (' . implode('; ', $parts) . ').';
+            }
+        }
+
+        if ($this->db->tableExists('spmi_auditor')) {
+            $au = $this->db->query("SELECT COUNT(*) total, SUM(tersertifikasi) bersertifikat FROM spmi_auditor WHERE prodi_id = ?", [$prodiId])->getRowArray();
+            if ($au && (int) $au['total'] > 0) {
+                $out[] = sprintf('Auditor mutu internal: %d orang (%d bersertifikat).', (int) $au['total'], (int) $au['bersertifikat']);
+            }
+        }
+
+        if ($this->db->tableExists('standar_mutu')) {
+            $s = $this->db->query("
+                SELECT COUNT(*) total,
+                       SUM(CASE WHEN status='tercapai' THEN 1 ELSE 0 END) tercapai,
+                       SUM(CASE WHEN kategori='melampaui' THEN 1 ELSE 0 END) melampaui
+                FROM standar_mutu WHERE prodi_id = ?
+            ", [$prodiId])->getRowArray();
+            if ($s && (int) $s['total'] > 0) {
+                $tot = (int) $s['total'];
+                $out[] = sprintf(
+                    'Standar mutu ditetapkan: %d standar (%d tercapai, %.0f%%; %d melampaui SN-Dikti).',
+                    $tot, (int) $s['tercapai'], (int) $s['tercapai'] / $tot * 100, (int) $s['melampaui']
+                );
+            }
+        }
+
+        if ($this->db->tableExists('tinjauan_manajemen')) {
+            $rtm = $this->db->query("SELECT COUNT(*) total, SUM(CASE WHEN status='selesai' THEN 1 ELSE 0 END) selesai FROM tinjauan_manajemen WHERE prodi_id = ?", [$prodiId])->getRowArray();
+            if ($rtm && (int) $rtm['total'] > 0) {
+                $out[] = sprintf('Rapat Tinjauan Manajemen: %d kali terdokumentasi (%d tindak lanjut selesai).', (int) $rtm['total'], (int) $rtm['selesai']);
+            }
+        }
+
+        return $out;
     }
 
     private function ringkasTridharma(string $tabel, int $prodiId, string $label): string

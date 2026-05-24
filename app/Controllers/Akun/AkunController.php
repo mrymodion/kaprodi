@@ -42,7 +42,32 @@ class AkunController extends BaseController
         ];
         $dokumen  = (new \App\Models\DokumenEvidenModel())->listFor('dosen', (int) $d['id']);
         $jenisOpt = \App\Models\DokumenEvidenModel::JENIS['dosen'];
-        return view('akun/index', ['dosen' => $d, 'stats' => $stats, 'dokumen' => $dokumen, 'jenisOpt' => $jenisOpt]);
+
+        $checklist = $this->checklistProfil($d, $stats, $db);
+        $persen = $checklist ? (int) round(100 * count(array_filter(array_column($checklist, 'done'))) / count($checklist)) : 0;
+
+        return view('akun/index', [
+            'dosen' => $d, 'stats' => $stats, 'dokumen' => $dokumen, 'jenisOpt' => $jenisOpt,
+            'checklist' => $checklist, 'persen' => $persen,
+        ]);
+    }
+
+    /** Daftar kelengkapan data DTPR untuk akreditasi (pendorong agar dosen melengkapi). */
+    private function checklistProfil(array $d, array $stats, $db): array
+    {
+        $tsId = (int) ($db->table('tahun_akademik')->where('is_ts', 1)->get()->getRowArray()['id'] ?? 0);
+        $ewmpTs = $tsId ? (bool) $db->table('dosen_ewmp')->where(['dosen_id' => $d['id'], 'tahun_akademik_id' => $tsId])->countAllResults() : false;
+
+        return [
+            ['label' => 'Pendidikan terakhir diisi',            'done' => !empty($d['pendidikan_terakhir']), 'url' => 'akun/profil'],
+            ['label' => 'Jabatan akademik diisi',               'done' => !empty($d['jabatan_akademik']),    'url' => 'akun/profil'],
+            ['label' => 'Bidang keahlian diisi',                'done' => !empty($d['bidang_keahlian']),     'url' => 'akun/profil'],
+            ['label' => 'Sertifikat pendidik (no. serdos)',     'done' => !empty($d['sertifikat_pendidik']) && !empty($d['no_serdos']), 'url' => 'akun/profil'],
+            ['label' => 'ORCID diisi (sinkron metrik sitasi)',  'done' => !empty($d['orcid']),               'url' => 'akun/profil'],
+            ['label' => 'Minimal 1 publikasi tercatat',         'done' => ($stats['publikasi'] ?? 0) > 0,    'url' => 'akun/publikasi'],
+            ['label' => 'EWMP tahun berjalan terisi',           'done' => $ewmpTs,                            'url' => 'akun/ewmp'],
+            ['label' => 'Dokumen bukti (ijazah/SK) diunggah',   'done' => ($stats['dokumen'] ?? 0) > 0,      'url' => 'akun'],
+        ];
     }
 
     public function profil()

@@ -12,9 +12,22 @@ class HkiModel extends AppModel
     protected $useTimestamps = false;
 
     protected $allowedFields = [
-        'prodi_id', 'kategori', 'jenis', 'judul', 'no_hki',
+        'prodi_id', 'dosen_id', 'kategori', 'jenis', 'judul', 'no_hki',
         'tahun', 'pemilik', 'status', 'link_bukti', 'created_at',
     ];
+
+    public function listByDosen(int $dosenId): array
+    {
+        return $this->where('dosen_id', $dosenId)->orderBy('tahun DESC, judul ASC')->findAll();
+    }
+
+    /** HKI prodi yang belum diklaim dosen mana pun (untuk diklaim oleh dosen). */
+    public function listClaimableByProdi(int $prodiId): array
+    {
+        return $this->where('prodi_id', $prodiId)
+            ->groupStart()->where('dosen_id', null)->orWhere('dosen_id', 0)->groupEnd()
+            ->orderBy('tahun DESC, judul ASC')->findAll();
+    }
 
     protected $validationRules = [
         'judul'    => 'required|min_length[5]',

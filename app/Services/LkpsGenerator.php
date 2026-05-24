@@ -43,12 +43,12 @@ class LkpsGenerator
         '2.B.6' => ['No', 'Aspek Kemampuan', 'Sangat Baik (%)', 'Baik (%)', 'Cukup (%)', 'Kurang (%)', 'Jml Responden'],
         '3.A.2' => ['No', 'Judul Penelitian', 'Ketua', 'Sumber Dana', 'Nama Sumber', 'Jumlah Dana (Rp)', 'Tahun', 'Libatkan Mahasiswa', 'Jml Mhs', 'Link Bukti'],
         '3.C.1' => ['No', 'Nama Mitra', 'Tingkat', 'Jenis Dokumen', 'No. Dokumen', 'Tgl Mulai', 'Tgl Berakhir', 'Manfaat', 'Bukti Implementasi'],
-        '3.C.2' => ['No', 'Jenis', 'Judul', 'Penulis', 'Nama Media', 'Tahun', 'Volume', 'DOI', 'Sitasi', 'SINTA', 'Link Bukti'],
-        '3.C.3' => ['No', 'Jenis HKI', 'Judul', 'No. HKI', 'Tahun', 'Pemilik', 'Status', 'Link Bukti'],
+        '3.C.2' => ['No', 'Jenis', 'Judul', 'Penulis', 'DTPR (Penulis)', 'Nama Media', 'Tahun', 'Volume', 'DOI', 'Sitasi', 'SINTA', 'Link Bukti'],
+        '3.C.3' => ['No', 'Jenis HKI', 'Judul', 'No. HKI', 'Tahun', 'Pemilik', 'DTPR', 'Status', 'Link Bukti'],
         '4.A.2' => ['No', 'Judul PkM', 'Ketua', 'Sumber Dana', 'Nama Sumber', 'Jumlah Dana (Rp)', 'Mitra', 'Lokasi', 'Tahun', 'Libatkan Mahasiswa', 'Jml Mhs', 'Link Bukti'],
         '4.C.1' => ['No', 'Nama Mitra', 'Tingkat', 'Jenis Dokumen', 'No. Dokumen', 'Tgl Mulai', 'Tgl Berakhir', 'Manfaat', 'Bukti Implementasi'],
-        '4.C.2' => ['No', 'Jenis', 'Judul', 'Penulis', 'Nama Media', 'Tahun', 'Volume', 'DOI', 'Sitasi', 'SINTA', 'Link Bukti'],
-        '4.C.3' => ['No', 'Jenis HKI', 'Judul', 'No. HKI', 'Tahun', 'Pemilik', 'Status', 'Link Bukti'],
+        '4.C.2' => ['No', 'Jenis', 'Judul', 'Penulis', 'DTPR (Penulis)', 'Nama Media', 'Tahun', 'Volume', 'DOI', 'Sitasi', 'SINTA', 'Link Bukti'],
+        '4.C.3' => ['No', 'Jenis HKI', 'Judul', 'No. HKI', 'Tahun', 'Pemilik', 'DTPR', 'Status', 'Link Bukti'],
         '3.A.1' => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
         '4.A.1' => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
         '5.2'   => ['No', 'Nama Prasarana', 'Kategori', 'Jumlah', 'Luas (m²)', 'Kapasitas', 'Kondisi', 'Kepemilikan'],
@@ -111,6 +111,11 @@ class LkpsGenerator
             $rows = $driver->buildLkpsTable($t['kode'], $prodiId, $taId);
             $sheet = $spreadsheet->createSheet();
             $this->buildTabelSheet($sheet, $t, $rows);
+        }
+
+        // Lampiran pelengkap (di luar tabel LKPS resmi instrumen): Rekognisi DTPR.
+        if ($this->db->tableExists('rekognisi_dosen')) {
+            $this->buildRekognisiSheet($spreadsheet->createSheet(), $prodiId);
         }
 
         $spreadsheet->setActiveSheetIndex(0);
@@ -272,6 +277,83 @@ class LkpsGenerator
         $sheet->getRowDimension($startRow)->setRowHeight(30);
     }
 
+    /**
+     * Lampiran pelengkap: Rekognisi DTPR. BUKAN tabel LKPS resmi instrumen —
+     * disertakan sebagai bukti pendukung naratif (SDM/C3) bagi asesor.
+     */
+    private function buildRekognisiSheet(Worksheet $sheet, int $prodiId): void
+    {
+        $sheet->setTitle('Rekognisi DTPR');
+        $sheet->setCellValue('A1', 'Lampiran — Rekognisi/Pengakuan Kepakaran DTPR');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(12);
+        $sheet->setCellValue('A2', '(Lampiran pendukung di luar tabel LKPS resmi instrumen — bukti naratif kriteria SDM)');
+        $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(9)->getColor()->setRGB('888888');
+
+        $rows = $this->db->query("
+            SELECT TRIM(CONCAT(COALESCE(d.gelar_depan,''), ' ', COALESCE(d.nama,''), COALESCE(CONCAT(', ', d.gelar_belakang), ''))) AS dosen,
+                   r.jenis, r.judul, r.penyelenggara, r.tingkat, r.tahun, r.link_bukti
+            FROM rekognisi_dosen r
+            LEFT JOIN dosen d ON d.id = r.dosen_id
+            WHERE r.prodi_id = ?
+            ORDER BY r.tahun DESC, d.nama
+        ", [$prodiId])->getResultArray();
+
+        $headers  = ['No', 'Nama DTPR', 'Jenis Rekognisi', 'Judul/Kegiatan', 'Penyelenggara', 'Tingkat', 'Tahun', 'Bukti'];
+        $labels   = \App\Models\RekognisiDosenModel::JENIS_LABELS;
+        $startRow = 4;
+
+        $col = 'A';
+        foreach ($headers as $h) {
+            $sheet->setCellValue("{$col}{$startRow}", $h);
+            $col++;
+        }
+        $lastCol = Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->getStyle("A{$startRow}:{$lastCol}{$startRow}")->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0D3B8C']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+        ]);
+
+        $dataRow = $startRow + 1; $no = 1;
+        foreach ($rows as $r) {
+            $vals = [
+                $no++, $r['dosen'] ?: '-', $labels[$r['jenis']] ?? $r['jenis'], $r['judul'],
+                $r['penyelenggara'] ?: '-', ucfirst((string) $r['tingkat']), $r['tahun'] ?: '-', $r['link_bukti'] ?: '-',
+            ];
+            $col = 'A';
+            foreach ($vals as $v) {
+                $coord = "{$col}{$dataRow}";
+                $str = (string) $v;
+                if (\App\Services\EvidenceStorage::isStoredFile($str)) {
+                    helper('url');
+                    $sheet->setCellValue($coord, 'Lihat bukti');
+                    $sheet->getCell($coord)->getHyperlink()->setUrl(site_url('eviden/file/' . $str));
+                    $sheet->getStyle($coord)->getFont()->setUnderline(true)->getColor()->setRGB('0D6EFD');
+                } elseif ($str !== '' && preg_match('#^https?://#i', $str)) {
+                    $sheet->setCellValue($coord, 'Lihat bukti');
+                    $sheet->getCell($coord)->getHyperlink()->setUrl($str);
+                    $sheet->getStyle($coord)->getFont()->setUnderline(true)->getColor()->setRGB('0D6EFD');
+                } else {
+                    $sheet->setCellValue($coord, $str);
+                }
+                $col++;
+            }
+            $dataRow++;
+        }
+
+        if ($dataRow === $startRow + 1) {
+            $sheet->setCellValue("A{$dataRow}", '(belum ada data rekognisi)');
+        } else {
+            $sheet->getStyle("A{$startRow}:{$lastCol}" . ($dataRow - 1))->applyFromArray([
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
+            ]);
+        }
+        for ($c = 'A'; $c <= $lastCol; $c++) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+        $sheet->getRowDimension($startRow)->setRowHeight(30);
+    }
+
     /** Tentukan header kolom untuk tabel. */
     private function resolveHeaders(array $tabel, array $rows): array
     {
@@ -330,10 +412,11 @@ class LkpsGenerator
                 $r['no_dokumen'] ?? '-', $r['tgl_mulai'] ?? '-', $r['tgl_berakhir'] ?? '-',
                 $r['manfaat'] ?? '-', $r['bukti_implementasi'] ?? '-'],
             '3.C.2', '4.C.2' => [$r['jenis'] ?? '-', $r['judul'] ?? '-', $r['penulis'] ?? '-',
+                $r['dtpr_penulis'] ?? '-',
                 $r['nama_media'] ?? '-', $r['tahun'] ?? '-', $r['volume'] ?? '-',
                 $r['doi'] ?? '-', $r['sitasi'] ?? 0, $r['sinta_score'] ?? '-', $r['url'] ?? '-'],
             '3.C.3', '4.C.3' => [$r['jenis'] ?? '-', $r['judul'] ?? '-', $r['no_hki'] ?? '-',
-                $r['tahun'] ?? '-', $r['pemilik'] ?? '-', $r['status'] ?? '-', $r['link_bukti'] ?? '-'],
+                $r['tahun'] ?? '-', $r['pemilik'] ?? '-', $r['dtpr_pemilik'] ?? '-', $r['status'] ?? '-', $r['link_bukti'] ?? '-'],
             '3.A.1', '4.A.1', '5.2' => [$r['nama'] ?? '-', str_replace('_', ' ', ucfirst($r['kategori'] ?? '-')),
                 $r['jumlah'] ?? 0, $r['luas_m2'] ?? '-', $r['kapasitas'] ?? '-',
                 str_replace('_', ' ', ucfirst($r['kondisi'] ?? '-')), ucfirst($r['kepemilikan'] ?? '-')],

@@ -119,15 +119,63 @@ class AiController extends BaseController
             $t = $engine->totalSkor($prodiId, $instrumen['id'], null);
             $lines[] = sprintf('Nilai akreditasi sementara: %.1f/%.0f (%.1f%%), predikat %s.', $t['nilai_akhir'], $t['max_nilai'], $t['pct'], $t['predikat']);
         }
-        $lines[] = 'DTPR aktif: ' . (int) $db->table('dosen')->where(['prodi_id' => $prodiId, 'aktif' => 1])->countAllResults() . ' dosen.';
+        $totalDosen = (int) $db->table('dosen')->where(['prodi_id' => $prodiId, 'aktif' => 1])->countAllResults();
+        $serdos = (int) $db->table('dosen')->where(['prodi_id' => $prodiId, 'aktif' => 1, 'sertifikat_pendidik' => 1])->countAllResults();
+        $linier = (int) $db->table('dosen')->where(['prodi_id' => $prodiId, 'aktif' => 1, 'linieritas' => 'linier'])->countAllResults();
+        $lines[] = sprintf('DTPR aktif: %d dosen (bersertifikat pendidik %d, linier bidang %d).', $totalDosen, $serdos, $linier);
         $lines[] = 'Mahasiswa aktif: ' . (int) $db->table('mahasiswa')->where(['prodi_id' => $prodiId, 'status' => 'aktif'])->countAllResults() . '.';
+
+        $totalPub = (int) $db->table('publikasi')->where('prodi_id', $prodiId)->countAllResults();
         $lines[] = 'Penelitian: ' . (int) $db->table('penelitian')->where('prodi_id', $prodiId)->countAllResults()
                  . '; PkM: ' . (int) $db->table('pkm')->where('prodi_id', $prodiId)->countAllResults()
-                 . '; Publikasi: ' . (int) $db->table('publikasi')->where('prodi_id', $prodiId)->countAllResults() . '.';
+                 . '; Publikasi: ' . $totalPub . '.';
+
+        // Keterlibatan DTPR pada publikasi (via pivot publikasi_dosen), bila tersedia.
+        if ($db->tableExists('publikasi_dosen')) {
+            $cov = $db->query("
+                SELECT COUNT(DISTINCT d.id) AS total, COUNT(DISTINCT pd.dosen_id) AS ber_pub
+                FROM dosen d
+                LEFT JOIN publikasi_dosen pd ON pd.dosen_id = d.id
+                LEFT JOIN publikasi p ON p.id = pd.publikasi_id AND p.prodi_id = ?
+                WHERE d.prodi_id = ? AND d.aktif = 1
+            ", [$prodiId, $prodiId])->getRowArray();
+            if ($cov && (int) $cov['total'] > 0) {
+                $lines[] = sprintf('Keterlibatan DTPR pada publikasi: %d dari %d dosen memiliki publikasi tercatat.', (int) $cov['ber_pub'], (int) $cov['total']);
+            }
+        }
+
+        $hki = (int) $db->table('hki')->where('prodi_id', $prodiId)->countAllResults();
+        if ($hki > 0) $lines[] = "Luaran HKI: {$hki}.";
+
+        // Rekognisi DTPR (bukti naratif kualitatif SDM/C3).
+        if ($db->tableExists('rekognisi_dosen')) {
+            $rek = $db->query("SELECT COUNT(*) jml, COUNT(DISTINCT dosen_id) dosen, SUM(CASE WHEN tingkat='internasional' THEN 1 ELSE 0 END) intl FROM rekognisi_dosen WHERE prodi_id=?", [$prodiId])->getRowArray();
+            if ($rek && (int) $rek['jml'] > 0) {
+                $lines[] = sprintf('Rekognisi/pengakuan kepakaran DTPR: %d kegiatan oleh %d dosen (%d internasional).', (int) $rek['jml'], (int) $rek['dosen'], (int) $rek['intl']);
+            }
+        }
+
+        // Pengembangan kompetensi DTPR (pelatihan/sertifikasi/workshop).
+        $peng = (int) $db->table('pengembangan_dtpr')->where('prodi_id', $prodiId)->countAllResults();
+        if ($peng > 0) $lines[] = "Pengembangan kompetensi DTPR: {$peng} kegiatan tercatat.";
+
         $tracer = $db->query("SELECT AVG(ts.masa_tunggu_bulan) a, COUNT(*) n FROM tracer_study ts JOIN mahasiswa m ON m.id=ts.mahasiswa_id WHERE m.prodi_id=?", [$prodiId])->getRow();
         if ($tracer && (int) $tracer->n > 0) {
             $lines[] = sprintf('Tracer study: %d responden, rata-rata masa tunggu %.1f bulan.', (int) $tracer->n, (float) $tracer->a);
         }
+
+        // Kematangan SPMI (PPEPP & Audit Mutu Internal).
+        if ($db->tableExists('ppepp')) {
+            $ppepp = (int) $db->table('ppepp')->where('prodi_id', $prodiId)->countAllResults();
+            if ($ppepp > 0) $lines[] = "Siklus PPEPP terdokumentasi: {$ppepp} entri.";
+        }
+        if ($db->tableExists('ami_temuan')) {
+            $ami = $db->query("SELECT COUNT(*) t, SUM(CASE WHEN status='selesai' THEN 1 ELSE 0 END) s FROM ami_temuan WHERE prodi_id=?", [$prodiId])->getRowArray();
+            if ($ami && (int) $ami['t'] > 0) {
+                $lines[] = sprintf('Audit Mutu Internal: %d temuan, %d selesai ditindaklanjuti.', (int) $ami['t'], (int) $ami['s']);
+            }
+        }
+
         return implode("\n", $lines);
     }
 

@@ -141,6 +141,10 @@ if ($isSuperadmin) {
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/publikasi') ? 'active' : '' ?>" href="<?= site_url('akun/publikasi') ?>"><i class="bi bi-file-earmark-text"></i> Publikasi Saya</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/penelitian') ? 'active' : '' ?>" href="<?= site_url('akun/penelitian') ?>"><i class="bi bi-journal-text"></i> Penelitian Saya</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/pkm') ? 'active' : '' ?>" href="<?= site_url('akun/pkm') ?>"><i class="bi bi-megaphone"></i> PkM Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/hki') ? 'active' : '' ?>" href="<?= site_url('akun/hki') ?>"><i class="bi bi-shield-check"></i> HKI Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/rekognisi') ? 'active' : '' ?>" href="<?= site_url('akun/rekognisi') ?>"><i class="bi bi-award"></i> Rekognisi Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/pengembangan') ? 'active' : '' ?>" href="<?= site_url('akun/pengembangan') ?>"><i class="bi bi-mortarboard"></i> Pengembangan Diri</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/ewmp') ? 'active' : '' ?>" href="<?= site_url('akun/ewmp') ?>"><i class="bi bi-table"></i> EWMP Saya</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/profil') ? 'active' : '' ?>" href="<?= site_url('akun/profil') ?>"><i class="bi bi-pencil-square"></i> Edit Profil</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/password') ? 'active' : '' ?>" href="<?= site_url('akun/password') ?>"><i class="bi bi-key"></i> Ganti Password</a>
                 </nav>
@@ -153,7 +157,8 @@ if ($isSuperadmin) {
                     <?php if ($can('prodi.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'sarpras') ? 'active' : '' ?>" href="<?= site_url('sarpras') ?>"><i class="bi bi-building-gear"></i> Sarana & Prasarana</a><?php endif ?>
                     <?php if ($can('prodi.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'tendik') ? 'active' : '' ?>" href="<?= site_url('tendik') ?>"><i class="bi bi-person-workspace"></i> Tenaga Kependidikan</a><?php endif ?>
                     <?php if ($can('prodi.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'keuangan') ? 'active' : '' ?>" href="<?= site_url('keuangan') ?>"><i class="bi bi-cash-coin"></i> Keuangan</a><?php endif ?>
-                    <?php if ($can('dosen.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'dosen') ? 'active' : '' ?>" href="<?= site_url('dosen') ?>"><i class="bi bi-people"></i> DTPR (Dosen)</a><?php endif ?>
+                    <?php if ($can('dosen.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'dosen') && !str_starts_with(uri_string(), 'dosen/rekognisi') ? 'active' : '' ?>" href="<?= site_url('dosen') ?>"><i class="bi bi-people"></i> DTPR (Dosen)</a><?php endif ?>
+                    <?php if ($can('dosen.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'dosen/rekognisi') ? 'active' : '' ?>" href="<?= site_url('dosen/rekognisi') ?>"><i class="bi bi-award"></i> Rekognisi DTPR</a><?php endif ?>
                     <?php if ($can('mahasiswa.manage')): ?>
                         <a class="nav-link <?= str_starts_with(uri_string(), 'mahasiswa') ? 'active' : '' ?>" href="<?= site_url('mahasiswa') ?>"><i class="bi bi-person-badge"></i> Mahasiswa</a>
                     <?php endif ?>
@@ -174,6 +179,17 @@ if ($isSuperadmin) {
                             <i class="bi <?= esc($bdef['icon']) ?>"></i> <?= esc($bdef['title']) ?>
                         </a>
                     <?php endforeach ?>
+                </nav>
+
+                <div class="nav-section">SPMI</div>
+                <nav class="nav flex-column">
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/standar') ? 'active' : '' ?>" href="<?= site_url('spmi/standar') ?>"><i class="bi bi-rulers"></i> Standar Mutu</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/ppepp') ? 'active' : '' ?>" href="<?= site_url('spmi/ppepp') ?>"><i class="bi bi-arrow-repeat"></i> Siklus PPEPP</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/ami') ? 'active' : '' ?>" href="<?= site_url('spmi/ami') ?>"><i class="bi bi-clipboard-check"></i> Audit Mutu Internal</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/rtm') ? 'active' : '' ?>" href="<?= site_url('spmi/rtm') ?>"><i class="bi bi-people-fill"></i> Tinjauan Manajemen</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/kepuasan') ? 'active' : '' ?>" href="<?= site_url('spmi/kepuasan') ?>"><i class="bi bi-emoji-smile"></i> Rekap Kepuasan</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/dokumen') ? 'active' : '' ?>" href="<?= site_url('spmi/dokumen') ?>"><i class="bi bi-folder-check"></i> Dokumen Mutu</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/auditor') ? 'active' : '' ?>" href="<?= site_url('spmi/auditor') ?>"><i class="bi bi-person-vcard"></i> Registry Auditor</a>
                 </nav>
             <?php endif ?>
             <?php if ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate')): ?>
