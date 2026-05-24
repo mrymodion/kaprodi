@@ -294,6 +294,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('metrik/update',           'Dosen\DosenController::updateMetrik');
         $routes->post('(:num)/akun',             'Dosen\DosenController::buatAkun/$1');
         $routes->post('(:num)/akun/reset',       'Dosen\DosenController::resetAkun/$1');
+        $routes->post('(:num)/akun/tautkan',     'Dosen\DosenController::tautkanAkun/$1');
         $routes->get('ewmp/import',              'Dosen\DosenController::ewmpImportForm');
         $routes->get('ewmp/import/template',     'Dosen\DosenController::ewmpImportTemplate');
         $routes->post('ewmp/import',             'Dosen\DosenController::ewmpImportStore');
