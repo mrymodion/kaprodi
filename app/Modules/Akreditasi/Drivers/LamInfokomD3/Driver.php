@@ -460,10 +460,13 @@ class Driver implements AccreditationDriver
     {
         $db = Database::connect();
         return $db->query("
-            SELECT jenis, judul, no_hki, tahun, pemilik, status, link_bukti
-            FROM hki
-            WHERE prodi_id = ? AND kategori = ?
-            ORDER BY tahun DESC
+            SELECT h.jenis, h.judul, h.no_hki, h.tahun, h.pemilik,
+                   TRIM(CONCAT(COALESCE(d.gelar_depan,''), ' ', COALESCE(d.nama,''))) AS dtpr_pemilik,
+                   h.status, h.link_bukti
+            FROM hki h
+            LEFT JOIN dosen d ON d.id = h.dosen_id AND d.prodi_id = h.prodi_id
+            WHERE h.prodi_id = ? AND h.kategori = ?
+            ORDER BY h.tahun DESC
         ", [$prodiId, $kategori])->getResultArray();
     }
 

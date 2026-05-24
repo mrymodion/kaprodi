@@ -162,6 +162,36 @@ class LedContextBuilder
                     );
                 }
             }
+
+            // Rekognisi DTPR (reviewer/editor/keynote/asesor/penghargaan).
+            if ($this->db->tableExists('rekognisi_dosen')) {
+                $rek = $this->db->query("
+                    SELECT COUNT(*) AS jml,
+                           COUNT(DISTINCT dosen_id) AS dosen,
+                           SUM(CASE WHEN tingkat = 'internasional' THEN 1 ELSE 0 END) AS intl
+                    FROM rekognisi_dosen WHERE prodi_id = ?
+                ", [$prodiId])->getRowArray();
+                if ($rek && (int) $rek['jml'] > 0) {
+                    $out[] = sprintf(
+                        '  - Rekognisi DTPR: %d kegiatan oleh %d dosen (%d berskala internasional).',
+                        (int) $rek['jml'], (int) $rek['dosen'], (int) $rek['intl']
+                    );
+                }
+            }
+
+            // Pengembangan diri DTPR (pelatihan/sertifikasi/workshop).
+            $peng = $this->db->table('pengembangan_dtpr')->where('prodi_id', $prodiId)->countAllResults();
+            if ($peng > 0) {
+                $pengDosen = 0;
+                if ($this->db->fieldExists('dosen_id', 'pengembangan_dtpr')) {
+                    $pd = $this->db->query("SELECT COUNT(DISTINCT dosen_id) AS n FROM pengembangan_dtpr WHERE prodi_id = ? AND dosen_id IS NOT NULL", [$prodiId])->getRowArray();
+                    $pengDosen = (int) ($pd['n'] ?? 0);
+                }
+                $out[] = sprintf(
+                    '  - Pengembangan kompetensi DTPR: %d kegiatan tercatat%s.',
+                    $peng, $pengDosen > 0 ? " (melibatkan {$pengDosen} dosen)" : ''
+                );
+            }
         } else {
             $out[] = 'Dosen Tetap (DTPR): (belum ada data)';
         }
