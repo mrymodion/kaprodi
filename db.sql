@@ -12,6 +12,38 @@ MySQL - 11.4.10-MariaDB-log : Database - kaprodi
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+/*Table structure for table `ami_temuan` */
+
+DROP TABLE IF EXISTS `ami_temuan`;
+
+CREATE TABLE `ami_temuan` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `prodi_id` int(10) unsigned NOT NULL,
+  `tahun_akademik_id` int(10) unsigned DEFAULT NULL,
+  `tanggal_audit` date DEFAULT NULL,
+  `lingkup` varchar(200) NOT NULL,
+  `kriteria` varchar(50) DEFAULT NULL,
+  `standar_mutu_id` int(10) unsigned DEFAULT NULL,
+  `kategori` enum('mayor','minor','observasi') NOT NULL DEFAULT 'minor',
+  `deskripsi` text NOT NULL,
+  `akar_masalah` text DEFAULT NULL,
+  `rekomendasi` text DEFAULT NULL,
+  `tindak_lanjut` text DEFAULT NULL,
+  `status` enum('terbuka','proses','selesai') NOT NULL DEFAULT 'terbuka',
+  `auditor` varchar(150) DEFAULT NULL,
+  `link_bukti` varchar(500) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `tanggal_verifikasi` date DEFAULT NULL,
+  `verifikator` varchar(150) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ami_temuan_prodi_id_foreign` (`prodi_id`),
+  KEY `ami_temuan_tahun_akademik_id_foreign` (`tahun_akademik_id`),
+  CONSTRAINT `ami_temuan_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `ami_temuan_tahun_akademik_id_foreign` FOREIGN KEY (`tahun_akademik_id`) REFERENCES `tahun_akademik` (`id`) ON DELETE CASCADE ON UPDATE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `ami_temuan` */
+
 /*Table structure for table `audit_trail` */
 
 DROP TABLE IF EXISTS `audit_trail`;
@@ -89,7 +121,7 @@ CREATE TABLE `auth_identities` (
 /*Data for the table `auth_identities` */
 
 insert  into `auth_identities`(`id`,`user_id`,`type`,`name`,`secret`,`secret2`,`expires`,`extra`,`force_reset`,`last_used_at`,`created_at`,`updated_at`) values 
-(1,1,'email_password',NULL,'superadmin@utd.ac.id','$2y$12$Sd0YcAUJVaQ.oaleI0ZpOelrfgz8sJxdf0HanQ177r2gcQzN3y0DC',NULL,NULL,0,'2026-05-24 15:04:27','2026-05-22 01:13:44','2026-05-24 15:04:27'),
+(1,1,'email_password',NULL,'superadmin@utd.ac.id','$2y$12$Sd0YcAUJVaQ.oaleI0ZpOelrfgz8sJxdf0HanQ177r2gcQzN3y0DC',NULL,NULL,0,'2026-05-24 23:09:16','2026-05-22 01:13:44','2026-05-24 23:09:16'),
 (2,2,'email_password',NULL,'kaprodi@utd.ac.id','$2y$12$5Iga90UBcNeshBrGnpN66ORKFu/2MUpWYdSFUH0m7KPhXdweAYPdC',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:45'),
 (3,3,'email_password',NULL,'sekprodi@utd.ac.id','$2y$12$S0vMeOL2UWTg2Hztb4aLHukU4x.LgaJ7uwiMUFycsvZ.XGbdvzdA.',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:46'),
 (4,4,'email_password',NULL,'gkm@utd.ac.id','$2y$12$R/48TR/8WPYg5nH9w0uswe5mGwh.r2kHNSs/GB4/N0kfKG/OWgPXm',NULL,NULL,0,NULL,'2026-05-22 01:13:46','2026-05-22 01:13:46'),
@@ -98,7 +130,7 @@ insert  into `auth_identities`(`id`,`user_id`,`type`,`name`,`secret`,`secret2`,`
 (7,7,'email_password',NULL,'mahasiswa@utd.ac.id','$2y$12$l4pkVPDOrby/jeph8YrQhOBmSr1oqsvJCJ3AR9wEEOYIyyts7INo.',NULL,NULL,0,NULL,'2026-05-22 01:13:47','2026-05-22 01:13:48'),
 (8,8,'email_password',NULL,'asesor@utd.ac.id','$2y$12$2vO9Pu.hzucd2OH5enbmK.rSbNsvVm9NqJtQ4aUASg9/0T1s6MWLK',NULL,NULL,0,NULL,'2026-05-22 01:13:48','2026-05-22 01:13:48'),
 (9,9,'email_password',NULL,'auditor@utd.ac.id','$2y$12$W6zefi1Wj02OAhue7C8XCOcdGXodEBeJnx.LeF/2kI3RCmj7D3tBS',NULL,NULL,0,NULL,'2026-05-22 01:13:48','2026-05-22 01:13:48'),
-(10,10,'email_password',NULL,'mamokandri@digitechuniversity.ac.id','$2y$12$1sJdO3U89fWgqzwUDX9KjOM59E4JI9K0LhMxbFOWTfO.X6SSV4Hii',NULL,NULL,0,'2026-05-24 14:15:27','2026-05-24 13:32:54','2026-05-24 14:15:27'),
+(10,10,'email_password',NULL,'mamokandri@digitechuniversity.ac.id','$2y$12$1sJdO3U89fWgqzwUDX9KjOM59E4JI9K0LhMxbFOWTfO.X6SSV4Hii',NULL,NULL,0,'2026-05-24 23:09:07','2026-05-24 13:32:54','2026-05-24 23:09:07'),
 (11,11,'email_password',NULL,'informatika-d3@digitechuniversity.ac.id','$2y$12$EtQLITb2t2ZyY.Wc5Z9SqOzo6YIO7BQY.eFwsd6fQe13Gd9HShqnO',NULL,NULL,0,'2026-05-24 14:02:13','2026-05-24 13:34:59','2026-05-24 14:02:13'),
 (12,12,'email_password',NULL,'darsiti@digitechuniversity.ac.id','$2y$12$oWhImPGYYbwdjW8zM4uJZuo.m.xRlj/34Z34BCR8eX.pbYftFqDPu',NULL,NULL,0,'2026-05-24 15:03:32','2026-05-24 14:01:07','2026-05-24 15:03:32');
 
@@ -118,7 +150,7 @@ CREATE TABLE `auth_logins` (
   PRIMARY KEY (`id`),
   KEY `id_type_identifier` (`id_type`,`identifier`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `auth_logins` */
 
@@ -144,7 +176,11 @@ insert  into `auth_logins`(`id`,`ip_address`,`user_agent`,`id_type`,`identifier`
 (19,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','darsiti@digitechuniversity.ac.id',12,'2026-05-24 14:28:25',1),
 (20,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-24 14:43:57',1),
 (21,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','darsiti@digitechuniversity.ac.id',12,'2026-05-24 15:03:32',1),
-(22,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-24 15:04:27',1);
+(22,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-24 15:04:27',1),
+(23,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','mamokandri@digitechuniversity.ac.id',10,'2026-05-24 16:24:22',1),
+(24,'103.41.250.239','Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-24 21:24:42',1),
+(25,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','mamokandri@digitechuniversity.ac.id',10,'2026-05-24 23:09:07',1),
+(26,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-24 23:09:16',1);
 
 /*Table structure for table `auth_permissions_users` */
 
@@ -231,7 +267,7 @@ CREATE TABLE `butir_skor` (
 /*Data for the table `butir_skor` */
 
 insert  into `butir_skor`(`id`,`prodi_id`,`lam_butir_id`,`tahun_akademik_id`,`skor_auto`,`skor_manual`,`skor_final`,`sumber_data_json`,`catatan`,`link_bukti`,`updated_at`,`updated_by`) values 
-(8,7,427,NULL,2.00,NULL,2.00,NULL,NULL,NULL,'2026-05-24 21:48:19',NULL),
+(8,7,427,NULL,2.20,NULL,2.20,NULL,NULL,NULL,'2026-05-24 22:13:31',NULL),
 (9,7,427,5,1.60,NULL,1.60,NULL,NULL,NULL,'2026-05-24 12:07:53',NULL);
 
 /*Table structure for table `cpl` */
@@ -305,6 +341,27 @@ CREATE TABLE `dokumen_eviden` (
 insert  into `dokumen_eviden`(`id`,`ref_table`,`ref_id`,`jenis`,`file`,`nama_asli`,`created_at`) values 
 (1,'dosen',1,'ijazah','b59a1c0abf0385bd1.pdf','IJASAH S2 compress.pdf','2026-05-23 18:06:13');
 
+/*Table structure for table `dokumen_mutu` */
+
+DROP TABLE IF EXISTS `dokumen_mutu`;
+
+CREATE TABLE `dokumen_mutu` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `prodi_id` int(10) unsigned NOT NULL,
+  `jenis` enum('kebijakan','manual','standar','formulir','sop','lainnya') NOT NULL DEFAULT 'standar',
+  `kode` varchar(100) DEFAULT NULL,
+  `judul` varchar(250) NOT NULL,
+  `versi` varchar(30) DEFAULT NULL,
+  `tanggal_berlaku` date DEFAULT NULL,
+  `link_bukti` varchar(500) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `dokumen_mutu_prodi_id_foreign` (`prodi_id`),
+  CONSTRAINT `dokumen_mutu_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `dokumen_mutu` */
+
 /*Table structure for table `dosen` */
 
 DROP TABLE IF EXISTS `dosen`;
@@ -350,14 +407,16 @@ CREATE TABLE `dosen` (
   KEY `idx_dosen_prodi_id` (`prodi_id`),
   KEY `idx_dosen_aktif` (`aktif`),
   CONSTRAINT `dosen_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `dosen` */
 
 insert  into `dosen`(`id`,`prodi_id`,`user_id`,`nidn`,`nip`,`nama`,`gelar_depan`,`gelar_belakang`,`jenis_kelamin`,`tempat_lahir`,`tanggal_lahir`,`email`,`no_hp`,`pendidikan_terakhir`,`bidang_keahlian`,`linieritas`,`jabatan_akademik`,`no_sk_jad`,`tgl_sk_jad`,`sertifikat_pendidik`,`no_serdos`,`status_kepegawaian`,`sinta_id`,`scopus_id`,`google_scholar_id`,`orcid`,`aktif`,`created_at`,`updated_at`,`h_index`,`i10_index`,`sitasi_total`,`karya_total`,`metrik_updated_at`) values 
 (1,7,10,'8849970018','','Mamok Andri Senubekti','Ir.','S.Kom., M.Kom.','L','Malang','1982-04-11','mamokandri@digitechuniversity.ac.id','081323945454','S2','Sistem Informasi, Data Science','linier','Asisten Ahli','7628/LL4/KP/2022','2022-11-28',0,'','tidak_tetap','6756574','60558151400','ZZcT_-oAAAAJ&hl','0000-0002-1893-0746',1,'2026-05-22 01:24:44','2026-05-24 13:45:19',NULL,NULL,NULL,NULL,NULL),
-(2,7,12,'0424098204','','Darsiti','','S.Kom.,M.Kom.','P','','0000-00-00','darsiti@digitechuniversity.ac.id','085220977847','S2','Sistem Informasi','linier','Lektor','','0000-00-00',0,'','tetap','','','','',1,'2026-05-24 14:00:51','2026-05-24 14:01:08',NULL,NULL,NULL,NULL,NULL),
-(3,7,NULL,NULL,'','Mohammad Syafiuddin Usman','','S.T., M.Kom.','L','','0000-00-00','Syafiuddin@digitechuniversity.ac.id','082298872659','S2','','linier','Asisten Ahli','','0000-00-00',0,'','tetap','','','','',1,'2026-05-24 14:04:00','2026-05-24 14:04:00',NULL,NULL,NULL,NULL,NULL);
+(2,7,12,'0424098204','','Darsiti','','S.Kom.,M.Kom.','P','','0000-00-00','darsiti@digitechuniversity.ac.id','085220977847','S2','Sistem Informasi','linier','Lektor','','0000-00-00',1,'','tetap','','','','',1,'2026-05-24 14:00:51','2026-05-24 15:12:54',NULL,NULL,NULL,NULL,NULL),
+(3,7,NULL,NULL,'','Mohammad Syafiuddin Usman','','S.T., M.Kom.','L','','0000-00-00','Syafiuddin@digitechuniversity.ac.id','082298872659','S2','','linier','Asisten Ahli','','0000-00-00',0,'','tetap','','','','',1,'2026-05-24 14:04:00','2026-05-24 14:04:00',NULL,NULL,NULL,NULL,NULL),
+(4,7,NULL,NULL,'','Kodrat Mahatma','','S.T., M.Kom.','L','','0000-00-00','kodratmahatma@digitechuniversity.ac.id','','S2','','linier','Tenaga Pengajar','','0000-00-00',0,'','tetap','','','','',1,'2026-05-24 15:11:36','2026-05-24 15:11:36',NULL,NULL,NULL,NULL,NULL),
+(5,7,NULL,NULL,'','Fadzar Rusghana','','S.Si., M.M.','L','','0000-00-00','fadzarrusghana@digitechuniversity.ac.id','','S2','','tidak_linier','Tenaga Pengajar','','0000-00-00',0,'','tetap','','','','',1,'2026-05-24 15:12:30','2026-05-24 15:12:30',NULL,NULL,NULL,NULL,NULL);
 
 /*Table structure for table `dosen_ewmp` */
 
@@ -434,6 +493,7 @@ DROP TABLE IF EXISTS `hki`;
 CREATE TABLE `hki` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `prodi_id` int(10) unsigned NOT NULL,
+  `dosen_id` int(10) unsigned DEFAULT NULL,
   `kategori` enum('penelitian','pkm') NOT NULL,
   `jenis` enum('paten','paten_sederhana','hak_cipta','desain_industri','dtlst','indikasi_geografis','prl_varietas') NOT NULL,
   `judul` text NOT NULL,
@@ -543,9 +603,12 @@ CREATE TABLE `kurikulum` (
   PRIMARY KEY (`id`),
   KEY `kurikulum_prodi_id_foreign` (`prodi_id`),
   CONSTRAINT `kurikulum_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `kurikulum` */
+
+insert  into `kurikulum`(`id`,`prodi_id`,`kode`,`nama`,`tahun_berlaku`,`aktif`,`created_at`) values 
+(1,7,'K-2025','Kurikulum OBE 2025',2026,1,'2026-05-24 21:28:11');
 
 /*Table structure for table `lam_butir` */
 
@@ -1891,7 +1954,7 @@ CREATE TABLE `migrations` (
   `time` int(11) NOT NULL,
   `batch` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `migrations` */
 
@@ -1915,7 +1978,10 @@ insert  into `migrations`(`id`,`version`,`class`,`group`,`namespace`,`time`,`bat
 (17,'2026-01-01-000014','App\\Database\\Migrations\\AddMetrikDosen','default','App',1779615103,5),
 (18,'2026-01-01-000015','App\\Database\\Migrations\\AddDosenUserLink','default','App',1779629267,6),
 (19,'2026-01-01-000016','App\\Database\\Migrations\\CreatePublikasiDosenPivot','default','App',1779632835,7),
-(20,'2026-01-01-000017','App\\Database\\Migrations\\NormalizePublikasiDoi','default','App',1779635302,8);
+(20,'2026-01-01-000017','App\\Database\\Migrations\\NormalizePublikasiDoi','default','App',1779635302,8),
+(21,'2026-01-01-000018','App\\Database\\Migrations\\AddDtprSelfServiceTables','default','App',1779664482,9),
+(22,'2026-01-01-000019','App\\Database\\Migrations\\CreateSpmiTables','default','App',1779664482,9),
+(23,'2026-01-01-000020','App\\Database\\Migrations\\AddSpmiCompletenessTables','default','App',1779664482,9);
 
 /*Table structure for table `mk_cpl` */
 
@@ -1990,6 +2056,7 @@ DROP TABLE IF EXISTS `pengembangan_dtpr`;
 CREATE TABLE `pengembangan_dtpr` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `prodi_id` int(10) unsigned NOT NULL,
+  `dosen_id` int(10) unsigned DEFAULT NULL,
   `tahun_akademik_id` int(10) unsigned DEFAULT NULL,
   `nama_dtpr` varchar(150) NOT NULL,
   `jenis_pengembangan` varchar(200) NOT NULL,
@@ -2274,17 +2341,14 @@ CREATE TABLE `publikasi_dosen` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `publikasi_id_dosen_id` (`publikasi_id`,`dosen_id`),
   KEY `dosen_id` (`dosen_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `publikasi_dosen` */
 
 insert  into `publikasi_dosen`(`id`,`publikasi_id`,`dosen_id`,`created_at`) values 
-(1,1,1,'2026-05-24 14:27:15'),
 (3,3,1,'2026-05-24 14:27:15'),
-(6,6,1,'2026-05-24 14:27:15'),
 (7,7,1,'2026-05-24 14:27:15'),
 (8,8,1,'2026-05-24 14:27:15'),
-(9,9,1,'2026-05-24 14:27:15'),
 (10,10,1,'2026-05-24 14:27:15'),
 (11,11,1,'2026-05-24 14:27:15'),
 (12,12,1,'2026-05-24 14:27:15'),
@@ -2326,7 +2390,40 @@ insert  into `publikasi_dosen`(`id`,`publikasi_id`,`dosen_id`,`created_at`) valu
 (48,4,1,'2026-05-24 14:58:32'),
 (49,4,2,'2026-05-24 14:58:32'),
 (50,5,1,'2026-05-24 14:59:15'),
-(51,5,3,'2026-05-24 14:59:15');
+(51,5,3,'2026-05-24 14:59:15'),
+(52,1,1,'2026-05-24 15:14:01'),
+(53,1,4,'2026-05-24 15:14:01'),
+(54,6,1,'2026-05-24 15:14:17'),
+(55,6,3,'2026-05-24 15:14:17'),
+(56,9,1,'2026-05-24 15:14:44'),
+(57,9,5,'2026-05-24 15:14:44');
+
+/*Table structure for table `rekognisi_dosen` */
+
+DROP TABLE IF EXISTS `rekognisi_dosen`;
+
+CREATE TABLE `rekognisi_dosen` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `prodi_id` int(10) unsigned NOT NULL,
+  `dosen_id` int(10) unsigned NOT NULL,
+  `tahun_akademik_id` int(10) unsigned DEFAULT NULL,
+  `jenis` varchar(40) NOT NULL,
+  `judul` varchar(250) NOT NULL,
+  `penyelenggara` varchar(200) DEFAULT NULL,
+  `tingkat` enum('lokal','nasional','internasional') NOT NULL DEFAULT 'nasional',
+  `tahun` int(11) DEFAULT NULL,
+  `link_bukti` varchar(500) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `rekognisi_dosen_prodi_id_foreign` (`prodi_id`),
+  KEY `rekognisi_dosen_tahun_akademik_id_foreign` (`tahun_akademik_id`),
+  KEY `dosen_id` (`dosen_id`),
+  CONSTRAINT `rekognisi_dosen_dosen_id_foreign` FOREIGN KEY (`dosen_id`) REFERENCES `dosen` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `rekognisi_dosen_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `rekognisi_dosen_tahun_akademik_id_foreign` FOREIGN KEY (`tahun_akademik_id`) REFERENCES `tahun_akademik` (`id`) ON DELETE CASCADE ON UPDATE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `rekognisi_dosen` */
 
 /*Table structure for table `rekognisi_lulusan` */
 
@@ -2392,6 +2489,28 @@ CREATE TABLE `settings` (
 
 /*Data for the table `settings` */
 
+/*Table structure for table `spmi_auditor` */
+
+DROP TABLE IF EXISTS `spmi_auditor`;
+
+CREATE TABLE `spmi_auditor` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `prodi_id` int(10) unsigned NOT NULL,
+  `dosen_id` int(10) unsigned DEFAULT NULL,
+  `nama` varchar(150) NOT NULL,
+  `tersertifikasi` tinyint(1) NOT NULL DEFAULT 0,
+  `no_sertifikat` varchar(100) DEFAULT NULL,
+  `lembaga` varchar(150) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `spmi_auditor_prodi_id_foreign` (`prodi_id`),
+  KEY `spmi_auditor_dosen_id_foreign` (`dosen_id`),
+  CONSTRAINT `spmi_auditor_dosen_id_foreign` FOREIGN KEY (`dosen_id`) REFERENCES `dosen` (`id`) ON DELETE CASCADE ON UPDATE SET NULL,
+  CONSTRAINT `spmi_auditor_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `spmi_auditor` */
+
 /*Table structure for table `spmi_unit` */
 
 DROP TABLE IF EXISTS `spmi_unit`;
@@ -2413,6 +2532,30 @@ CREATE TABLE `spmi_unit` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `spmi_unit` */
+
+/*Table structure for table `standar_mutu` */
+
+DROP TABLE IF EXISTS `standar_mutu`;
+
+CREATE TABLE `standar_mutu` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `prodi_id` int(10) unsigned NOT NULL,
+  `kategori` enum('sndikti','melampaui') NOT NULL DEFAULT 'sndikti',
+  `kode` varchar(50) DEFAULT NULL,
+  `nama` varchar(250) NOT NULL,
+  `pernyataan` text DEFAULT NULL,
+  `indikator` text DEFAULT NULL,
+  `target` varchar(250) DEFAULT NULL,
+  `capaian` varchar(250) DEFAULT NULL,
+  `status` enum('tercapai','sebagian','belum') NOT NULL DEFAULT 'belum',
+  `link_bukti` varchar(500) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `standar_mutu_prodi_id_foreign` (`prodi_id`),
+  CONSTRAINT `standar_mutu_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `standar_mutu` */
 
 /*Table structure for table `survei` */
 
@@ -2557,6 +2700,28 @@ CREATE TABLE `tendik` (
 insert  into `tendik`(`id`,`prodi_id`,`nip`,`nama`,`jenis`,`pendidikan_terakhir`,`sertifikat_kompetensi`,`aktif`) values 
 (1,7,NULL,'Muhammad Yusron Fathul Islam, A.md.Kom.','laboran','D3',NULL,1);
 
+/*Table structure for table `tinjauan_manajemen` */
+
+DROP TABLE IF EXISTS `tinjauan_manajemen`;
+
+CREATE TABLE `tinjauan_manajemen` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `prodi_id` int(10) unsigned NOT NULL,
+  `tanggal` date DEFAULT NULL,
+  `agenda` varchar(250) NOT NULL,
+  `keputusan` text DEFAULT NULL,
+  `penanggung_jawab` varchar(150) DEFAULT NULL,
+  `tindak_lanjut` text DEFAULT NULL,
+  `status` enum('terbuka','proses','selesai') NOT NULL DEFAULT 'terbuka',
+  `link_bukti` varchar(500) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tinjauan_manajemen_prodi_id_foreign` (`prodi_id`),
+  CONSTRAINT `tinjauan_manajemen_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `tinjauan_manajemen` */
+
 /*Table structure for table `tracer_study` */
 
 DROP TABLE IF EXISTS `tracer_study`;
@@ -2653,7 +2818,7 @@ CREATE TABLE `users` (
 /*Data for the table `users` */
 
 insert  into `users`(`id`,`username`,`status`,`status_message`,`active`,`last_active`,`created_at`,`updated_at`,`deleted_at`) values 
-(1,'superadmin',NULL,NULL,0,'2026-05-24 15:04:34','2026-05-22 01:13:44','2026-05-22 01:13:44',NULL),
+(1,'superadmin',NULL,NULL,0,'2026-05-24 23:09:24','2026-05-22 01:13:44','2026-05-22 01:13:44',NULL),
 (2,'kaprodi',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:45',NULL),
 (3,'sekprodi',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:45',NULL),
 (4,'gkm',NULL,NULL,0,NULL,'2026-05-22 01:13:46','2026-05-22 01:13:46',NULL),
@@ -2662,7 +2827,7 @@ insert  into `users`(`id`,`username`,`status`,`status_message`,`active`,`last_ac
 (7,'mahasiswa',NULL,NULL,0,NULL,'2026-05-22 01:13:47','2026-05-22 01:13:47',NULL),
 (8,'asesor',NULL,NULL,0,NULL,'2026-05-22 01:13:48','2026-05-22 01:13:48',NULL),
 (9,'auditor',NULL,NULL,0,NULL,'2026-05-22 01:13:48','2026-05-22 01:13:48',NULL),
-(10,'mamokandri@digitechuniversity.',NULL,NULL,0,'2026-05-24 14:28:13','2026-05-24 13:32:54','2026-05-24 13:32:54',NULL),
+(10,'mamokandri@digitechuniversity.',NULL,NULL,0,'2026-05-24 23:09:07','2026-05-24 13:32:54','2026-05-24 13:32:54',NULL),
 (11,'informatika-d3@digitechunivers',NULL,NULL,0,'2026-05-24 14:04:00','2026-05-24 13:34:59','2026-05-24 13:34:59',NULL),
 (12,'0424098204',NULL,NULL,0,'2026-05-24 15:03:35','2026-05-24 14:01:07','2026-05-24 14:01:07',NULL);
 
