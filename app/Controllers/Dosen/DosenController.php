@@ -210,7 +210,7 @@ class DosenController extends BaseController
         }
 
         if (!$user) {
-            return redirect()->back()->with('error', "Akun dengan username/email "{$input}" tidak ditemukan.");
+            return redirect()->back()->with('error', "Akun dengan username/email \"{$input}\" tidak ditemukan.");
         }
 
         // Pastikan tidak sudah ditautkan ke dosen lain
@@ -241,7 +241,7 @@ class DosenController extends BaseController
         }
 
         return redirect()->back()->with('success',
-            "Akun "{$user->username}" berhasil ditautkan ke dosen {$dosen['nama']}.");
+            "Akun \"{$user->username}\" berhasil ditautkan ke dosen {$dosen['nama']}.");
     }
 
     private function emailDipakai(string $email): bool
