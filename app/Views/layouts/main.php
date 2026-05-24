@@ -175,6 +175,7 @@ if ($isSuperadmin) {
                 <div class="nav-section">Tata Kelola & Suplemen</div>
                 <nav class="nav flex-column">
                     <?php foreach (\App\Controllers\BorangController::entities() as $bslug => $bdef): ?>
+                        <?php if ($bslug === 'spmi') continue; // ditampilkan di grup SPMI ?>
                         <a class="nav-link <?= str_starts_with(uri_string(), 'borang/' . $bslug) ? 'active' : '' ?>" href="<?= site_url('borang/' . $bslug) ?>">
                             <i class="bi <?= esc($bdef['icon']) ?>"></i> <?= esc($bdef['title']) ?>
                         </a>
@@ -183,6 +184,7 @@ if ($isSuperadmin) {
 
                 <div class="nav-section">SPMI</div>
                 <nav class="nav flex-column">
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'borang/spmi') ? 'active' : '' ?>" href="<?= site_url('borang/spmi') ?>"><i class="bi bi-shield-check"></i> Unit SPMI &amp; SDM</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/standar') ? 'active' : '' ?>" href="<?= site_url('spmi/standar') ?>"><i class="bi bi-rulers"></i> Standar Mutu</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/ppepp') ? 'active' : '' ?>" href="<?= site_url('spmi/ppepp') ?>"><i class="bi bi-arrow-repeat"></i> Siklus PPEPP</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/ami') ? 'active' : '' ?>" href="<?= site_url('spmi/ami') ?>"><i class="bi bi-clipboard-check"></i> Audit Mutu Internal</a>
