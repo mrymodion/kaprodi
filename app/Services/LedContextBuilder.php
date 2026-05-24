@@ -133,6 +133,23 @@ class LedContextBuilder
             $out[] = '  - Jabatan akademik: ' . $this->fmtGroup($jab);
             $out[] = sprintf('  - Bersertifikat pendidik: %d (%.1f%%)', $serdos, $serdos / $totalDosen * 100);
             $out[] = sprintf('  - Linier dengan bidang prodi: %d (%.1f%%)', $linier, $linier / $totalDosen * 100);
+
+            // Produktivitas riset DTPR (metrik OpenAlex via ORCID), jika tersedia.
+            if ($this->db->fieldExists('h_index', 'dosen')) {
+                $m = $this->db->query("
+                    SELECT COUNT(metrik_updated_at) AS sinkron,
+                           SUM(sitasi_total) AS sitasi, SUM(karya_total) AS karya,
+                           MAX(h_index) AS h_max, AVG(h_index) AS h_avg
+                    FROM dosen WHERE prodi_id = ? AND aktif = 1 AND metrik_updated_at IS NOT NULL
+                ", [$prodiId])->getRowArray();
+                if ($m && (int) $m['sinkron'] > 0) {
+                    $out[] = sprintf(
+                        '  - Produktivitas riset DTPR (sumber OpenAlex, %d dosen tersinkron): total sitasi %d; total karya %d; h-index tertinggi %d; rata-rata h-index %.1f',
+                        (int) $m['sinkron'], (int) $m['sitasi'], (int) $m['karya'],
+                        (int) $m['h_max'], (float) $m['h_avg']
+                    );
+                }
+            }
         } else {
             $out[] = 'Dosen Tetap (DTPR): (belum ada data)';
         }
@@ -169,9 +186,23 @@ class LedContextBuilder
 
         // Publikasi, HKI, Kerjasama
         $pub = $this->groupCount('publikasi', 'jenis', $prodiId);
-        $out[] = array_sum($pub) > 0
-            ? 'Publikasi ilmiah (total ' . array_sum($pub) . '): ' . $this->fmtGroup($pub)
-            : 'Publikasi ilmiah: (belum ada data)';
+        if (array_sum($pub) > 0) {
+            $out[] = 'Publikasi ilmiah (total ' . array_sum($pub) . '): ' . $this->fmtGroup($pub);
+            $ps = $this->db->query("
+                SELECT SUM(sitasi) AS sitasi,
+                       SUM(CASE WHEN sitasi > 0 THEN 1 ELSE 0 END) AS tersitasi,
+                       SUM(CASE WHEN doi IS NOT NULL AND doi <> '' THEN 1 ELSE 0 END) AS ber_doi
+                FROM publikasi WHERE prodi_id = ?
+            ", [$prodiId])->getRowArray();
+            $total = array_sum($pub);
+            $out[] = sprintf(
+                '  - Sitasi: total %d sitasi; %d publikasi tersitasi; %d ber-DOI (%.0f%% cakupan DOI)',
+                (int) ($ps['sitasi'] ?? 0), (int) ($ps['tersitasi'] ?? 0),
+                (int) ($ps['ber_doi'] ?? 0), $total ? (int) $ps['ber_doi'] / $total * 100 : 0
+            );
+        } else {
+            $out[] = 'Publikasi ilmiah: (belum ada data)';
+        }
 
         $totalHki = (int) $this->db->table('hki')->where('prodi_id', $prodiId)->countAllResults();
         $out[] = $totalHki > 0 ? "HKI: {$totalHki} luaran" : 'HKI: (belum ada data)';
