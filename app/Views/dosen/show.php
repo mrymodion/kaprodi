@@ -66,6 +66,18 @@
                     <tr><th class="text-muted">Google Scholar</th><td><?= esc($dosen['google_scholar_id'] ?? '-') ?></td></tr>
                     <tr><th class="text-muted">ORCID</th><td><?= esc($dosen['orcid'] ?? '-') ?></td></tr>
                 </table>
+                <hr class="my-2">
+                <?php if (!empty($dosen['metrik_updated_at'])): ?>
+                <div class="d-flex gap-3 text-center">
+                    <div><div class="fs-5 fw-bold"><?= (int) ($dosen['h_index'] ?? 0) ?></div><div class="small text-muted">h-index</div></div>
+                    <div><div class="fs-5 fw-bold"><?= (int) ($dosen['i10_index'] ?? 0) ?></div><div class="small text-muted">i10-index</div></div>
+                    <div><div class="fs-5 fw-bold"><?= (int) ($dosen['sitasi_total'] ?? 0) ?></div><div class="small text-muted">Sitasi</div></div>
+                    <div><div class="fs-5 fw-bold"><?= (int) ($dosen['karya_total'] ?? 0) ?></div><div class="small text-muted">Karya</div></div>
+                </div>
+                <div class="small text-muted mt-1">Sumber OpenAlex, diperbarui <?= esc($dosen['metrik_updated_at']) ?>.</div>
+                <?php else: ?>
+                <div class="small text-muted">Metrik OpenAlex belum disinkronkan<?= empty($dosen['orcid']) ? ' (ORCID belum diisi)' : ' — klik "Perbarui Metrik" di daftar dosen' ?>.</div>
+                <?php endif ?>
             </div>
         </div>
     </div>

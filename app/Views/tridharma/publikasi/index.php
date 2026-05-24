@@ -10,8 +10,13 @@ $hkiLabels   = \App\Models\HkiModel::JENIS_LABELS;
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-file-earmark-text"></i> Publikasi & HKI</h4>
     <?php if ($canManage): ?>
-    <div class="btn-group">
-        <a href="<?= site_url('publikasi/cari') ?>" class="btn btn-info btn-sm"><i class="bi bi-search"></i> Cari Publikasi (OpenAlex)</a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="<?= site_url('publikasi/cari') ?>" class="btn btn-info btn-sm"><i class="bi bi-search"></i> Cari Publikasi</a>
+        <form method="post" action="<?= site_url('publikasi/sitasi/update') ?>"
+              onsubmit="return confirm('Perbarui jumlah sitasi semua publikasi ber-DOI dari OpenAlex?')">
+            <?= csrf_field() ?>
+            <button class="btn btn-outline-info btn-sm"><i class="bi bi-arrow-repeat"></i> Perbarui Sitasi</button>
+        </form>
         <a href="<?= site_url('publikasi/create') ?>" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Tambah Publikasi</a>
         <a href="<?= site_url('publikasi/hki/create') ?>" class="btn btn-outline-primary btn-sm"><i class="bi bi-shield-check"></i> Tambah HKI</a>
     </div>

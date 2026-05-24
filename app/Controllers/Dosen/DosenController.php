@@ -118,6 +118,34 @@ class DosenController extends BaseController
         return redirect()->to(site_url('dosen'))->with('success', 'Dosen dinonaktifkan.');
     }
 
+    /** Perbarui metrik penelitian (h-index, sitasi, jumlah karya) dari OpenAlex via ORCID. */
+    public function updateMetrik()
+    {
+        $prodiId = session('active_prodi_id');
+        if (!$prodiId) {
+            return redirect()->to(site_url('dosen'))->with('error', 'Prodi aktif belum dipilih.');
+        }
+
+        $dosen = $this->model->where(['prodi_id' => (int) $prodiId, 'aktif' => 1])->findAll();
+        $oa    = new \App\Services\OpenAlexClient();
+        $now   = date('Y-m-d H:i:s');
+
+        $updated = 0; $tanpaOrcid = 0; $gagal = 0;
+        foreach ($dosen as $d) {
+            if (empty($d['orcid'])) { $tanpaOrcid++; continue; }
+            $m = $oa->authorMetricsByOrcid($d['orcid']);
+            if ($m === null) { $gagal++; continue; }
+            $this->model->update($d['id'], $m + ['metrik_updated_at' => $now]);
+            $updated++;
+        }
+
+        $parts = ["{$updated} dosen diperbarui"];
+        if ($tanpaOrcid) $parts[] = "{$tanpaOrcid} tanpa ORCID (lengkapi dulu)";
+        if ($gagal)      $parts[] = "{$gagal} tidak ditemukan di OpenAlex";
+
+        return redirect()->to(site_url('dosen'))->with('success', 'Metrik: ' . implode(', ', $parts) . '.');
+    }
+
     /** Evaluasi kepatuhan DTPR terhadap kaidah LAM untuk satu prodi. */
     private function kepatuhanDtpr(int $prodiId): array
     {
