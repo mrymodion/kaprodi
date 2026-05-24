@@ -155,7 +155,16 @@ class BorangController extends BaseController
             }
             $list = $q->select($sel)->orderBy('t.id', 'DESC')->get()->getResultArray();
         }
-        return view('borang/index', ['slug' => $slug, 'def' => $def, 'list' => $list]);
+
+        // Untuk Unit SPMI: tampilkan jumlah auditor riil dari Registry Auditor sebagai pembanding.
+        $auditorStat = null;
+        if ($slug === 'spmi' && $prodiId && Database::connect()->tableExists('spmi_auditor')) {
+            $auditorStat = Database::connect()->query(
+                "SELECT COUNT(*) total, SUM(tersertifikasi) bersertifikat FROM spmi_auditor WHERE prodi_id = ?",
+                [$prodiId]
+            )->getRowArray();
+        }
+        return view('borang/index', ['slug' => $slug, 'def' => $def, 'list' => $list, 'auditorStat' => $auditorStat]);
     }
 
     public function create(string $slug): string
