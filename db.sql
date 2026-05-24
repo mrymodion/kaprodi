@@ -89,7 +89,7 @@ CREATE TABLE `auth_identities` (
 /*Data for the table `auth_identities` */
 
 insert  into `auth_identities`(`id`,`user_id`,`type`,`name`,`secret`,`secret2`,`expires`,`extra`,`force_reset`,`last_used_at`,`created_at`,`updated_at`) values 
-(1,1,'email_password',NULL,'superadmin@utd.ac.id','$2y$12$Sd0YcAUJVaQ.oaleI0ZpOelrfgz8sJxdf0HanQ177r2gcQzN3y0DC',NULL,NULL,0,'2026-05-24 13:46:38','2026-05-22 01:13:44','2026-05-24 13:46:38'),
+(1,1,'email_password',NULL,'superadmin@utd.ac.id','$2y$12$Sd0YcAUJVaQ.oaleI0ZpOelrfgz8sJxdf0HanQ177r2gcQzN3y0DC',NULL,NULL,0,'2026-05-24 15:04:27','2026-05-22 01:13:44','2026-05-24 15:04:27'),
 (2,2,'email_password',NULL,'kaprodi@utd.ac.id','$2y$12$5Iga90UBcNeshBrGnpN66ORKFu/2MUpWYdSFUH0m7KPhXdweAYPdC',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:45'),
 (3,3,'email_password',NULL,'sekprodi@utd.ac.id','$2y$12$S0vMeOL2UWTg2Hztb4aLHukU4x.LgaJ7uwiMUFycsvZ.XGbdvzdA.',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:46'),
 (4,4,'email_password',NULL,'gkm@utd.ac.id','$2y$12$R/48TR/8WPYg5nH9w0uswe5mGwh.r2kHNSs/GB4/N0kfKG/OWgPXm',NULL,NULL,0,NULL,'2026-05-22 01:13:46','2026-05-22 01:13:46'),
@@ -100,7 +100,7 @@ insert  into `auth_identities`(`id`,`user_id`,`type`,`name`,`secret`,`secret2`,`
 (9,9,'email_password',NULL,'auditor@utd.ac.id','$2y$12$W6zefi1Wj02OAhue7C8XCOcdGXodEBeJnx.LeF/2kI3RCmj7D3tBS',NULL,NULL,0,NULL,'2026-05-22 01:13:48','2026-05-22 01:13:48'),
 (10,10,'email_password',NULL,'mamokandri@digitechuniversity.ac.id','$2y$12$1sJdO3U89fWgqzwUDX9KjOM59E4JI9K0LhMxbFOWTfO.X6SSV4Hii',NULL,NULL,0,'2026-05-24 14:15:27','2026-05-24 13:32:54','2026-05-24 14:15:27'),
 (11,11,'email_password',NULL,'informatika-d3@digitechuniversity.ac.id','$2y$12$EtQLITb2t2ZyY.Wc5Z9SqOzo6YIO7BQY.eFwsd6fQe13Gd9HShqnO',NULL,NULL,0,'2026-05-24 14:02:13','2026-05-24 13:34:59','2026-05-24 14:02:13'),
-(12,12,'email_password',NULL,'darsiti@digitechuniversity.ac.id','$2y$12$oWhImPGYYbwdjW8zM4uJZuo.m.xRlj/34Z34BCR8eX.pbYftFqDPu',NULL,NULL,0,'2026-05-24 14:01:35','2026-05-24 14:01:07','2026-05-24 14:01:52');
+(12,12,'email_password',NULL,'darsiti@digitechuniversity.ac.id','$2y$12$oWhImPGYYbwdjW8zM4uJZuo.m.xRlj/34Z34BCR8eX.pbYftFqDPu',NULL,NULL,0,'2026-05-24 15:03:32','2026-05-24 14:01:07','2026-05-24 15:03:32');
 
 /*Table structure for table `auth_logins` */
 
@@ -118,7 +118,7 @@ CREATE TABLE `auth_logins` (
   PRIMARY KEY (`id`),
   KEY `id_type_identifier` (`id_type`,`identifier`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `auth_logins` */
 
@@ -140,7 +140,11 @@ insert  into `auth_logins`(`id`,`ip_address`,`user_agent`,`id_type`,`identifier`
 (15,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','informatika-d3@digitechuniversity.ac.id',11,'2026-05-24 13:55:23',1),
 (16,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','darsiti@digitechuniversity.ac.id',12,'2026-05-24 14:01:35',1),
 (17,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','informatika-d3@digitechuniversity.ac.id',11,'2026-05-24 14:02:13',1),
-(18,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','mamokandri@digitechuniversity.ac.id',10,'2026-05-24 14:15:27',1);
+(18,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','mamokandri@digitechuniversity.ac.id',10,'2026-05-24 14:15:27',1),
+(19,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','darsiti@digitechuniversity.ac.id',12,'2026-05-24 14:28:25',1),
+(20,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-24 14:43:57',1),
+(21,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','darsiti@digitechuniversity.ac.id',12,'2026-05-24 15:03:32',1),
+(22,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-24 15:04:27',1);
 
 /*Table structure for table `auth_permissions_users` */
 
@@ -227,7 +231,7 @@ CREATE TABLE `butir_skor` (
 /*Data for the table `butir_skor` */
 
 insert  into `butir_skor`(`id`,`prodi_id`,`lam_butir_id`,`tahun_akademik_id`,`skor_auto`,`skor_manual`,`skor_final`,`sumber_data_json`,`catatan`,`link_bukti`,`updated_at`,`updated_by`) values 
-(8,7,427,NULL,1.60,NULL,1.60,NULL,NULL,NULL,'2026-05-24 11:46:48',NULL),
+(8,7,427,NULL,2.00,NULL,2.00,NULL,NULL,NULL,'2026-05-24 21:48:19',NULL),
 (9,7,427,5,1.60,NULL,1.60,NULL,NULL,NULL,'2026-05-24 12:07:53',NULL);
 
 /*Table structure for table `cpl` */
@@ -1887,7 +1891,7 @@ CREATE TABLE `migrations` (
   `time` int(11) NOT NULL,
   `batch` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `migrations` */
 
@@ -1910,7 +1914,8 @@ insert  into `migrations`(`id`,`version`,`class`,`group`,`namespace`,`time`,`bat
 (16,'2026-01-01-000013','App\\Database\\Migrations\\AddLinkBuktiTridharma','default','App',1779557513,4),
 (17,'2026-01-01-000014','App\\Database\\Migrations\\AddMetrikDosen','default','App',1779615103,5),
 (18,'2026-01-01-000015','App\\Database\\Migrations\\AddDosenUserLink','default','App',1779629267,6),
-(19,'2026-01-01-000016','App\\Database\\Migrations\\CreatePublikasiDosenPivot','default','App',1779632835,7);
+(19,'2026-01-01-000016','App\\Database\\Migrations\\CreatePublikasiDosenPivot','default','App',1779632835,7),
+(20,'2026-01-01-000017','App\\Database\\Migrations\\NormalizePublikasiDoi','default','App',1779635302,8);
 
 /*Table structure for table `mk_cpl` */
 
@@ -2208,7 +2213,7 @@ CREATE TABLE `publikasi` (
   KEY `idx_publikasi_kategori` (`kategori`),
   KEY `idx_publikasi_tahun` (`tahun`),
   CONSTRAINT `publikasi_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `publikasi` */
 
@@ -2246,9 +2251,16 @@ insert  into `publikasi`(`id`,`prodi_id`,`dosen_id`,`kategori`,`jenis`,`judul`,`
 (31,7,1,'penelitian','jurnal_nasional_terakreditasi','PENGARUH INOVASI DRIP BAG COFFEE PADA PRODUK KOPI SUSU KEMASAN BRAND KOPASUS TERHADAP PENJUALAN DI KEDAI LYTE COFFEE BANDUNG','Lendra Prasasti, Mamok Andri Senubekti','JURNAL PENKOMI KAJIAN PENDIDIKAN DAN EKONOMI',2025,NULL,'10.33627/pk.v8i1.2311','https://doi.org/10.33627/pk.v8i1.2311',0,NULL,'2026-05-24 05:06:33'),
 (32,7,1,'penelitian','jurnal_nasional_terakreditasi','Penerapan Metode Hybrid Waterfall-RAD pada Sistem Antrian Web untuk Optimalisasi Layanan di Pengadilan Negeri Bale Bandung','Mamok Andri Senubekti, M. Kartawidjaja, Gede Bagia Wijaya Adyana','JOINS (Journal of Information System)',2025,NULL,'10.33633/joins.v10i1.12668','https://doi.org/10.33633/joins.v10i1.12668',0,NULL,'2026-05-24 05:06:33'),
 (33,7,1,'penelitian','jurnal_nasional_terakreditasi','PERANCANGAN UI/UX APLIKASI MOBILE PANGAUBAN KARINDING DENGAN MENGGUNAKAN FIGMA','Novitasari Ramadhani Lubis, Novita Anggraini, Mamok Andri Senubekti','JURNAL ILMIAH INFORMATIKA',2025,NULL,'10.33884/jif.v13i02.10147','https://doi.org/10.33884/jif.v13i02.10147',0,NULL,'2026-05-24 05:06:33'),
-(34,7,1,'penelitian','jurnal_nasional_tidak_terakreditasi','Meningkatkan Kualitas Pembelajaran Melalui Media Interaktif Berbasis Multimedia','C. Ramadhan, Mamok Andri Senubekti, Nurdiansyah Nurdiansyah','Jurnal Teknik Mesin, Industri, Elektro dan Informatika',2025,NULL,'10.55606/jtmei.v4i2.5010','https://doi.org/10.55606/jtmei.v4i2.5010',2,NULL,'2026-05-24 05:06:33'),
-(35,7,1,'penelitian','jurnal_nasional_tidak_terakreditasi','Pengembangan Sistem Pemesanan Layanan Produksi Cetak Mobile Berbasis Web untuk Meningkatkan Efisiensi Operasional (Studi Kasus : Percetakan Dan Sablon Teguh Desain)','Muhammad Syah Farros Mahfudz, Mamok Andri Senubekti, Ari Prasetyawati','Media jurnal informatika',2025,NULL,'10.35194/mji.v17i1.5139','https://doi.org/10.35194/mji.v17i1.5139',1,NULL,'2026-05-24 05:06:33'),
-(36,7,1,'penelitian','jurnal_nasional_tidak_terakreditasi','Penerapan Metodologi Agile dalam Pengembangan Perangkat Lunak','C. Ramadhan, Mamok Andri Senubekti, Diena Amalia','Router : Jurnal Teknik Informatika dan Terapan',2025,'','10.62951/router.v3i2.411','https://doi.org/10.62951/router.v3i2.411',7,0,'2026-05-24 05:06:33');
+(34,7,1,'penelitian','jurnal_nasional_tidak_terakreditasi','Meningkatkan Kualitas Pembelajaran Melalui Media Interaktif Berbasis Multimedia','C. Ramadhan, Mamok Andri Senubekti, Nurdiansyah Nurdiansyah','Jurnal Teknik Mesin, Industri, Elektro dan Informatika',2025,NULL,'10.55606/jtmei.v4i2.5010','https://doi.org/10.55606/jtmei.v4i2.5010',1,NULL,'2026-05-24 05:06:33'),
+(35,7,1,'penelitian','jurnal_nasional_tidak_terakreditasi','Pengembangan Sistem Pemesanan Layanan Produksi Cetak Mobile Berbasis Web untuk Meningkatkan Efisiensi Operasional (Studi Kasus : Percetakan Dan Sablon Teguh Desain)','Muhammad Syah Farros Mahfudz, Mamok Andri Senubekti, Ari Prasetyawati','Media jurnal informatika',2025,NULL,'10.35194/mji.v17i1.5139','https://doi.org/10.35194/mji.v17i1.5139',0,NULL,'2026-05-24 05:06:33'),
+(36,7,1,'penelitian','jurnal_nasional_tidak_terakreditasi','Penerapan Metodologi Agile dalam Pengembangan Perangkat Lunak','C. Ramadhan, Mamok Andri Senubekti, Diena Amalia','Router : Jurnal Teknik Informatika dan Terapan',2025,'','10.62951/router.v3i2.411','https://doi.org/10.62951/router.v3i2.411',2,0,'2026-05-24 05:06:33'),
+(37,7,2,'penelitian','jurnal_nasional_tidak_terakreditasi','An LSTM-Based Approach for Short-Term Solar Power Forecasting with Diurnal and Intra-Day Variability','Darsiti Darsiti, Tarsinah Sumarni, Fahmi Abdullah, Budiman','Bulletin of Intelligent Machines and Algorithms',2026,'1','10.65780/bima.v1i2.7','https://doi.org/10.65780/bima.v1i2.7',0,NULL,'2026-05-24 14:35:48'),
+(39,7,2,'penelitian','jurnal_nasional_terakreditasi','Perancangan UI/UX Website Bandung Bawah Tanah Yang Responsif','Adinda Salsabila, Darsiti Darsiti, Novita Anggraini, Mamok Andri Senubekti','Jurnal Manajemen Informatika &amp; Teknologi',2025,NULL,'10.51903/2gxcdc03','https://doi.org/10.51903/2gxcdc03',0,NULL,'2026-05-24 14:37:23'),
+(40,7,2,'penelitian','jurnal_nasional_tidak_terakreditasi','Studi Kelayakan Bisnis Pengembangan Pemasaran PT. Rizki Prima Food','Iqlima Octavianidori, Muhamad Nazar Fadilah, Sadiah Permata Sari, Doni Ramdani, M. Randi Rukmana, Darsiti Darsiti, Meilani Purwanti','Bumi : Jurnal Hasil Kegiatan Sosialisasi Pengabdian kepada Masyarakat',2024,NULL,'10.61132/bumi.v2i1.52','https://doi.org/10.61132/bumi.v2i1.52',0,NULL,'2026-05-24 14:37:23'),
+(41,7,2,'penelitian','jurnal_nasional_tidak_terakreditasi','Studi Kelayakan Bisnis Pengembangan Inovasi Varian Rasa Bakso Aci Pada Badan Usaha Tercabaikan','Darsiti Darsiti, Asep Mahmudin, Cahya Putri Julyandaru, Putri Meilani Gustian,  Salsa Sabila','KREATIF: Jurnal Pengabdian Masyarakat Nusantara',2024,NULL,'10.55606/kreatif.v4i1.2812','https://doi.org/10.55606/kreatif.v4i1.2812',0,NULL,'2026-05-24 14:37:23'),
+(42,7,2,'penelitian','jurnal_nasional_terakreditasi','Analisis Kelayakan Bisnis Untuk Pengembangan Pemasaran Kacang Sangrai Ewooww Yang Luas','Darsiti Darsiti, Ikbal Saepul Ramdan, Naila Syafitri, Widi Aulia Lestari, Wilda Jamila Suryaman, Surya Kurnia Alamsyah','Faedah : Jurnal Hasil Kegiatan Pengabdian Masyarakat Indonesia',2024,NULL,'10.59024/faedah.v2i1.723','https://doi.org/10.59024/faedah.v2i1.723',0,NULL,'2026-05-24 14:37:23'),
+(43,7,3,'penelitian','jurnal_nasional_tidak_terakreditasi','Klasifikasi Tingkat Kepuasan Mahasiswa Universitas Teknologi Digital Terhadap Pembelajaran Secara Daring Menggunakan Algoritma Naïve Bayes','Moch. Akbar Ramdani, Zulfan Nugraha, Mohammad Syafiuddin Usman','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2025,'3','10.62565/tekno.v3i1.55','https://doi.org/10.62565/tekno.v3i1.55',0,NULL,'2026-05-24 14:47:47'),
+(44,7,3,'penelitian','jurnal_nasional_tidak_terakreditasi','Prediksi Kehadiran Mahasiswa Universitas Teknologi Digital Menggunakan Naïve Bayes','Paris Al Davie Saepudin, Mohammad Syafiuddin Usman','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2024,'2','10.62565/tekno.v2i2.52','https://doi.org/10.62565/tekno.v2i2.52',0,NULL,'2026-05-24 14:47:47');
 
 /*Table structure for table `publikasi_dosen` */
 
@@ -2262,16 +2274,13 @@ CREATE TABLE `publikasi_dosen` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `publikasi_id_dosen_id` (`publikasi_id`,`dosen_id`),
   KEY `dosen_id` (`dosen_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `publikasi_dosen` */
 
 insert  into `publikasi_dosen`(`id`,`publikasi_id`,`dosen_id`,`created_at`) values 
 (1,1,1,'2026-05-24 14:27:15'),
-(2,2,1,'2026-05-24 14:27:15'),
 (3,3,1,'2026-05-24 14:27:15'),
-(4,4,1,'2026-05-24 14:27:15'),
-(5,5,1,'2026-05-24 14:27:15'),
 (6,6,1,'2026-05-24 14:27:15'),
 (7,7,1,'2026-05-24 14:27:15'),
 (8,8,1,'2026-05-24 14:27:15'),
@@ -2302,7 +2311,22 @@ insert  into `publikasi_dosen`(`id`,`publikasi_id`,`dosen_id`,`created_at`) valu
 (33,33,1,'2026-05-24 14:27:15'),
 (34,34,1,'2026-05-24 14:27:15'),
 (35,35,1,'2026-05-24 14:27:15'),
-(36,36,1,'2026-05-24 14:27:15');
+(36,36,1,'2026-05-24 14:27:15'),
+(37,37,2,'2026-05-24 14:55:53'),
+(38,38,2,'2026-05-24 14:56:06'),
+(39,43,3,'2026-05-24 14:56:16'),
+(40,39,1,'2026-05-24 14:56:30'),
+(41,39,2,'2026-05-24 14:56:30'),
+(42,42,2,'2026-05-24 14:56:52'),
+(43,44,3,'2026-05-24 14:57:11'),
+(44,41,2,'2026-05-24 14:57:24'),
+(45,40,2,'2026-05-24 14:57:37'),
+(46,2,1,'2026-05-24 14:58:14'),
+(47,2,2,'2026-05-24 14:58:14'),
+(48,4,1,'2026-05-24 14:58:32'),
+(49,4,2,'2026-05-24 14:58:32'),
+(50,5,1,'2026-05-24 14:59:15'),
+(51,5,3,'2026-05-24 14:59:15');
 
 /*Table structure for table `rekognisi_lulusan` */
 
@@ -2629,7 +2653,7 @@ CREATE TABLE `users` (
 /*Data for the table `users` */
 
 insert  into `users`(`id`,`username`,`status`,`status_message`,`active`,`last_active`,`created_at`,`updated_at`,`deleted_at`) values 
-(1,'superadmin',NULL,NULL,0,'2026-05-24 13:47:13','2026-05-22 01:13:44','2026-05-22 01:13:44',NULL),
+(1,'superadmin',NULL,NULL,0,'2026-05-24 15:04:34','2026-05-22 01:13:44','2026-05-22 01:13:44',NULL),
 (2,'kaprodi',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:45',NULL),
 (3,'sekprodi',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:45',NULL),
 (4,'gkm',NULL,NULL,0,NULL,'2026-05-22 01:13:46','2026-05-22 01:13:46',NULL),
@@ -2638,9 +2662,9 @@ insert  into `users`(`id`,`username`,`status`,`status_message`,`active`,`last_ac
 (7,'mahasiswa',NULL,NULL,0,NULL,'2026-05-22 01:13:47','2026-05-22 01:13:47',NULL),
 (8,'asesor',NULL,NULL,0,NULL,'2026-05-22 01:13:48','2026-05-22 01:13:48',NULL),
 (9,'auditor',NULL,NULL,0,NULL,'2026-05-22 01:13:48','2026-05-22 01:13:48',NULL),
-(10,'mamokandri@digitechuniversity.',NULL,NULL,0,'2026-05-24 14:21:23','2026-05-24 13:32:54','2026-05-24 13:32:54',NULL),
+(10,'mamokandri@digitechuniversity.',NULL,NULL,0,'2026-05-24 14:28:13','2026-05-24 13:32:54','2026-05-24 13:32:54',NULL),
 (11,'informatika-d3@digitechunivers',NULL,NULL,0,'2026-05-24 14:04:00','2026-05-24 13:34:59','2026-05-24 13:34:59',NULL),
-(12,'0424098204',NULL,NULL,0,'2026-05-24 14:02:07','2026-05-24 14:01:07','2026-05-24 14:01:07',NULL);
+(12,'0424098204',NULL,NULL,0,'2026-05-24 15:03:35','2026-05-24 14:01:07','2026-05-24 14:01:07',NULL);
 
 /*Table structure for table `vmts` */
 
