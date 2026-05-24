@@ -5,6 +5,11 @@
 $canManage = auth()->user()->can('tridharma.manage');
 $jenisLabels = \App\Models\PublikasiModel::JENIS_LABELS;
 $hkiLabels   = \App\Models\HkiModel::JENIS_LABELS;
+$dosenList   = $dosenList ?? [];
+$dosenNama = [];
+foreach ($dosenList as $dd) {
+    $dosenNama[(int) $dd['id']] = trim(($dd['gelar_depan'] ? $dd['gelar_depan'] . ' ' : '') . $dd['nama'] . ($dd['gelar_belakang'] ? ', ' . $dd['gelar_belakang'] : ''));
+}
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -109,12 +114,13 @@ $hkiLabels   = \App\Models\HkiModel::JENIS_LABELS;
                                 <th>Kategori</th>
                                 <th>Media / Tahun</th>
                                 <th>Sitasi</th>
+                                <th>Dosen Pemilik</th>
                                 <?php if ($canManage): ?><th></th><?php endif ?>
                             </tr>
                         </thead>
                         <tbody>
                         <?php if (empty($pubList)): ?>
-                            <tr><td colspan="8" class="text-center text-muted py-4">Belum ada data publikasi.</td></tr>
+                            <tr><td colspan="9" class="text-center text-muted py-4">Belum ada data publikasi.</td></tr>
                         <?php else: ?>
                         <?php foreach ($pubList as $i => $p): ?>
                         <tr>
@@ -128,6 +134,21 @@ $hkiLabels   = \App\Models\HkiModel::JENIS_LABELS;
                             <td><span class="badge <?= $p['kategori']==='penelitian'?'bg-primary':'bg-success' ?>"><?= $p['kategori'] ?></span></td>
                             <td><small><?= esc($p['nama_media'] ?? '') ?><?= $p['tahun'] ? ' ('.$p['tahun'].')' : '' ?></small></td>
                             <td class="text-center"><?= $p['sitasi'] ?: '-' ?></td>
+                            <td>
+                                <?php if ($canManage): ?>
+                                <form method="post" action="<?= site_url("publikasi/{$p['id']}/dosen") ?>">
+                                    <?= csrf_field() ?>
+                                    <select name="dosen_id" class="form-select form-select-sm py-0" style="min-width:140px" onchange="this.form.submit()">
+                                        <option value="">— belum bertuan —</option>
+                                        <?php foreach ($dosenNama as $did => $dnama): ?>
+                                            <option value="<?= $did ?>" <?= (int) ($p['dosen_id'] ?? 0) === $did ? 'selected' : '' ?>><?= esc($dnama) ?></option>
+                                        <?php endforeach ?>
+                                    </select>
+                                </form>
+                                <?php else: ?>
+                                    <small><?= esc($dosenNama[(int) ($p['dosen_id'] ?? 0)] ?? '-') ?></small>
+                                <?php endif ?>
+                            </td>
                             <?php if ($canManage): ?>
                             <td>
                                 <a href="<?= site_url("publikasi/{$p['id']}/edit") ?>" class="btn btn-sm btn-outline-secondary py-0 px-1"><i class="bi bi-pencil"></i></a>

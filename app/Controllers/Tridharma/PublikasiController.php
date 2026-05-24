@@ -78,7 +78,9 @@ class PublikasiController extends BaseController
         $pubSum   = $prodiId ? $this->model->summaryByProdi($prodiId) : [];
         $hkiSum   = $prodiId ? $this->hkiModel->summaryByProdi($prodiId) : [];
 
-        return view('tridharma/publikasi/index', compact('pubList', 'hkiList', 'pubSum', 'hkiSum', 'prodiId', 'kategori'));
+        $dosenList = $prodiId ? (new DosenModel())->listByProdi($prodiId) : [];
+
+        return view('tridharma/publikasi/index', compact('pubList', 'hkiList', 'pubSum', 'hkiSum', 'prodiId', 'kategori', 'dosenList'));
     }
 
     public function createPublikasi(): string
@@ -253,6 +255,28 @@ class PublikasiController extends BaseController
 
         $msg = "{$imported} publikasi diimpor" . ($skipped ? ", {$skipped} dilewati (duplikat/tidak valid)" : '') . '. Harap verifikasi & lengkapi data.';
         return redirect()->to(site_url('publikasi'))->with('success', $msg);
+    }
+
+    /** Tetapkan (atau lepas) dosen pemilik sebuah publikasi prodi. */
+    public function tetapkanDosen(int $id)
+    {
+        $prodiId = $this->getProdiId();
+        $item = $this->model->find($id);
+        if (!$item || ($prodiId && (int) $item['prodi_id'] !== (int) $prodiId)) {
+            return redirect()->to(site_url('publikasi') . '#tab-pub')->with('error', 'Publikasi tidak ditemukan di prodi aktif.');
+        }
+
+        $dosenId = (int) $this->request->getPost('dosen_id');
+        if ($dosenId > 0) {
+            $dosen = (new DosenModel())->find($dosenId);
+            if (!$dosen || (int) $dosen['prodi_id'] !== (int) $item['prodi_id']) {
+                return redirect()->to(site_url('publikasi') . '#tab-pub')->with('error', 'Dosen tidak valid untuk prodi ini.');
+            }
+        }
+
+        $this->model->update($id, ['dosen_id' => $dosenId > 0 ? $dosenId : null]);
+        $msg = $dosenId > 0 ? 'Publikasi ditetapkan ke dosen.' : 'Kepemilikan dosen dilepas.';
+        return redirect()->to(site_url('publikasi') . '#tab-pub')->with('success', $msg);
     }
 
     public function updateSitasi()

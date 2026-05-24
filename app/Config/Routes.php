@@ -41,6 +41,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('publikasi/(:num)/edit',      'Akun\KaryaController::publikasiEdit/$1');
         $routes->post('publikasi/(:num)/update',   'Akun\KaryaController::publikasiUpdate/$1');
         $routes->post('publikasi/(:num)/delete',   'Akun\KaryaController::publikasiDelete/$1');
+        $routes->post('publikasi/(:num)/klaim',    'Akun\KaryaController::publikasiKlaim/$1');
 
         // Penelitian milik dosen (sebagai ketua)
         $routes->get('penelitian',                 'Akun\KaryaController::penelitian');
@@ -257,6 +258,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('(:num)/edit',         'Tridharma\PublikasiController::editPublikasi/$1');
         $routes->post('(:num)/update',      'Tridharma\PublikasiController::updatePublikasi/$1');
         $routes->post('(:num)/delete',      'Tridharma\PublikasiController::deletePublikasi/$1');
+        $routes->post('(:num)/dosen',       'Tridharma\PublikasiController::tetapkanDosen/$1');
         $routes->get('hki/create',          'Tridharma\PublikasiController::createHki');
         $routes->post('hki/store',          'Tridharma\PublikasiController::storeHki');
         $routes->get('hki/(:num)/edit',     'Tridharma\PublikasiController::editHki/$1');
