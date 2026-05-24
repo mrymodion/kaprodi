@@ -255,6 +255,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('import',                   'Dosen\DosenController::importForm');
         $routes->get('import/template',          'Dosen\DosenController::importTemplate');
         $routes->post('import',                  'Dosen\DosenController::importStore');
+        $routes->post('metrik/update',           'Dosen\DosenController::updateMetrik');
         $routes->get('ewmp/import',              'Dosen\DosenController::ewmpImportForm');
         $routes->get('ewmp/import/template',     'Dosen\DosenController::ewmpImportTemplate');
         $routes->post('ewmp/import',             'Dosen\DosenController::ewmpImportStore');

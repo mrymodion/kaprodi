@@ -8,6 +8,11 @@
             <a href="<?= site_url('dosen/import') ?>" class="btn btn-outline-success btn-sm">
                 <i class="bi bi-file-earmark-excel"></i> Import Excel
             </a>
+            <form method="post" action="<?= site_url('dosen/metrik/update') ?>"
+                  onsubmit="return confirm('Perbarui metrik (h-index, sitasi, jumlah karya) dosen ber-ORCID dari OpenAlex?')">
+                <?= csrf_field() ?>
+                <button class="btn btn-outline-info btn-sm"><i class="bi bi-graph-up"></i> Perbarui Metrik</button>
+            </form>
             <a href="<?= site_url('dosen/create') ?>" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus-circle"></i> Tambah Dosen
             </a>
@@ -129,13 +134,14 @@ $badge = [
                     <th>Jabatan Akademik</th>
                     <th>Linieritas</th>
                     <th>Serdos</th>
+                    <th class="text-center" title="h-index / total sitasi (OpenAlex)">Sitasi</th>
                     <th>Status</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
             <?php if (empty($dosen)): ?>
-                <tr><td colspan="10" class="text-center text-muted py-4">Belum ada data dosen.</td></tr>
+                <tr><td colspan="11" class="text-center text-muted py-4">Belum ada data dosen.</td></tr>
             <?php endif ?>
             <?php foreach ($dosen as $i => $d): ?>
                 <tr class="<?= $d['aktif'] ? '' : 'text-muted opacity-50' ?>">
@@ -171,6 +177,18 @@ $badge = [
                             <i class="bi bi-patch-check-fill text-info" title="Bersertifikat Pendidik"></i>
                         <?php else: ?>
                             <i class="bi bi-dash text-muted"></i>
+                        <?php endif ?>
+                    </td>
+                    <td class="text-center small">
+                        <?php if (($d['metrik_updated_at'] ?? null)): ?>
+                            <span title="Diperbarui <?= esc($d['metrik_updated_at']) ?> (OpenAlex)">
+                                h-<?= (int) ($d['h_index'] ?? 0) ?>
+                                <span class="text-muted">/ <?= (int) ($d['sitasi_total'] ?? 0) ?></span>
+                            </span>
+                        <?php elseif (empty($d['orcid'])): ?>
+                            <span class="text-muted" title="Belum ada ORCID">—</span>
+                        <?php else: ?>
+                            <span class="text-muted" title="Belum disinkronkan"><i class="bi bi-dash-circle"></i></span>
                         <?php endif ?>
                     </td>
                     <td>

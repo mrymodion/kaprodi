@@ -18,6 +18,7 @@ class DosenModel extends AppModel
         'pendidikan_terakhir', 'bidang_keahlian', 'linieritas', 'jabatan_akademik',
         'no_sk_jad', 'tgl_sk_jad', 'sertifikat_pendidik', 'no_serdos',
         'status_kepegawaian', 'sinta_id', 'scopus_id', 'google_scholar_id', 'orcid', 'aktif',
+        'h_index', 'i10_index', 'sitasi_total', 'karya_total', 'metrik_updated_at',
     ];
 
     protected $validationRules = [

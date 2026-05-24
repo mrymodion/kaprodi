@@ -118,6 +118,49 @@ class OpenAlexClient
         return $out;
     }
 
+    /**
+     * Ambil metrik penulis (h-index, i10, total sitasi, jumlah karya) berdasarkan ORCID.
+     *
+     * @return array{h_index:int,i10_index:int,sitasi_total:int,karya_total:int}|null
+     */
+    public function authorMetricsByOrcid(?string $orcid): ?array
+    {
+        $bare = '';
+        if (preg_match('#(\d{4}-\d{4}-\d{4}-\d{3}[\dX])#i', (string) $orcid, $m)) {
+            $bare = strtoupper($m[1]);
+        }
+        if ($bare === '') {
+            return null;
+        }
+
+        $query = [];
+        $mailto = (string) (env('openalex.mailto') ?: env('email.fromEmail') ?: '');
+        if ($mailto !== '') {
+            $query['mailto'] = $mailto;
+        }
+
+        try {
+            $client = \Config\Services::curlrequest(['timeout' => 20, 'http_errors' => false]);
+            $res = $client->get('https://api.openalex.org/authors/orcid:' . $bare, ['query' => $query]);
+            if ($res->getStatusCode() !== 200) {
+                return null;
+            }
+            $a = json_decode($res->getBody(), true);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!is_array($a)) {
+            return null;
+        }
+
+        return [
+            'h_index'      => (int) ($a['summary_stats']['h_index'] ?? 0),
+            'i10_index'    => (int) ($a['summary_stats']['i10_index'] ?? 0),
+            'sitasi_total' => (int) ($a['cited_by_count'] ?? 0),
+            'karya_total'  => (int) ($a['works_count'] ?? 0),
+        ];
+    }
+
     /** Ubah satu objek "work" OpenAlex menjadi baris siap impor ke tabel publikasi. */
     private function normalize(array $w): array
     {
