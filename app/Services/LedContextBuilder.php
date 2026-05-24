@@ -212,6 +212,26 @@ class LedContextBuilder
                 (int) ($ps['sitasi'] ?? 0), (int) ($ps['tersitasi'] ?? 0),
                 (int) ($ps['ber_doi'] ?? 0), $total ? (int) $ps['ber_doi'] / $total * 100 : 0
             );
+            // Cakupan DTPR yang memiliki minimal 1 publikasi (via pivot).
+            $dtprPub = $this->db->query("
+                SELECT
+                    COUNT(DISTINCT d.id) AS jml_dosen,
+                    COUNT(DISTINCT pd.dosen_id) AS dosen_ada_pub
+                FROM dosen d
+                LEFT JOIN publikasi_dosen pd ON pd.dosen_id = d.id
+                LEFT JOIN publikasi p ON p.id = pd.publikasi_id AND p.prodi_id = ?
+                WHERE d.prodi_id = ? AND d.aktif = 1
+            ", [$prodiId, $prodiId])->getRowArray();
+            $jmlDosen  = (int) ($dtprPub['jml_dosen'] ?? 0);
+            $dosenPub  = (int) ($dtprPub['dosen_ada_pub'] ?? 0);
+            $dosenNoPub = $jmlDosen - $dosenPub;
+            if ($jmlDosen > 0) {
+                $out[] = sprintf(
+                    '  - Keterlibatan DTPR: %d dari %d dosen aktif memiliki publikasi tercatat%s.',
+                    $dosenPub, $jmlDosen,
+                    $dosenNoPub > 0 ? "; {$dosenNoPub} dosen belum memiliki publikasi" : ''
+                );
+            }
         } else {
             $out[] = 'Publikasi ilmiah: (belum ada data)';
         }
