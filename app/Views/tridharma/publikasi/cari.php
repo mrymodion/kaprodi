@@ -139,6 +139,10 @@
         }).then(function (r) { return r.json(); }).then(function (d) {
             body.innerHTML = '';
             if (!d || !d.ok) { alert(d && d.error ? d.error : 'Pencarian gagal.'); return; }
+            if (d.csrfName && d.csrfHash) {
+                var f = document.querySelector('input[name="' + d.csrfName + '"]');
+                if (f) f.value = d.csrfHash;
+            }
             wrap.classList.toggle('d-none', d.items.length === 0);
             emptyMsg.classList.toggle('d-none', d.items.length !== 0);
             document.getElementById('hasilCount').textContent = d.items.length;
@@ -155,14 +159,16 @@
                     doiEl.innerHTML = '<a href="https://doi.org/' + it.doi + '" target="_blank" rel="noopener">' + it.doi + '</a>';
                 }
                 node.querySelector('.jenis').value = it.jenis;
+                var pfx = 'rows[' + i + ']';
                 var chk = node.querySelector('.chk');
+                chk.name = pfx + '[sel]';
+                chk.value = '1';
                 if (it.exists) {
                     chk.disabled = true;
                     tr.classList.add('table-warning');
                     doiEl.innerHTML += ' <span class="badge bg-warning text-dark">sudah ada</span>';
                 }
-                // Field tersembunyi untuk impor.
-                var pfx = 'rows[' + i + ']';
+                // Field data ikut terkirim untuk semua baris; server hanya mengimpor baris ber-[sel].
                 addHidden(tr, pfx + '[judul]', it.judul);
                 addHidden(tr, pfx + '[penulis]', it.penulis || '');
                 addHidden(tr, pfx + '[nama_media]', it.nama_media || '');
@@ -171,17 +177,12 @@
                 addHidden(tr, pfx + '[doi]', it.doi || '');
                 addHidden(tr, pfx + '[url]', it.url || '');
                 addHidden(tr, pfx + '[sitasi]', it.sitasi || 0);
-                var jHidden = addHidden(tr, pfx + '[jenis]', it.jenis);
                 var jSelect = node.querySelector('.jenis');
-                jSelect.addEventListener('change', function () { jHidden.value = jSelect.value; });
-                // Hanya kirim baris yang dicentang: nonaktifkan field saat tidak dicentang.
-                chk.addEventListener('change', function () {
-                    tr.querySelectorAll('input[type=hidden]').forEach(function (h) { h.disabled = !chk.checked; });
-                    refreshImportBtn();
-                });
-                tr.querySelectorAll('input[type=hidden]').forEach(function (h) { h.disabled = true; });
+                jSelect.name = pfx + '[jenis]';
+                chk.addEventListener('change', refreshImportBtn);
                 body.appendChild(node);
             });
+            refreshImportBtn();
         }).catch(function () { alert('Gagal menghubungi server.'); })
           .finally(function () { btnCari.disabled = false; btnCari.innerHTML = orig; });
     });
