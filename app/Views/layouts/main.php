@@ -21,6 +21,7 @@ $appPt   = env('app.namaPT', '');
 
 // Pemilih prodi aktif (khusus superadmin): daftar prodi + nama yang aktif
 $isSuperadmin    = $user && $user->inGroup('superadmin');
+$isDosen         = $user && $user->inGroup('dosen');
 $prodiSwitcher   = [];
 $activeProdiNama = null;
 if ($isSuperadmin) {
@@ -47,31 +48,52 @@ if ($isSuperadmin) {
     <style>
         body { background:#f4f6f9; }
         .navbar-brand img { height:32px; margin-right:8px; }
+        .navbar-brand strong { font-size:1rem; }
         .stat-card { border-left:4px solid var(--bs-primary); }
-        .sidebar { min-height: calc(100vh - 56px); background:#fff; border-right:1px solid #dee2e6; }
+        .sidebar { background:#fff; }
         .sidebar .nav-link { color:#333; border-radius:0; padding:.5rem 1rem; }
         .sidebar .nav-link:hover { background:#f8f9fa; }
         .sidebar .nav-link.active { background:#0d3b8c; color:#fff; }
         .sidebar .nav-section { font-size:.7rem; text-transform:uppercase; color:#888; padding:.75rem 1rem .25rem; }
         .badge-akreditasi { font-size: .75rem; }
+        /* Sidebar sebagai kolom statis di layar md+ */
+        @media (min-width: 768px) {
+            .sidebar { min-height: calc(100vh - 56px); border-right:1px solid #dee2e6; }
+        }
+        /* Lebar panel geser di mobile */
+        @media (max-width: 767.98px) {
+            #sidebarMenu.offcanvas-md { width: 80vw; max-width: 320px; }
+        }
+        /* Cegah tabel lebar memecah layout di mobile */
+        .table-responsive { -webkit-overflow-scrolling: touch; }
+        /* Grup tombol ikut membungkus bila sempit */
+        .btn-group { flex-wrap: wrap; }
+        /* Header halaman (judul + tombol aksi) membungkus rapi di layar kecil */
+        @media (max-width: 575.98px) {
+            .d-flex.justify-content-between.align-items-center { flex-wrap: wrap; gap: .5rem; }
+            main.col-md-10 h4 { font-size: 1.15rem; }
+        }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-dark" style="background:#0d3b8c">
     <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="<?= base_url('/') ?>">
+        <button class="navbar-toggler border-0 me-2 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Buka menu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <a class="navbar-brand d-flex align-items-center text-truncate" href="<?= base_url('/') ?>">
             <img src="<?= base_url('assets/logo-utd.png') ?>" alt="UTD" onerror="this.style.display='none'">
             <strong><?= esc($appName) ?></strong>
-            <small class="ms-2 opacity-75"><?= esc($appPt) ?></small>
+            <small class="ms-2 opacity-75 d-none d-lg-inline"><?= esc($appPt) ?></small>
         </a>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 ms-auto">
         <?php if ($isSuperadmin): ?>
         <div class="dropdown">
-            <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+            <button class="btn btn-sm btn-light dropdown-toggle text-truncate" style="max-width:45vw" data-bs-toggle="dropdown">
                 <i class="bi bi-building"></i>
-                <?= $activeProdiNama ? esc($activeProdiNama) : 'Pilih Prodi' ?>
+                <span class="d-none d-sm-inline"><?= $activeProdiNama ? esc($activeProdiNama) : 'Pilih Prodi' ?></span>
             </button>
-            <ul class="dropdown-menu" style="max-height:60vh; overflow-y:auto;">
+            <ul class="dropdown-menu dropdown-menu-end" style="max-height:60vh; overflow-y:auto;">
                 <li><h6 class="dropdown-header">Prodi aktif</h6></li>
                 <?php foreach ($prodiSwitcher as $p): ?>
                     <li>
@@ -87,8 +109,8 @@ if ($isSuperadmin) {
         <div class="dropdown">
             <button class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="bi bi-person-circle"></i>
-                <?= esc($user->username ?? 'guest') ?>
-                <span class="badge bg-light text-dark"><?= esc($role) ?></span>
+                <span class="d-none d-sm-inline"><?= esc($user->username ?? 'guest') ?></span>
+                <span class="badge bg-light text-dark d-none d-md-inline"><?= esc($role) ?></span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><span class="dropdown-item-text small text-muted"><?= esc($user->email ?? '-') ?></span></li>
@@ -101,11 +123,28 @@ if ($isSuperadmin) {
 </nav>
 <div class="container-fluid">
     <div class="row">
-        <aside class="col-md-2 sidebar p-0">
+        <div class="col-md-2 p-0">
+        <aside class="offcanvas-md offcanvas-start sidebar" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
+            <div class="offcanvas-header border-bottom d-md-none">
+                <h6 class="offcanvas-title mb-0" id="sidebarMenuLabel"><i class="bi bi-list"></i> Menu</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Tutup"></button>
+            </div>
+            <div class="offcanvas-body d-flex flex-column p-0">
             <div class="nav-section">Utama</div>
             <nav class="nav flex-column">
                 <a class="nav-link active" href="<?= site_url('/') ?>"><i class="bi bi-speedometer2"></i> Dashboard</a>
             </nav>
+            <?php if ($isDosen): ?>
+                <div class="nav-section">Akun Saya</div>
+                <nav class="nav flex-column">
+                    <a class="nav-link <?= uri_string() === 'akun' ? 'active' : '' ?>" href="<?= site_url('akun') ?>"><i class="bi bi-person-circle"></i> Profil Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/publikasi') ? 'active' : '' ?>" href="<?= site_url('akun/publikasi') ?>"><i class="bi bi-file-earmark-text"></i> Publikasi Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/penelitian') ? 'active' : '' ?>" href="<?= site_url('akun/penelitian') ?>"><i class="bi bi-journal-text"></i> Penelitian Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/pkm') ? 'active' : '' ?>" href="<?= site_url('akun/pkm') ?>"><i class="bi bi-megaphone"></i> PkM Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/profil') ? 'active' : '' ?>" href="<?= site_url('akun/profil') ?>"><i class="bi bi-pencil-square"></i> Edit Profil</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/password') ? 'active' : '' ?>" href="<?= site_url('akun/password') ?>"><i class="bi bi-key"></i> Ganti Password</a>
+                </nav>
+            <?php endif ?>
             <?php if ($can('prodi.manage') || $can('dosen.manage') || $can('mahasiswa.manage')): ?>
                 <div class="nav-section">Data Akreditasi</div>
                 <nav class="nav flex-column">
@@ -153,8 +192,10 @@ if ($isSuperadmin) {
                     <?php if ($can('instrumen.manage')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'instrumen') ? 'active' : '' ?>" href="<?= site_url('instrumen') ?>"><i class="bi bi-sliders"></i> Instrumen LAM</a><?php endif ?>
                 </nav>
             <?php endif ?>
+            </div>
         </aside>
-        <main class="col-md-10 p-4">
+        </div>
+        <main class="col-md-10 p-3 p-md-4">
             <?php if (session('message')): ?>
                 <div class="alert alert-success alert-dismissible fade show"><?= esc(session('message')) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
             <?php endif ?>

@@ -4,7 +4,7 @@
 <?php $isEdit = !empty($item); ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-file-earmark-text"></i> <?= $isEdit ? 'Edit' : 'Tambah' ?> Publikasi</h4>
-    <a href="<?= site_url('publikasi') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+    <a href="<?= $backUrl ?? site_url('publikasi') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
 </div>
 
 <?php if (session('errors')): ?>
@@ -77,7 +77,7 @@
             </div>
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button>
-                <a href="<?= site_url('publikasi') ?>" class="btn btn-outline-secondary ms-2">Batal</a>
+                <a href="<?= $backUrl ?? site_url('publikasi') ?>" class="btn btn-outline-secondary ms-2">Batal</a>
             </div>
         </form>
     </div>

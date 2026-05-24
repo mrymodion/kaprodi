@@ -47,7 +47,7 @@ $hkiLabels   = \App\Models\HkiModel::JENIS_LABELS;
 <!-- Summary Cards -->
 <?php if ($pubSum): ?>
 <div class="row g-3 mb-3">
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card border-primary text-center">
             <div class="card-body p-2">
                 <div class="fs-3 fw-bold text-primary"><?= $pubSum['total'] ?></div>
@@ -60,7 +60,7 @@ $hkiLabels   = \App\Models\HkiModel::JENIS_LABELS;
     $intl = ($pubSum['penelitian']['jurnal_internasional']['jml'] ?? 0) + ($pubSum['pkm']['jurnal_internasional']['jml'] ?? 0) + $intBereputasi;
     $totalHki = $hkiSum['total'] ?? 0;
     ?>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card border-success text-center">
             <div class="card-body p-2">
                 <div class="fs-3 fw-bold text-success"><?= $intl ?></div>
@@ -68,7 +68,7 @@ $hkiLabels   = \App\Models\HkiModel::JENIS_LABELS;
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card border-warning text-center">
             <div class="card-body p-2">
                 <div class="fs-3 fw-bold text-warning"><?= $intBereputasi ?></div>
@@ -76,7 +76,7 @@ $hkiLabels   = \App\Models\HkiModel::JENIS_LABELS;
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card border-info text-center">
             <div class="card-body p-2">
                 <div class="fs-3 fw-bold text-info"><?= $totalHki ?></div>

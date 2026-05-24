@@ -17,7 +17,7 @@ $butirPct = $butirTotal ? round($butirDinilai / $butirTotal * 100) : 0;
 
 <!-- Ringkasan atas -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card text-center h-100 border-<?= $pctColor ?>">
             <div class="card-body">
                 <div class="display-6 fw-bold text-<?= $pctColor ?>"><?= number_format($total['nilai_akhir'], 1) ?></div>
@@ -33,7 +33,7 @@ $butirPct = $butirTotal ? round($butirDinilai / $butirTotal * 100) : 0;
         ['Narasi LED Terisi', $ledTerisi, $ledTotal, $ledPct],
     ];
     foreach ($kpis as [$lbl, $cur, $tot, $p]): $col = $p >= 80 ? 'success' : ($p >= 50 ? 'warning' : 'danger'); ?>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between"><span class="fw-semibold"><?= $cur ?>/<?= $tot ?></span><span class="text-<?= $col ?>"><?= $p ?>%</span></div>

@@ -4,7 +4,7 @@
 <?php $isEdit = !empty($item); ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-megaphone"></i> <?= $isEdit ? 'Edit' : 'Tambah' ?> PkM</h4>
-    <a href="<?= site_url('pkm') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+    <a href="<?= $backUrl ?? site_url('pkm') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
 </div>
 
 <?php if (session('errors')): ?>
@@ -26,6 +26,9 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Ketua Pelaksana</label>
+                    <?php if (!empty($lockKetua)): ?>
+                        <input type="text" class="form-control" value="<?= esc($lockKetuaNama ?? 'Anda') ?>" disabled>
+                    <?php else: ?>
                     <select name="ketua_dosen_id" class="form-select">
                         <option value="">— Pilih Dosen —</option>
                         <?php foreach ($dosen as $d): ?>
@@ -34,6 +37,7 @@
                         </option>
                         <?php endforeach ?>
                     </select>
+                    <?php endif ?>
                 </div>
 
                 <div class="col-md-6">
@@ -138,7 +142,7 @@
 
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Simpan</button>
-                <a href="<?= site_url('pkm') ?>" class="btn btn-outline-secondary ms-2">Batal</a>
+                <a href="<?= $backUrl ?? site_url('pkm') ?>" class="btn btn-outline-secondary ms-2">Batal</a>
             </div>
         </form>
     </div>

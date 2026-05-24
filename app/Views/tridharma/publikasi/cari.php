@@ -1,11 +1,16 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
-<?php $jenisLabels = \App\Models\PublikasiModel::JENIS_LABELS; ?>
+<?php
+$jenisLabels = \App\Models\PublikasiModel::JENIS_LABELS;
+$searchUrl ??= site_url('publikasi/cari/search');
+$importUrl ??= site_url('publikasi/cari/import');
+$backUrl   ??= site_url('publikasi');
+?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-search"></i> Cari Publikasi</h4>
-    <a href="<?= site_url('publikasi') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
+    <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
 </div>
 
 <?php if (session('error')): ?>
@@ -61,7 +66,7 @@
     </div>
 </div>
 
-<form method="post" action="<?= site_url('publikasi/cari/import') ?>" id="formImport">
+<form method="post" action="<?= $importUrl ?>" id="formImport">
     <?= csrf_field() ?>
     <div id="hasilWrap" class="card d-none">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -166,7 +171,7 @@
         fd.append('nama', inNama.value.trim());
         fd.append('source', document.getElementById('selSource').value);
         fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
-        fetch('<?= site_url('publikasi/cari/search') ?>', {
+        fetch('<?= $searchUrl ?>', {
             method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}, body: fd
         }).then(function (r) { return r.json(); }).then(function (d) {
             body.innerHTML = '';

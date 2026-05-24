@@ -10,6 +10,12 @@ class Dashboard extends BaseController
     {
         $db = Database::connect();
         $user = function_exists('auth') ? auth()->user() : null;
+
+        // Dosen biasa (tanpa hak kelola) tidak melihat dashboard prodi — arahkan ke Profil Saya.
+        if ($user && $user->inGroup('dosen') && !$user->can('dosen.manage')) {
+            return redirect()->to('/akun');
+        }
+
         $isSuperadmin = $user && $user->inGroup('superadmin');
         $activeProdiId = session('active_prodi_id');
 

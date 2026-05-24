@@ -12,7 +12,7 @@ class PublikasiModel extends AppModel
     protected $useTimestamps = false;
 
     protected $allowedFields = [
-        'prodi_id', 'kategori', 'jenis', 'judul', 'penulis',
+        'prodi_id', 'dosen_id', 'kategori', 'jenis', 'judul', 'penulis',
         'nama_media', 'tahun', 'volume', 'doi', 'url', 'sitasi', 'sinta_score',
         'created_at',
     ];
@@ -37,6 +37,11 @@ class PublikasiModel extends AppModel
         'buku'                                => 'Buku',
         'book_chapter'                        => 'Book Chapter',
     ];
+
+    public function listByDosen(int $dosenId): array
+    {
+        return $this->where('dosen_id', $dosenId)->orderBy('tahun DESC, judul ASC')->findAll();
+    }
 
     public function listByProdi(int $prodiId, string $kategori = ''): array
     {

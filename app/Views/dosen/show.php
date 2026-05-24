@@ -133,6 +133,29 @@
 </div>
 
 <?php if (auth()->user()->can('dosen.manage')): ?>
+    <div class="card mt-4">
+        <div class="card-header bg-white fw-semibold"><i class="bi bi-person-lock"></i> Akun Login Dosen</div>
+        <div class="card-body">
+            <?php if (!empty($dosen['user_id'])): ?>
+                <p class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Dosen ini sudah memiliki akun login (peran <span class="badge bg-info">dosen</span>). Dosen dapat masuk dan memutakhirkan datanya sendiri.</p>
+                <form method="post" action="<?= site_url("dosen/{$dosen['id']}/akun/reset") ?>" class="d-inline" onsubmit="return confirm('Reset password akun dosen ini?')">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-repeat"></i> Reset Password</button>
+                </form>
+            <?php else: ?>
+                <?php if (empty($dosen['email'])): ?>
+                    <p class="text-danger mb-0"><i class="bi bi-exclamation-circle"></i> Lengkapi <strong>email</strong> dosen terlebih dahulu (dipakai untuk login), lalu buat akun di sini.</p>
+                <?php else: ?>
+                    <p class="mb-2 small text-muted">Buat akun login agar dosen dapat memutakhirkan profil, publikasi, penelitian/PkM, dan dokumennya sendiri. Email login: <strong><?= esc($dosen['email']) ?></strong>.</p>
+                    <form method="post" action="<?= site_url("dosen/{$dosen['id']}/akun") ?>" class="d-inline" onsubmit="return confirm('Buat akun login untuk dosen ini?')">
+                        <?= csrf_field() ?>
+                        <button class="btn btn-sm btn-primary"><i class="bi bi-person-plus"></i> Buat Akun Login</button>
+                    </form>
+                <?php endif ?>
+            <?php endif ?>
+        </div>
+    </div>
+
     <?= view('dokumen/_panel', ['ref' => 'dosen', 'ownerId' => $dosen['id'], 'dokumen' => $dokumen, 'jenisOpt' => $jenisOpt]) ?>
 <?php endif ?>
 

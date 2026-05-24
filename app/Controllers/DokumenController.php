@@ -23,9 +23,19 @@ class DokumenController extends BaseController
         return $u && ($u->can('dosen.manage') || $u->can('prodi.manage'));
     }
 
+    /** Dosen boleh mengelola dokumen miliknya sendiri (ref 'dosen' & id = record-nya). */
+    private function ownsDosen(string $ref, int $id): bool
+    {
+        if ($ref !== 'dosen') return false;
+        $u = auth()->user();
+        if (!$u) return false;
+        $d = (new \App\Models\DosenModel())->findByUserId((int) $u->id);
+        return $d && (int) $d['id'] === $id;
+    }
+
     public function upload(string $ref, int $id)
     {
-        if (!$this->allowed()) return redirect()->back()->with('error', 'Akses ditolak.');
+        if (!$this->allowed() && !$this->ownsDosen($ref, $id)) return redirect()->back()->with('error', 'Akses ditolak.');
         if (!isset(DokumenEvidenModel::JENIS[$ref])) {
             return redirect()->back()->with('error', 'Jenis pemilik dokumen tidak valid.');
         }
@@ -61,9 +71,11 @@ class DokumenController extends BaseController
 
     public function lihat(int $id)
     {
-        if (!$this->allowed()) return redirect()->back()->with('error', 'Akses ditolak.');
         $row = $this->model->find($id);
         if (!$row) throw new \CodeIgniter\Exceptions\PageNotFoundException();
+        if (!$this->allowed() && !$this->ownsDosen($row['ref_table'], (int) $row['ref_id'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
         $path = WRITEPATH . 'bukti/' . basename($row['file']);
         if (!is_file($path)) throw new \CodeIgniter\Exceptions\PageNotFoundException('Berkas tidak ditemukan.');
         return $this->response->setHeader('Content-Type', 'application/pdf')
@@ -73,8 +85,10 @@ class DokumenController extends BaseController
 
     public function delete(int $id)
     {
-        if (!$this->allowed()) return redirect()->back()->with('error', 'Akses ditolak.');
         $row = $this->model->find($id);
+        if ($row && !$this->allowed() && !$this->ownsDosen($row['ref_table'], (int) $row['ref_id'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
         if ($row) {
             (new EvidenceStorage())->delete($row['file']);
             $this->model->delete($id);

@@ -23,6 +23,42 @@ $routes->post('kepuasan/isi/(:segment)', 'Tracer\PublicKepuasanController::submi
 $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     $routes->get('/', 'Dashboard::index');
 
+    // Area self-service dosen ("Profil Saya")
+    $routes->group('akun', function ($routes) {
+        $routes->get('/',          'Akun\AkunController::index');
+        $routes->get('profil',     'Akun\AkunController::profil');
+        $routes->post('profil',    'Akun\AkunController::saveProfil');
+        $routes->get('password',   'Akun\AkunController::password');
+        $routes->post('password',  'Akun\AkunController::savePassword');
+
+        // Publikasi milik dosen
+        $routes->get('publikasi',                  'Akun\KaryaController::publikasi');
+        $routes->get('publikasi/cari',             'Akun\KaryaController::publikasiCari');
+        $routes->post('publikasi/cari/search',     'Akun\KaryaController::publikasiSearch');
+        $routes->post('publikasi/cari/import',     'Akun\KaryaController::publikasiImport');
+        $routes->get('publikasi/baru',             'Akun\KaryaController::publikasiCreate');
+        $routes->post('publikasi/baru',            'Akun\KaryaController::publikasiStore');
+        $routes->get('publikasi/(:num)/edit',      'Akun\KaryaController::publikasiEdit/$1');
+        $routes->post('publikasi/(:num)/update',   'Akun\KaryaController::publikasiUpdate/$1');
+        $routes->post('publikasi/(:num)/delete',   'Akun\KaryaController::publikasiDelete/$1');
+
+        // Penelitian milik dosen (sebagai ketua)
+        $routes->get('penelitian',                 'Akun\KaryaController::penelitian');
+        $routes->get('penelitian/baru',            'Akun\KaryaController::penelitianCreate');
+        $routes->post('penelitian/baru',           'Akun\KaryaController::penelitianStore');
+        $routes->get('penelitian/(:num)/edit',     'Akun\KaryaController::penelitianEdit/$1');
+        $routes->post('penelitian/(:num)/update',  'Akun\KaryaController::penelitianUpdate/$1');
+        $routes->post('penelitian/(:num)/delete',  'Akun\KaryaController::penelitianDelete/$1');
+
+        // PkM milik dosen (sebagai ketua)
+        $routes->get('pkm',                        'Akun\KaryaController::pkm');
+        $routes->get('pkm/baru',                   'Akun\KaryaController::pkmCreate');
+        $routes->post('pkm/baru',                  'Akun\KaryaController::pkmStore');
+        $routes->get('pkm/(:num)/edit',            'Akun\KaryaController::pkmEdit/$1');
+        $routes->post('pkm/(:num)/update',         'Akun\KaryaController::pkmUpdate/$1');
+        $routes->post('pkm/(:num)/delete',         'Akun\KaryaController::pkmDelete/$1');
+    });
+
     // Pemilih prodi aktif (khusus superadmin)
     $routes->get('prodi/switch/(:num)', 'ProdiSwitchController::switch/$1');
 
@@ -256,6 +292,8 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('import/template',          'Dosen\DosenController::importTemplate');
         $routes->post('import',                  'Dosen\DosenController::importStore');
         $routes->post('metrik/update',           'Dosen\DosenController::updateMetrik');
+        $routes->post('(:num)/akun',             'Dosen\DosenController::buatAkun/$1');
+        $routes->post('(:num)/akun/reset',       'Dosen\DosenController::resetAkun/$1');
         $routes->get('ewmp/import',              'Dosen\DosenController::ewmpImportForm');
         $routes->get('ewmp/import/template',     'Dosen\DosenController::ewmpImportTemplate');
         $routes->post('ewmp/import',             'Dosen\DosenController::ewmpImportStore');
