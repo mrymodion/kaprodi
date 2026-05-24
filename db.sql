@@ -86,7 +86,7 @@ CREATE TABLE `auth_identities` (
 /*Data for the table `auth_identities` */
 
 insert  into `auth_identities`(`id`,`user_id`,`type`,`name`,`secret`,`secret2`,`expires`,`extra`,`force_reset`,`last_used_at`,`created_at`,`updated_at`) values 
-(1,1,'email_password',NULL,'superadmin@utd.ac.id','$2y$12$Sd0YcAUJVaQ.oaleI0ZpOelrfgz8sJxdf0HanQ177r2gcQzN3y0DC',NULL,NULL,0,'2026-05-23 17:30:44','2026-05-22 01:13:44','2026-05-23 17:30:44'),
+(1,1,'email_password',NULL,'superadmin@utd.ac.id','$2y$12$Sd0YcAUJVaQ.oaleI0ZpOelrfgz8sJxdf0HanQ177r2gcQzN3y0DC',NULL,NULL,0,'2026-05-24 09:18:22','2026-05-22 01:13:44','2026-05-24 09:18:22'),
 (2,2,'email_password',NULL,'kaprodi@utd.ac.id','$2y$12$5Iga90UBcNeshBrGnpN66ORKFu/2MUpWYdSFUH0m7KPhXdweAYPdC',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:45'),
 (3,3,'email_password',NULL,'sekprodi@utd.ac.id','$2y$12$S0vMeOL2UWTg2Hztb4aLHukU4x.LgaJ7uwiMUFycsvZ.XGbdvzdA.',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:46'),
 (4,4,'email_password',NULL,'gkm@utd.ac.id','$2y$12$R/48TR/8WPYg5nH9w0uswe5mGwh.r2kHNSs/GB4/N0kfKG/OWgPXm',NULL,NULL,0,NULL,'2026-05-22 01:13:46','2026-05-22 01:13:46'),
@@ -112,7 +112,7 @@ CREATE TABLE `auth_logins` (
   PRIMARY KEY (`id`),
   KEY `id_type_identifier` (`id_type`,`identifier`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `auth_logins` */
 
@@ -120,7 +120,9 @@ insert  into `auth_logins`(`id`,`ip_address`,`user_agent`,`id_type`,`identifier`
 (1,'127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',NULL,'2026-05-22 01:13:17',0),
 (2,'127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-22 01:14:01',1),
 (3,'127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-22 06:24:24',1),
-(4,'127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-23 17:30:44',1);
+(4,'127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-23 17:30:44',1),
+(5,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-24 04:35:19',1),
+(6,'103.41.250.239','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','email_password','superadmin@utd.ac.id',1,'2026-05-24 09:18:22',1);
 
 /*Table structure for table `auth_permissions_users` */
 
@@ -202,9 +204,13 @@ CREATE TABLE `butir_skor` (
   KEY `idx_butir_skor_prodi_id_lam_butir_id` (`prodi_id`,`lam_butir_id`),
   CONSTRAINT `butir_skor_lam_butir_id_foreign` FOREIGN KEY (`lam_butir_id`) REFERENCES `lam_butir` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `butir_skor_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `butir_skor` */
+
+insert  into `butir_skor`(`id`,`prodi_id`,`lam_butir_id`,`tahun_akademik_id`,`skor_auto`,`skor_manual`,`skor_final`,`sumber_data_json`,`catatan`,`link_bukti`,`updated_at`,`updated_by`) values 
+(8,7,427,NULL,1.60,NULL,1.60,NULL,NULL,NULL,'2026-05-24 11:46:48',NULL),
+(9,7,427,5,1.60,NULL,1.60,NULL,NULL,NULL,'2026-05-24 12:07:53',NULL);
 
 /*Table structure for table `cpl` */
 
@@ -310,6 +316,11 @@ CREATE TABLE `dosen` (
   `aktif` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
+  `h_index` int(11) DEFAULT NULL,
+  `i10_index` int(11) DEFAULT NULL,
+  `sitasi_total` int(11) DEFAULT NULL,
+  `karya_total` int(11) DEFAULT NULL,
+  `metrik_updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `nidn` (`nidn`),
   KEY `idx_dosen_prodi_id` (`prodi_id`),
@@ -319,8 +330,8 @@ CREATE TABLE `dosen` (
 
 /*Data for the table `dosen` */
 
-insert  into `dosen`(`id`,`prodi_id`,`nidn`,`nip`,`nama`,`gelar_depan`,`gelar_belakang`,`jenis_kelamin`,`tempat_lahir`,`tanggal_lahir`,`email`,`no_hp`,`pendidikan_terakhir`,`bidang_keahlian`,`linieritas`,`jabatan_akademik`,`no_sk_jad`,`tgl_sk_jad`,`sertifikat_pendidik`,`no_serdos`,`status_kepegawaian`,`sinta_id`,`scopus_id`,`google_scholar_id`,`orcid`,`aktif`,`created_at`,`updated_at`) values 
-(1,7,'8849970018','','Mamok Andri Senubekti','Ir.','S.Kom., M.Kom.','L','Malang','1982-04-11','mamokandri@digitechuniversity.ac.id','081323945454','S2','Sistem Informasi, Data Science','linier','Asisten Ahli','7628/LL4/KP/2022','2022-11-28',0,'','tidak_tetap','6756574','60558151400','ZZcT_-oAAAAJ&hl','0000-0002-1893-0746',1,'2026-05-22 01:24:44','2026-05-22 01:51:45');
+insert  into `dosen`(`id`,`prodi_id`,`nidn`,`nip`,`nama`,`gelar_depan`,`gelar_belakang`,`jenis_kelamin`,`tempat_lahir`,`tanggal_lahir`,`email`,`no_hp`,`pendidikan_terakhir`,`bidang_keahlian`,`linieritas`,`jabatan_akademik`,`no_sk_jad`,`tgl_sk_jad`,`sertifikat_pendidik`,`no_serdos`,`status_kepegawaian`,`sinta_id`,`scopus_id`,`google_scholar_id`,`orcid`,`aktif`,`created_at`,`updated_at`,`h_index`,`i10_index`,`sitasi_total`,`karya_total`,`metrik_updated_at`) values 
+(1,7,'8849970018','','Mamok Andri Senubekti','Ir.','S.Kom., M.Kom.','L','Malang','1982-04-11','mamokandri@digitechuniversity.ac.id','081323945454','S2','Sistem Informasi, Data Science','linier','Asisten Ahli','7628/LL4/KP/2022','2022-11-28',0,'','tidak_tetap','6756574','60558151400','ZZcT_-oAAAAJ&hl','0000-0002-1893-0746',1,'2026-05-22 01:24:44','2026-05-22 01:51:45',NULL,NULL,NULL,NULL,NULL);
 
 /*Table structure for table `dosen_ewmp` */
 
@@ -467,7 +478,7 @@ CREATE TABLE `kerjasama` (
 /*Data for the table `kerjasama` */
 
 insert  into `kerjasama`(`id`,`prodi_id`,`nama_mitra`,`bidang`,`tingkat`,`jenis_dokumen`,`no_dokumen`,`tgl_mulai`,`tgl_berakhir`,`manfaat`,`bukti_implementasi`,`created_at`,`updated_at`) values 
-(1,7,'Kantor Kecamatan Naringgul','pendidikan','nasional','mou','012/UTD/MOU/12/II/2026','2026-02-05','2031-02-05','','','2026-05-22 02:02:54','2026-05-22 02:02:54');
+(1,7,'Kantor Kecamatan Naringgul','pendidikan','lokal','mou','012/UTD/MOU/12/II/2026','2026-02-05','2031-02-05','','','2026-05-22 02:02:54','2026-05-24 04:42:34');
 
 /*Table structure for table `keuangan` */
 
@@ -1658,7 +1669,7 @@ CREATE TABLE `led_narasi` (
   KEY `idx_led_narasi_prodi_id` (`prodi_id`),
   CONSTRAINT `led_narasi_lam_template_led_id_foreign` FOREIGN KEY (`lam_template_led_id`) REFERENCES `lam_template_led` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `led_narasi_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `led_narasi` */
 
@@ -1854,7 +1865,7 @@ CREATE TABLE `migrations` (
   `time` int(11) NOT NULL,
   `batch` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `migrations` */
 
@@ -1874,7 +1885,8 @@ insert  into `migrations`(`id`,`version`,`class`,`group`,`namespace`,`time`,`bat
 (13,'2026-01-01-000010','App\\Database\\Migrations\\AddLinkBuktiToButirSkor','default','App',1779416333,3),
 (14,'2026-01-01-000011','App\\Database\\Migrations\\CreateBorangTables','default','App',1779557512,4),
 (15,'2026-01-01-000012','App\\Database\\Migrations\\CreateDokumenEviden','default','App',1779557512,4),
-(16,'2026-01-01-000013','App\\Database\\Migrations\\AddLinkBuktiTridharma','default','App',1779557513,4);
+(16,'2026-01-01-000013','App\\Database\\Migrations\\AddLinkBuktiTridharma','default','App',1779557513,4),
+(17,'2026-01-01-000014','App\\Database\\Migrations\\AddMetrikDosen','default','App',1779615103,5);
 
 /*Table structure for table `mk_cpl` */
 
@@ -2171,9 +2183,47 @@ CREATE TABLE `publikasi` (
   KEY `idx_publikasi_kategori` (`kategori`),
   KEY `idx_publikasi_tahun` (`tahun`),
   CONSTRAINT `publikasi_prodi_id_foreign` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `publikasi` */
+
+insert  into `publikasi`(`id`,`prodi_id`,`kategori`,`jenis`,`judul`,`penulis`,`nama_media`,`tahun`,`volume`,`doi`,`url`,`sitasi`,`sinta_score`,`created_at`) values 
+(1,7,'penelitian','jurnal_nasional_terakreditasi','Data Integration Approaches for AI-Ready Data Architecture: A Comparative Review of Relational Databases, Data Warehouses, and Knowledge Graphs','Kodrat Mahatma, Mamok Andri Senubekti, Binastya Anggara Sekti','Jurnal Teknologi Informatika dan Komputer',2026,'12','10.37012/jtik.v12i1.3447','https://doi.org/10.37012/jtik.v12i1.3447',0,NULL,'2026-05-24 04:46:27'),
+(2,7,'penelitian','jurnal_internasional_bereputasi','Factors influencing the adoption and usage of case-based reasoning systems by judicial professionals in criminal cases: A systematic literature review','Mamok Andri Senubekti, Pujiyono, Foni Agus Setiawan, Mohammad Nur Fitriyadi, Darsiti, Novita Anggraini','AIP conference proceedings',2026,'3416','10.1063/5.0322114','https://doi.org/10.1063/5.0322114',0,0,'2026-05-24 04:46:27'),
+(3,7,'penelitian','jurnal_nasional_terakreditasi','PERANCANGAN KONSEPTUAL APLIKASI KEUANGAN BERBASIS WEB UNTUK YAYASAN ASSALAM: TRANSFORMASI DARI SISTEM MANUAL KE DIGITAL','Mahardika Agus Setiono, Ridha Adjie Eryadi, Mamok Andri Senubekti','JATI (Jurnal Mahasiswa Teknik Informatika)',2025,'9','10.36040/jati.v9i5.14965','https://doi.org/10.36040/jati.v9i5.14965',0,NULL,'2026-05-24 04:46:27'),
+(4,7,'penelitian','jurnal_nasional_terakreditasi','PENERAPAN METODE PROTOTYPING DALAM IMPLEMENTASI APLIKASI PEMESANAN MAKANAN ONLINE MENGGUNAKAN BARCODE PADA KEDAI MAS GUNARTO','Mohammad Rendi Valentino, Mohammad Nur Fitriyadi, Mamok Andri Senubekti, Darsiti Darsiti','JATI (Jurnal Mahasiswa Teknik Informatika)',2025,'9','10.36040/jati.v9i5.15045','https://doi.org/10.36040/jati.v9i5.15045',0,NULL,'2026-05-24 04:46:27'),
+(5,7,'penelitian','jurnal_nasional_terakreditasi','PREDIKSI KELULUSAN MAHASISWA DENGAN MENGGUNAKAN ALGORITMA DECISION TREE','Reki Kurnia Permana, Mamok Andri Senubekti, Novita Anggraini, Muhammad Usman','JATI (Jurnal Mahasiswa Teknik Informatika)',2025,'9','10.36040/jati.v9i5.14877','https://doi.org/10.36040/jati.v9i5.14877',0,NULL,'2026-05-24 04:46:27'),
+(6,7,'penelitian','jurnal_nasional_terakreditasi','Aplikasi Mobile Programming Forum Kesehatan Mental dengan Framework Flutter Metode Prototyping','Muhammad Faizal Pratama, Novita Anggraini, Mamok Andri Senubekti, M. Syafiuddin Usman','J-SISKO TECH (Jurnal Teknologi Sistem Informasi dan Sistem Komputer TGD)',2025,'8','10.53513/jsk.v8i2.11650','https://doi.org/10.53513/jsk.v8i2.11650',0,NULL,'2026-05-24 04:46:27'),
+(7,7,'penelitian','jurnal_nasional_terakreditasi','SISTEM INFORMASI PENGOLAHAN DATA SISWA BERBASIS WEB STUDI KASUS PADA MIN 3 TEGAL','Sevira Apriliyani Sugiarti, Mamok Andri Senubekti, Jaka Subrata','JATI (Jurnal Mahasiswa Teknik Informatika)',2025,'9','10.36040/jati.v9i4.14093','https://doi.org/10.36040/jati.v9i4.14093',0,NULL,'2026-05-24 04:46:27'),
+(8,7,'penelitian','jurnal_nasional_terakreditasi','SISTEM INFORMASI PEMBAYARAN SPP BERBASIS WEB','Riski Agustina S, Mamok Andri Senubekti, Aries Setyani Wahyu Prasetyawati','JATI (Jurnal Mahasiswa Teknik Informatika)',2025,'9','10.36040/jati.v9i4.13886','https://doi.org/10.36040/jati.v9i4.13886',0,NULL,'2026-05-24 04:46:27'),
+(9,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Pengembangan Aplikasi e-Bale Sunda untuk Digitalisasi Peminjaman Arsip di Pengadilan Negeri Bale Bandung Kelas 1A Menggunakan CodeIgniter 4','Fenti Febrian A, Mamok Andri Senubekti, Novita Anggraini, Fadzar Rusghana','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2025,'3','10.62565/tekno.v3i1.87','https://doi.org/10.62565/tekno.v3i1.87',0,NULL,'2026-05-24 04:46:27'),
+(10,7,'penelitian','jurnal_nasional_terakreditasi','IMPLEMENTASI PROTOTYPING DALAM PENGEMBANGAN APLIKASI KEUANGAN YAYASAN ASSALAAM AL MADANI SUMEDANG SEBAGAI UPAYA MENINGKATKAN AKUNTABILITAS KINERJA','Mohammad Nur Fitriyadi, Mamok Andri Senubekti','JATI (Jurnal Mahasiswa Teknik Informatika)',2024,'8','10.36040/jati.v8i6.12148','https://doi.org/10.36040/jati.v8i6.12148',0,NULL,'2026-05-24 04:46:27'),
+(11,7,'penelitian','jurnal_nasional_terakreditasi','OPTIMALISASI PENGALAMAN PENGGUNA MELALUI DESAIN ANTARMUKA PENGGUNA INTUITIF MELALUI SISTEM MONEV SOP','Ayu Cahya Ferariani, Mamok Andri Senubekti, Tarsinah Sumarni','JATI (Jurnal Mahasiswa Teknik Informatika)',2024,'8','10.36040/jati.v8i6.11603','https://doi.org/10.36040/jati.v8i6.11603',2,NULL,'2026-05-24 04:46:27'),
+(12,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Akibat Hukum Mengkomersilkan Lagu Orang Lain Tanpa Izin','Asep Imroni, Alwi Al Hadad, Mamok Andri Senubekti','KEADILAN Jurnal Penelitian Hukum dan Peradilan',2024,'2','10.62565/keadilan.v2i2.51','https://doi.org/10.62565/keadilan.v2i2.51',0,NULL,'2026-05-24 04:46:27'),
+(13,7,'penelitian','jurnal_nasional_terakreditasi','PENGEMBANGAN TAHAP PERTAMA APLIKASI SOPWATCH UNTUK MONITORING STANDAR OPERASIONAL PROSEDUR BERBASIS WEBSITE','Nisa Nurul Qoyimah, Novita Anggraini, Mamok Andri Senubekti','JATI (Jurnal Mahasiswa Teknik Informatika)',2024,'8','10.36040/jati.v8i5.11094','https://doi.org/10.36040/jati.v8i5.11094',0,NULL,'2026-05-24 04:46:27'),
+(14,7,'penelitian','jurnal_nasional_terakreditasi','PENGEMBANGAN APLIKASI \'SOPWATCH\' UNTUK STANDAR OPERASIONAL PROSEDUR BERBASIS WEB','Bianda Salfabila, Mamok Andri Senubekti, Novita Anggraini','JATI (Jurnal Mahasiswa Teknik Informatika)',2024,'8','10.36040/jati.v8i5.10641','https://doi.org/10.36040/jati.v8i5.10641',0,NULL,'2026-05-24 04:46:27'),
+(15,7,'penelitian','jurnal_nasional_terakreditasi','DESAIN UI/UX APLIKASI ‘SOPWATCH’ DIBUAT DENGAN METODE PROTOTYPING MENGGUNAKAN FIGMA UNTUK MONITORING SOP','Galuh Herlina Harjanegara, Mamok Andri Senubekti','JATI (Jurnal Mahasiswa Teknik Informatika)',2024,'8','10.36040/jati.v8i5.10713','https://doi.org/10.36040/jati.v8i5.10713',0,NULL,'2026-05-24 04:46:27'),
+(16,7,'penelitian','jurnal_nasional_terakreditasi','Pembuatan Desain UI/UX dengan Metode Prototyping pada Aplikasi Layanan Pengadilan Negeri Bale Bandung menggunakan Figma','Mamok Andri Senubekti, Geovanny Lea Dajoreyta, Novita Anggraini','Jurnal Informatika Terpadu',2024,'10','10.54914/jit.v10i1.1001','https://doi.org/10.54914/jit.v10i1.1001',5,NULL,'2026-05-24 04:46:27'),
+(17,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Pembuatan Motion Graphic Animasi Profile Company Untuk PT. Atap Promotions','Nur Fitriyani, Mamok Andri Senubekti','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2024,'2','10.62565/tekno.v2i1.22','https://doi.org/10.62565/tekno.v2i1.22',0,NULL,'2026-05-24 04:46:27'),
+(18,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Prediksi Penilaian Kinerja Hakim Dengan Penerapan Machine Learning Menggunakan Tools Python','Novita Febriana, Firly Fadzira, Mamok Andri Senubekti, Ririn Suharsih','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2024,'2','10.62565/tekno.v2i1.23','https://doi.org/10.62565/tekno.v2i1.23',1,NULL,'2026-05-24 04:46:27'),
+(19,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Perancangan Sistem Informasi Pengolahan Data Penduduk Pada Kelurahan Pungkur','Yana Rohyana, Mamok Andri Senubekti','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2024,'2','10.62565/tekno.v2i1.14','https://doi.org/10.62565/tekno.v2i1.14',0,NULL,'2026-05-24 04:46:27'),
+(20,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Pembuatan Desain UI/UX Aplikasi Pemesanan Depot Kurnia Water Dengan Metode Prototyping Dengan Tools Adobe XD','Reza Widjaya, Mamok Andri Senubekti, Lies Anggi Puspita Dewi','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2023,'1','10.62565/tekno.v1i1.4','https://doi.org/10.62565/tekno.v1i1.4',1,NULL,'2026-05-24 04:46:27'),
+(21,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Rancang Bangun Website Sekolah Dengan Menggunakan Bootsrap (Studi Kasus SMP Negeri 3 Pacet)','Hendra Sopandi, Mamok Andri Senubekti, Lies Anggi Puspita Dewi','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2023,'1','10.62565/tekno.v1i1.1','https://doi.org/10.62565/tekno.v1i1.1',0,NULL,'2026-05-24 04:46:27'),
+(22,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Perancangan Prototype UI/UX Design Pada Aplikasi Peminjaman Tools Pada PT Taka Turbo Machiners','Mahardika Agus Setiono, Mamok Andri Senubekti, Lies Anggi Puspita Dewi','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2023,'1','10.62565/tekno.v1i1.3','https://doi.org/10.62565/tekno.v1i1.3',3,NULL,'2026-05-24 04:46:27'),
+(23,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Pembuatan Video Animasi SOP Pelayanan Menggunakan Adobe After Effect CC dan Adobe Premiere Pro CC (Studi Kasus Kelurahan Pungkur)','Nina Anita, Mamok Andri Senubekti, Lies Anggi Puspita Dewi','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2023,'1','10.62565/tekno.v1i1.5','https://doi.org/10.62565/tekno.v1i1.5',1,NULL,'2026-05-24 04:46:27'),
+(24,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Perancangan Aplikasi Monitoring Tumbuh Kembang Anak Usia Dini Berbasis WEB (Studi Kasus PAUD AL-BAROKAH)','S E Mm Sopian, Mamok Andri Senubekti, Lies Anggi Puspita Dewi','TEKNO Jurnal Penelitian Teknologi dan Peradilan',2023,'1','10.62565/tekno.v1i1.2','https://doi.org/10.62565/tekno.v1i1.2',1,NULL,'2026-05-24 04:46:27'),
+(25,7,'penelitian','jurnal_nasional_terakreditasi','PRINSIP KLASIFIKASI DAN DATA MINING DENGAN ALGORITMA C4.5','Mamok Andri Senubekti, Lies Anggi Puspita Dewi','NUANSA INFORMATIKA',2022,'16','10.25134/nuansa.v16i2.5834','https://doi.org/10.25134/nuansa.v16i2.5834',3,NULL,'2026-05-24 04:46:27'),
+(26,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Pengaruh Pengembangan Karir dan Motivasi Terhadap Kepuasan Kerja Karyawan pada Pengadilan Negeri Bale Bandung','Lies Anggi Puspita Dewi, Mamok Andri Senubekti','Jurnal Study and Management Research',2022,'18','10.55916/smart.v18i1.63','https://doi.org/10.55916/smart.v18i1.63',0,NULL,'2026-05-24 04:46:27'),
+(27,7,'penelitian','jurnal_nasional_terakreditasi','NOTIFIKASI SMS TILANG LAYANAN PENGADILAN (STUDI KASUS: PENGADILAN NEGERI BALE BANDUNG)','Mamok Andri Senubekti','NUANSA INFORMATIKA',2022,'16','10.25134/nuansa.v16i1.4559','https://doi.org/10.25134/nuansa.v16i1.4559',0,NULL,'2026-05-24 04:46:27'),
+(28,7,'penelitian','jurnal_nasional_terakreditasi','PERANCANGAN APLIKASI PENJUALAN ONLINE BERBASIS WEBSITE (STUDI KASUS : Bakso Emsa)','Aldi Emsa Yanuar, Mamok Andri Senubekti','NUANSA INFORMATIKA',2022,'16','10.25134/nuansa.v16i1.4661','https://doi.org/10.25134/nuansa.v16i1.4661',10,NULL,'2026-05-24 04:46:27'),
+(29,7,'penelitian','jurnal_nasional_terakreditasi','PERANCANGAN APLIKASI PENGELOLA KEUANGAN PRIBADI BERBASIS ANDROID','Erga Trivaika, Mamok Andri Senubekti','NUANSA INFORMATIKA',2022,'16','10.25134/nuansa.v16i1.4670','https://doi.org/10.25134/nuansa.v16i1.4670',51,NULL,'2026-05-24 04:46:27'),
+(30,7,'penelitian','jurnal_nasional_terakreditasi','DESIGN OF WEBSITE-BASED SANTRI ATTENDANCE INFORMATION SYSTEM (CASE STUDY: RUMAH YATIM AND TAHFIDZ QUR\'AN MADANI BANDUNG)','Mamok Andri Senubekti, Muhammad Yusron Fathul Islam','BEST Journal of Applied Electrical Science & Technology',2021,'3','10.36456/best.vol3.no2.4221','https://doi.org/10.36456/best.vol3.no2.4221',0,NULL,'2026-05-24 04:46:27'),
+(31,7,'penelitian','jurnal_nasional_terakreditasi','PENGARUH INOVASI DRIP BAG COFFEE PADA PRODUK KOPI SUSU KEMASAN BRAND KOPASUS TERHADAP PENJUALAN DI KEDAI LYTE COFFEE BANDUNG','Lendra Prasasti, Mamok Andri Senubekti','JURNAL PENKOMI KAJIAN PENDIDIKAN DAN EKONOMI',2025,NULL,'10.33627/pk.v8i1.2311','https://doi.org/10.33627/pk.v8i1.2311',0,NULL,'2026-05-24 05:06:33'),
+(32,7,'penelitian','jurnal_nasional_terakreditasi','Penerapan Metode Hybrid Waterfall-RAD pada Sistem Antrian Web untuk Optimalisasi Layanan di Pengadilan Negeri Bale Bandung','Mamok Andri Senubekti, M. Kartawidjaja, Gede Bagia Wijaya Adyana','JOINS (Journal of Information System)',2025,NULL,'10.33633/joins.v10i1.12668','https://doi.org/10.33633/joins.v10i1.12668',0,NULL,'2026-05-24 05:06:33'),
+(33,7,'penelitian','jurnal_nasional_terakreditasi','PERANCANGAN UI/UX APLIKASI MOBILE PANGAUBAN KARINDING DENGAN MENGGUNAKAN FIGMA','Novitasari Ramadhani Lubis, Novita Anggraini, Mamok Andri Senubekti','JURNAL ILMIAH INFORMATIKA',2025,NULL,'10.33884/jif.v13i02.10147','https://doi.org/10.33884/jif.v13i02.10147',0,NULL,'2026-05-24 05:06:33'),
+(34,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Meningkatkan Kualitas Pembelajaran Melalui Media Interaktif Berbasis Multimedia','C. Ramadhan, Mamok Andri Senubekti, Nurdiansyah Nurdiansyah','Jurnal Teknik Mesin, Industri, Elektro dan Informatika',2025,NULL,'10.55606/jtmei.v4i2.5010','https://doi.org/10.55606/jtmei.v4i2.5010',2,NULL,'2026-05-24 05:06:33'),
+(35,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Pengembangan Sistem Pemesanan Layanan Produksi Cetak Mobile Berbasis Web untuk Meningkatkan Efisiensi Operasional (Studi Kasus : Percetakan Dan Sablon Teguh Desain)','Muhammad Syah Farros Mahfudz, Mamok Andri Senubekti, Ari Prasetyawati','Media jurnal informatika',2025,NULL,'10.35194/mji.v17i1.5139','https://doi.org/10.35194/mji.v17i1.5139',1,NULL,'2026-05-24 05:06:33'),
+(36,7,'penelitian','jurnal_nasional_tidak_terakreditasi','Penerapan Metodologi Agile dalam Pengembangan Perangkat Lunak','C. Ramadhan, Mamok Andri Senubekti, Diena Amalia','Router : Jurnal Teknik Informatika dan Terapan',2025,'','10.62951/router.v3i2.411','https://doi.org/10.62951/router.v3i2.411',7,0,'2026-05-24 05:06:33');
 
 /*Table structure for table `rekognisi_lulusan` */
 
@@ -2497,7 +2547,7 @@ CREATE TABLE `users` (
 /*Data for the table `users` */
 
 insert  into `users`(`id`,`username`,`status`,`status_message`,`active`,`last_active`,`created_at`,`updated_at`,`deleted_at`) values 
-(1,'superadmin',NULL,NULL,0,'2026-05-23 18:10:05','2026-05-22 01:13:44','2026-05-22 01:13:44',NULL),
+(1,'superadmin',NULL,NULL,0,'2026-05-24 09:25:37','2026-05-22 01:13:44','2026-05-22 01:13:44',NULL),
 (2,'kaprodi',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:45',NULL),
 (3,'sekprodi',NULL,NULL,0,NULL,'2026-05-22 01:13:45','2026-05-22 01:13:45',NULL),
 (4,'gkm',NULL,NULL,0,NULL,'2026-05-22 01:13:46','2026-05-22 01:13:46',NULL),
