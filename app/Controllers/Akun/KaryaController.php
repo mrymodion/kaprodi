@@ -50,15 +50,15 @@ class KaryaController extends BaseController
         if (!$d) return view('akun/not_linked');
         $model     = new PublikasiModel();
         $list      = $model->listByDosen((int) $d['id']);
-        $unclaimed = $model->listUnclaimedByProdi((int) $d['prodi_id']);
+        $claimable = $model->listClaimableByDosen((int) $d['prodi_id'], (int) $d['id']);
         return view('akun/publikasi/index', [
             'list'      => $list,
-            'unclaimed' => $unclaimed,
+            'claimable' => $claimable,
             'jenis'     => PublikasiModel::JENIS_LABELS,
         ]);
     }
 
-    /** Dosen mengklaim publikasi prodi yang belum dimiliki siapa pun (set dosen_id = dirinya). */
+    /** Dosen mengklaim publikasi prodi sebagai karyanya (boleh karya bersama; banyak dosen per publikasi). */
     public function publikasiKlaim(int $id)
     {
         $d = $this->dosen();
@@ -68,11 +68,11 @@ class KaryaController extends BaseController
         if (!$item || (int) $item['prodi_id'] !== (int) $d['prodi_id']) {
             return redirect()->to(site_url('akun/publikasi'))->with('error', 'Publikasi tidak ditemukan di prodi Anda.');
         }
-        if (!empty($item['dosen_id'])) {
-            return redirect()->to(site_url('akun/publikasi'))->with('error', 'Publikasi ini sudah dimiliki dosen lain.');
+        if ($model->dosenOwns($id, (int) $d['id'])) {
+            return redirect()->to(site_url('akun/publikasi'))->with('error', 'Publikasi ini sudah ada di daftar Anda.');
         }
-        $model->update($id, ['dosen_id' => (int) $d['id']]);
-        return redirect()->to(site_url('akun/publikasi'))->with('success', 'Publikasi diklaim sebagai milik Anda.');
+        $model->attachDosen($id, (int) $d['id']);
+        return redirect()->to(site_url('akun/publikasi'))->with('success', 'Publikasi diklaim sebagai karya Anda.');
     }
 
     public function publikasiCreate()
@@ -96,12 +96,12 @@ class KaryaController extends BaseController
             'kategori','jenis','judul','penulis','nama_media','tahun','volume','doi','url','sitasi','sinta_score',
         ]);
         $data['prodi_id'] = (int) $d['prodi_id'];
-        $data['dosen_id'] = (int) $d['id'];
         if (!$this->validateData($data, $model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
         $data['created_at'] = date('Y-m-d H:i:s');
         $model->insert($data);
+        $model->attachDosen((int) $model->getInsertID(), (int) $d['id']);
         return redirect()->to(site_url('akun/publikasi'))->with('success', 'Publikasi disimpan.');
     }
 
@@ -111,7 +111,7 @@ class KaryaController extends BaseController
         if (!$d) return view('akun/not_linked');
         $model = new PublikasiModel();
         $item = $model->find($id);
-        if (!$item || (int) $item['dosen_id'] !== (int) $d['id']) {
+        if (!$item || !$model->dosenOwns($id, (int) $d['id'])) {
             return redirect()->to(site_url('akun/publikasi'))->with('error', 'Publikasi tidak ditemukan / bukan milik Anda.');
         }
         return view('tridharma/publikasi/form_pub', [
@@ -128,14 +128,13 @@ class KaryaController extends BaseController
         if (!$d) return view('akun/not_linked');
         $model = new PublikasiModel();
         $item = $model->find($id);
-        if (!$item || (int) $item['dosen_id'] !== (int) $d['id']) {
+        if (!$item || !$model->dosenOwns($id, (int) $d['id'])) {
             return redirect()->to(site_url('akun/publikasi'))->with('error', 'Bukan milik Anda.');
         }
         $data = $this->request->getPost([
             'kategori','jenis','judul','penulis','nama_media','tahun','volume','doi','url','sitasi','sinta_score',
         ]);
         $data['prodi_id'] = (int) $item['prodi_id'];
-        $data['dosen_id'] = (int) $d['id'];
         if (!$this->validateData($data, $model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -149,10 +148,18 @@ class KaryaController extends BaseController
         if (!$d) return view('akun/not_linked');
         $model = new PublikasiModel();
         $item = $model->find($id);
-        if ($item && (int) $item['dosen_id'] === (int) $d['id']) {
-            $model->delete($id);
+        if (!$item || !$model->dosenOwns($id, (int) $d['id'])) {
+            return redirect()->to(site_url('akun/publikasi'))->with('error', 'Bukan milik Anda.');
         }
-        return redirect()->to(site_url('akun/publikasi'))->with('success', 'Publikasi dihapus.');
+        // Karya bersama: cukup lepaskan kepemilikan Anda. Bila Anda satu-satunya pemilik, hapus record.
+        $model->detachDosen($id, (int) $d['id']);
+        $msg = 'Publikasi dihapus.';
+        if ($model->dosenCount($id) === 0) {
+            $model->delete($id);
+        } else {
+            $msg = 'Publikasi dilepas dari daftar Anda (masih dimiliki dosen lain).';
+        }
+        return redirect()->to(site_url('akun/publikasi'))->with('success', $msg);
     }
 
     public function publikasiCari()
@@ -189,7 +196,7 @@ class KaryaController extends BaseController
             return $this->response->setJSON(['ok' => false, 'error' => $res['error'] ?? 'Pencarian gagal.']);
         }
 
-        [$existDoi, $existTitle] = $this->existingKeys((int) $d['id']);
+        [$existDoi, $existTitle] = $this->ownedKeys((int) $d['id']);
         foreach ($res['items'] as &$it) {
             $doiKey = strtolower(trim($it['doi']));
             $titleKey = $this->normTitle($it['judul']);
@@ -215,8 +222,9 @@ class KaryaController extends BaseController
         $model = new PublikasiModel();
         $allowed = array_keys(PublikasiModel::JENIS_LABELS);
         $now = date('Y-m-d H:i:s');
-        [$seenDoi, $seenTitle] = $this->existingKeys((int) $d['id']);
-        $imported = 0; $skipped = 0;
+        // Peta judul/DOI → id publikasi yang sudah ada di prodi (untuk attach ke karya bersama, bukan duplikat).
+        [$doiMap, $titleMap] = $this->prodiKeyMap((int) $d['prodi_id']);
+        $imported = 0; $linked = 0; $skipped = 0;
 
         foreach ($rows as $r) {
             if (empty($r['sel'])) continue;
@@ -225,15 +233,25 @@ class KaryaController extends BaseController
             $doi = trim((string) ($r['doi'] ?? ''));
             $doiKey = strtolower($doi);
             $titleKey = $this->normTitle($judul);
-            if (($doiKey !== '' && isset($seenDoi[$doiKey])) || ($titleKey !== '' && isset($seenTitle[$titleKey]))) {
-                $skipped++; continue;
+
+            // Sudah ada di prodi? Tautkan dosen ini ke record yang ada (karya bersama).
+            $existingId = ($doiKey !== '' && isset($doiMap[$doiKey])) ? $doiMap[$doiKey]
+                : (($titleKey !== '' && isset($titleMap[$titleKey])) ? $titleMap[$titleKey] : 0);
+            if ($existingId > 0) {
+                if ($model->dosenOwns($existingId, (int) $d['id'])) {
+                    $skipped++;
+                } else {
+                    $model->attachDosen($existingId, (int) $d['id']);
+                    $linked++;
+                }
+                continue;
             }
+
             $jenis = (string) ($r['jenis'] ?? '');
             if (!in_array($jenis, $allowed, true)) $jenis = 'jurnal_internasional';
 
             $model->insert([
                 'prodi_id'   => (int) $d['prodi_id'],
-                'dosen_id'   => (int) $d['id'],
                 'kategori'   => 'penelitian',
                 'jenis'      => $jenis,
                 'judul'      => $judul,
@@ -246,26 +264,46 @@ class KaryaController extends BaseController
                 'sitasi'     => (int) ($r['sitasi'] ?? 0),
                 'created_at' => $now,
             ]);
-            if ($doiKey !== '')   $seenDoi[$doiKey] = true;
-            if ($titleKey !== '') $seenTitle[$titleKey] = true;
+            $newId = (int) $model->getInsertID();
+            $model->attachDosen($newId, (int) $d['id']);
+            if ($doiKey !== '')   $doiMap[$doiKey] = $newId;
+            if ($titleKey !== '') $titleMap[$titleKey] = $newId;
             $imported++;
         }
-        if ($imported === 0 && $skipped === 0) {
+        if ($imported === 0 && $linked === 0 && $skipped === 0) {
             return redirect()->to(site_url('akun/publikasi/cari'))->with('error', 'Tidak ada publikasi yang dipilih.');
         }
-        $msg = "{$imported} publikasi diimpor" . ($skipped ? ", {$skipped} dilewati (duplikat/tidak valid)" : '') . '. Harap verifikasi.';
+        $parts = [];
+        if ($imported) $parts[] = "{$imported} publikasi diimpor";
+        if ($linked)   $parts[] = "{$linked} ditautkan ke karya yang sudah ada";
+        if ($skipped)  $parts[] = "{$skipped} dilewati (duplikat/tidak valid)";
+        $msg = implode(', ', $parts) . '. Harap verifikasi.';
         return redirect()->to(site_url('akun/publikasi'))->with('success', $msg);
     }
 
-    /** @return array{0:array<string,true>,1:array<string,true>} */
-    private function existingKeys(int $dosenId): array
+    /** Kunci DOI & judul publikasi yang dimiliki dosen (via pivot) — untuk menandai item yang sudah ada. */
+    private function ownedKeys(int $dosenId): array
     {
         $doi = []; $title = [];
-        foreach ((new PublikasiModel())->select('doi, judul')->where('dosen_id', $dosenId)->findAll() as $r) {
+        foreach ((new PublikasiModel())->listByDosen($dosenId) as $r) {
             $dd = strtolower(trim((string) ($r['doi'] ?? '')));
             if ($dd !== '') $doi[$dd] = true;
             $tt = $this->normTitle((string) ($r['judul'] ?? ''));
             if ($tt !== '') $title[$tt] = true;
+        }
+        return [$doi, $title];
+    }
+
+    /** Peta DOI→id dan judul-ternormalisasi→id seluruh publikasi prodi (untuk attach karya bersama saat impor). */
+    private function prodiKeyMap(int $prodiId): array
+    {
+        $doi = []; $title = [];
+        foreach ((new PublikasiModel())->select('id, doi, judul')->where('prodi_id', $prodiId)->findAll() as $r) {
+            $id = (int) $r['id'];
+            $dd = strtolower(trim((string) ($r['doi'] ?? '')));
+            if ($dd !== '') $doi[$dd] = $id;
+            $tt = $this->normTitle((string) ($r['judul'] ?? ''));
+            if ($tt !== '') $title[$tt] = $id;
         }
         return [$doi, $title];
     }

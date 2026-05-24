@@ -79,8 +79,9 @@ class PublikasiController extends BaseController
         $hkiSum   = $prodiId ? $this->hkiModel->summaryByProdi($prodiId) : [];
 
         $dosenList = $prodiId ? (new DosenModel())->listByProdi($prodiId) : [];
+        $ownerMap  = $pubList ? $this->model->dosenIdsForMany(array_column($pubList, 'id')) : [];
 
-        return view('tridharma/publikasi/index', compact('pubList', 'hkiList', 'pubSum', 'hkiSum', 'prodiId', 'kategori', 'dosenList'));
+        return view('tridharma/publikasi/index', compact('pubList', 'hkiList', 'pubSum', 'hkiSum', 'prodiId', 'kategori', 'dosenList', 'ownerMap'));
     }
 
     public function createPublikasi(): string
@@ -257,8 +258,25 @@ class PublikasiController extends BaseController
         return redirect()->to(site_url('publikasi'))->with('success', $msg);
     }
 
-    /** Tetapkan (atau lepas) dosen pemilik sebuah publikasi prodi. */
-    public function tetapkanDosen(int $id)
+    /** Halaman atur dosen pemilik (boleh lebih dari satu — karya bersama) sebuah publikasi. */
+    public function pemilikPublikasi(int $id): string|\CodeIgniter\HTTP\RedirectResponse
+    {
+        $prodiId = $this->getProdiId();
+        $item = $this->model->find($id);
+        if (!$item || ($prodiId && (int) $item['prodi_id'] !== (int) $prodiId)) {
+            return redirect()->to(site_url('publikasi') . '#tab-pub')->with('error', 'Publikasi tidak ditemukan di prodi aktif.');
+        }
+        $dosenList = (new DosenModel())->listByProdi((int) $item['prodi_id']);
+        $owners    = $this->model->dosenIdsForMany([$id])[$id] ?? [];
+        return view('tridharma/publikasi/pemilik', [
+            'item'      => $item,
+            'dosenList' => $dosenList,
+            'owners'    => $owners,
+        ]);
+    }
+
+    /** Simpan daftar dosen pemilik publikasi (many-to-many via pivot). */
+    public function simpanPemilik(int $id)
     {
         $prodiId = $this->getProdiId();
         $item = $this->model->find($id);
@@ -266,16 +284,19 @@ class PublikasiController extends BaseController
             return redirect()->to(site_url('publikasi') . '#tab-pub')->with('error', 'Publikasi tidak ditemukan di prodi aktif.');
         }
 
-        $dosenId = (int) $this->request->getPost('dosen_id');
-        if ($dosenId > 0) {
-            $dosen = (new DosenModel())->find($dosenId);
-            if (!$dosen || (int) $dosen['prodi_id'] !== (int) $item['prodi_id']) {
-                return redirect()->to(site_url('publikasi') . '#tab-pub')->with('error', 'Dosen tidak valid untuk prodi ini.');
-            }
+        $ids = (array) ($this->request->getPost('dosen_ids') ?? []);
+        // Hanya terima dosen dari prodi yang sama.
+        $valid = [];
+        if ($ids) {
+            $rows = (new DosenModel())->select('id')
+                ->where('prodi_id', (int) $item['prodi_id'])
+                ->whereIn('id', array_map('intval', $ids))->findAll();
+            $valid = array_column($rows, 'id');
         }
+        $this->model->syncDosen($id, $valid);
 
-        $this->model->update($id, ['dosen_id' => $dosenId > 0 ? $dosenId : null]);
-        $msg = $dosenId > 0 ? 'Publikasi ditetapkan ke dosen.' : 'Kepemilikan dosen dilepas.';
+        $n = count($valid);
+        $msg = $n > 0 ? "Pemilik publikasi diperbarui ({$n} dosen)." : 'Semua kepemilikan dosen dilepas.';
         return redirect()->to(site_url('publikasi') . '#tab-pub')->with('success', $msg);
     }
 

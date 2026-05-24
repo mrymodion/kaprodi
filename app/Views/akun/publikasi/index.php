@@ -53,20 +53,20 @@
     </div>
 </div>
 
-<?php if (!empty($unclaimed)): ?>
+<?php if (!empty($claimable)): ?>
 <div class="card mt-4 border-warning">
     <div class="card-header bg-warning-subtle fw-semibold">
-        <i class="bi bi-inbox"></i> Publikasi Prodi Belum Bertuan (<?= count($unclaimed) ?>)
+        <i class="bi bi-inbox"></i> Publikasi Prodi yang Bisa Anda Klaim (<?= count($claimable) ?>)
     </div>
     <div class="card-body">
-        <p class="small text-muted mb-3">Publikasi berikut sudah ada di data prodi (mis. diimpor oleh admin) tetapi belum ditautkan ke dosen mana pun. Klik <strong>Klaim</strong> pada yang merupakan karya Anda agar muncul di daftar publikasi Anda.</p>
+        <p class="small text-muted mb-3">Publikasi berikut ada di data prodi tetapi belum ada di daftar Anda. Klik <strong>Klaim</strong> pada yang merupakan karya Anda (termasuk karya bersama) agar muncul di daftar publikasi Anda. Satu publikasi boleh diklaim beberapa dosen penulis.</p>
         <div class="table-responsive">
             <table class="table table-hover table-sm mb-0 align-middle">
                 <thead class="table-light">
-                    <tr><th>#</th><th>Judul</th><th>Penulis</th><th>Media / Tahun</th><th></th></tr>
+                    <tr><th>#</th><th>Judul</th><th>Penulis</th><th>Media / Tahun</th><th class="text-center">Pemilik</th><th></th></tr>
                 </thead>
                 <tbody>
-                <?php foreach ($unclaimed as $i => $p): ?>
+                <?php foreach ($claimable as $i => $p): ?>
                     <tr>
                         <td><?= $i + 1 ?></td>
                         <td>
@@ -75,8 +75,16 @@
                         </td>
                         <td><small><?= esc($p['penulis'] ?? '') ?></small></td>
                         <td><small><?= esc($p['nama_media'] ?? '') ?><?= $p['tahun'] ? ' (' . $p['tahun'] . ')' : '' ?></small></td>
+                        <td class="text-center">
+                            <?php $jml = (int) ($p['jml_pemilik'] ?? 0); ?>
+                            <?php if ($jml > 0): ?>
+                                <span class="badge bg-secondary" title="Sudah diklaim <?= $jml ?> dosen lain"><?= $jml ?> dosen</span>
+                            <?php else: ?>
+                                <span class="text-muted small">—</span>
+                            <?php endif ?>
+                        </td>
                         <td class="text-end text-nowrap">
-                            <form method="post" action="<?= site_url("akun/publikasi/{$p['id']}/klaim") ?>" class="d-inline" onsubmit="return confirm('Klaim publikasi ini sebagai milik Anda?')">
+                            <form method="post" action="<?= site_url("akun/publikasi/{$p['id']}/klaim") ?>" class="d-inline" onsubmit="return confirm('Klaim publikasi ini sebagai karya Anda?')">
                                 <?= csrf_field() ?>
                                 <button class="btn btn-sm btn-outline-success py-0 px-2"><i class="bi bi-hand-index"></i> Klaim</button>
                             </form>
