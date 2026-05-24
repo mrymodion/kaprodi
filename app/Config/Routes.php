@@ -215,6 +215,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('cari',                'Tridharma\PublikasiController::cariPublikasi');
         $routes->post('cari/search',        'Tridharma\PublikasiController::searchPublikasi');
         $routes->post('cari/import',        'Tridharma\PublikasiController::importPublikasi');
+        $routes->post('sitasi/update',      'Tridharma\PublikasiController::updateSitasi');
         $routes->get('create',              'Tridharma\PublikasiController::createPublikasi');
         $routes->post('store',              'Tridharma\PublikasiController::storePublikasi');
         $routes->get('(:num)/edit',         'Tridharma\PublikasiController::editPublikasi/$1');

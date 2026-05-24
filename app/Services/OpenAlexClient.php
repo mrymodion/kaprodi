@@ -69,6 +69,55 @@ class OpenAlexClient
         return ['ok' => true, 'items' => $items];
     }
 
+    /**
+     * Ambil jumlah sitasi terkini untuk sekumpulan DOI.
+     *
+     * @param string[] $dois daftar DOI (bare, mis. "10.1000/xyz")
+     * @return array<string,int> peta DOI-lowercase => jumlah sitasi (hanya yang ditemukan)
+     */
+    public function citationsByDois(array $dois): array
+    {
+        $dois = array_values(array_unique(array_filter(array_map(
+            fn ($d) => strtolower(trim((string) $d)),
+            $dois
+        ))));
+        if ($dois === []) {
+            return [];
+        }
+
+        $mailto = (string) (env('openalex.mailto') ?: env('email.fromEmail') ?: '');
+        $client = \Config\Services::curlrequest(['timeout' => 25, 'http_errors' => false]);
+        $out = [];
+
+        // OpenAlex membatasi ~50 nilai per filter OR; proses per-batch.
+        foreach (array_chunk($dois, 50) as $chunk) {
+            $query = [
+                'filter'   => 'doi:' . implode('|', $chunk),
+                'per-page' => 50,
+                'select'   => 'doi,cited_by_count',
+            ];
+            if ($mailto !== '') {
+                $query['mailto'] = $mailto;
+            }
+            try {
+                $res = $client->get(self::BASE, ['query' => $query]);
+                if ($res->getStatusCode() !== 200) {
+                    continue;
+                }
+                $json = json_decode($res->getBody(), true);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            foreach ($json['results'] ?? [] as $w) {
+                $doi = strtolower(preg_replace('#^https?://(dx\.)?doi\.org/#i', '', (string) ($w['doi'] ?? '')));
+                if ($doi !== '') {
+                    $out[$doi] = (int) ($w['cited_by_count'] ?? 0);
+                }
+            }
+        }
+        return $out;
+    }
+
     /** Ubah satu objek "work" OpenAlex menjadi baris siap impor ke tabel publikasi. */
     private function normalize(array $w): array
     {

@@ -255,6 +255,59 @@ class PublikasiController extends BaseController
         return redirect()->to(site_url('publikasi'))->with('success', $msg);
     }
 
+    public function updateSitasi()
+    {
+        $prodiId = $this->getProdiId();
+        if (!$prodiId) {
+            return redirect()->to(site_url('publikasi'))->with('error', 'Prodi aktif belum dipilih.');
+        }
+
+        $rows = $this->model->select('id, doi, sitasi')
+            ->where('prodi_id', $prodiId)
+            ->where('doi !=', '')
+            ->where('doi IS NOT NULL')
+            ->findAll();
+
+        $tanpaDoi = $this->model->where('prodi_id', $prodiId)
+            ->groupStart()->where('doi', null)->orWhere('doi', '')->groupEnd()
+            ->countAllResults();
+
+        if ($rows === []) {
+            $extra = $tanpaDoi ? " ({$tanpaDoi} publikasi tanpa DOI tidak bisa dicocokkan otomatis)" : '';
+            return redirect()->to(site_url('publikasi'))->with('error', 'Tidak ada publikasi ber-DOI untuk diperbarui.' . $extra);
+        }
+
+        $byDoi = [];
+        foreach ($rows as $r) {
+            $byDoi[strtolower(trim((string) $r['doi']))][] = $r;
+        }
+
+        $counts = (new OpenAlexClient())->citationsByDois(array_keys($byDoi));
+
+        $updated = 0; $unchanged = 0; $notFound = 0;
+        foreach ($byDoi as $doi => $pubs) {
+            if (!array_key_exists($doi, $counts)) {
+                $notFound += count($pubs);
+                continue;
+            }
+            foreach ($pubs as $p) {
+                if ((int) $p['sitasi'] === $counts[$doi]) {
+                    $unchanged++;
+                    continue;
+                }
+                $this->model->update($p['id'], ['sitasi' => $counts[$doi]]);
+                $updated++;
+            }
+        }
+
+        $parts = ["{$updated} diperbarui"];
+        if ($unchanged) $parts[] = "{$unchanged} sudah sama";
+        if ($notFound)  $parts[] = "{$notFound} DOI tak ditemukan di OpenAlex";
+        if ($tanpaDoi)  $parts[] = "{$tanpaDoi} tanpa DOI (lengkapi manual)";
+
+        return redirect()->to(site_url('publikasi'))->with('success', 'Sitasi: ' . implode(', ', $parts) . '.');
+    }
+
     // ---------- HKI ----------
 
     public function createHki(): string
