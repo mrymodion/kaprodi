@@ -40,6 +40,8 @@
                             <td>
                                 <?php if ($f[1] === 'ta'): ?>
                                     <?= esc($row['ta_kode'] ?? '-') ?>
+                                <?php elseif ($f[1] === 'dosen'): ?>
+                                    <?= !empty($row['dosen_nama']) ? esc($row['dosen_nama']) : '<span class="text-muted">-</span>' ?>
                                 <?php elseif ($f[1] === 'select'): ?>
                                     <?= esc($f[3][$row[$name]] ?? ($row[$name] ?? '-')) ?>
                                 <?php elseif ($f[1] === 'file'): ?>

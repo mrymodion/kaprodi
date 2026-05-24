@@ -72,6 +72,7 @@ class BorangController extends BaseController
             'fields' => [
                 'tahun_akademik_id'  => ['Tahun Akademik', 'ta', false],
                 'nama_dtpr'          => ['Nama DTPR', 'text', true],
+                'dosen_id'           => ['Tautkan ke Dosen', 'dosen', false],
                 'jenis_pengembangan' => ['Jenis Pengembangan', 'text', true],
                 'jumlah'             => ['Jumlah', 'number', false],
                 'link_bukti'         => ['Bukti (PDF)', 'file', false],
@@ -119,6 +120,23 @@ class BorangController extends BaseController
         return Database::connect()->table('tahun_akademik')->orderBy('tahun_mulai DESC')->get()->getResultArray();
     }
 
+    private function dosenList(int $prodiId): array
+    {
+        if (!$prodiId) return [];
+        return Database::connect()->table('dosen')
+            ->select('id, nama, gelar_depan, gelar_belakang, nidn')
+            ->where(['prodi_id' => $prodiId, 'aktif' => 1])->orderBy('nama')->get()->getResultArray();
+    }
+
+    /** Nama field bertipe 'dosen' pada definisi (atau null). */
+    private function dosenField(array $def): ?string
+    {
+        foreach ($def['fields'] as $name => $f) {
+            if (($f[1] ?? '') === 'dosen') return $name;
+        }
+        return null;
+    }
+
     public function index(string $slug): string
     {
         $def     = $this->def($slug);
@@ -126,12 +144,16 @@ class BorangController extends BaseController
         $list    = [];
         if ($prodiId) {
             $q = Database::connect()->table($def['table'] . ' t')->where('t.prodi_id', $prodiId);
+            $sel = 't.*';
             if (isset($def['fields']['tahun_akademik_id'])) {
-                $q->select('t.*, ta.kode AS ta_kode')->join('tahun_akademik ta', 'ta.id = t.tahun_akademik_id', 'left');
-            } else {
-                $q->select('t.*');
+                $sel .= ', ta.kode AS ta_kode';
+                $q->join('tahun_akademik ta', 'ta.id = t.tahun_akademik_id', 'left');
             }
-            $list = $q->orderBy('t.id', 'DESC')->get()->getResultArray();
+            if ($df = $this->dosenField($def)) {
+                $sel .= ", TRIM(CONCAT(COALESCE(d.gelar_depan,''), ' ', COALESCE(d.nama,''))) AS dosen_nama";
+                $q->join('dosen d', "d.id = t.{$df}", 'left');
+            }
+            $list = $q->select($sel)->orderBy('t.id', 'DESC')->get()->getResultArray();
         }
         return view('borang/index', ['slug' => $slug, 'def' => $def, 'list' => $list]);
     }
@@ -139,7 +161,7 @@ class BorangController extends BaseController
     public function create(string $slug): string
     {
         $def = $this->def($slug);
-        return view('borang/form', ['slug' => $slug, 'def' => $def, 'item' => null, 'taList' => $this->taList()]);
+        return view('borang/form', ['slug' => $slug, 'def' => $def, 'item' => null, 'taList' => $this->taList(), 'dosenList' => $this->dosenList($this->prodiId())]);
     }
 
     public function store(string $slug)
@@ -164,7 +186,7 @@ class BorangController extends BaseController
         $def  = $this->def($slug);
         $item = Database::connect()->table($def['table'])->where('id', $id)->get()->getRowArray();
         if (!$item) throw new \CodeIgniter\Exceptions\PageNotFoundException();
-        return view('borang/form', ['slug' => $slug, 'def' => $def, 'item' => $item, 'taList' => $this->taList()]);
+        return view('borang/form', ['slug' => $slug, 'def' => $def, 'item' => $item, 'taList' => $this->taList(), 'dosenList' => $this->dosenList((int) $item['prodi_id'])]);
     }
 
     public function update(string $slug, int $id)
@@ -198,8 +220,8 @@ class BorangController extends BaseController
             $type = $f[1];
             if ($type === 'file') continue; // ditangani applyFiles()
             $val = $this->request->getPost($name);
-            if ($type === 'number' || $type === 'ta') {
-                $data[$name] = ($val !== null && $val !== '') ? (int) $val : ($type === 'ta' ? null : 0);
+            if ($type === 'number' || $type === 'ta' || $type === 'dosen') {
+                $data[$name] = ($val !== null && $val !== '') ? (int) $val : ($type === 'number' ? 0 : null);
             } else {
                 $data[$name] = trim((string) $val) !== '' ? trim((string) $val) : null;
             }

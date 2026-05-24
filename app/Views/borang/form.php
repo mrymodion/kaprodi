@@ -48,6 +48,15 @@
                                 <option value="<?= $ta['id'] ?>" <?= (int)$val === (int)$ta['id'] ? 'selected' : '' ?>><?= esc($ta['kode']) ?></option>
                             <?php endforeach ?>
                         </select>
+                    <?php elseif ($f[1] === 'dosen'): ?>
+                        <select name="<?= $name ?>" class="form-select">
+                            <option value="">— belum ditautkan —</option>
+                            <?php foreach (($dosenList ?? []) as $d): ?>
+                                <?php $dn = trim(($d['gelar_depan'] ? $d['gelar_depan'] . ' ' : '') . $d['nama'] . ($d['gelar_belakang'] ? ', ' . $d['gelar_belakang'] : '')); ?>
+                                <option value="<?= (int) $d['id'] ?>" <?= (int)$val === (int)$d['id'] ? 'selected' : '' ?>><?= esc($dn) ?></option>
+                            <?php endforeach ?>
+                        </select>
+                        <small class="text-muted">Menautkan ke dosen membuat data ini tampil di akun dosen ybs & terhitung pada keterlibatan DTPR.</small>
                     <?php elseif ($f[1] === 'select'): ?>
                         <select name="<?= $name ?>" class="form-select">
                             <?php if (!$req): ?><option value="">—</option><?php endif ?>
