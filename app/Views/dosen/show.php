@@ -136,6 +136,14 @@
     <div class="card mt-4">
         <div class="card-header bg-white fw-semibold"><i class="bi bi-person-lock"></i> Akun Login Dosen</div>
         <div class="card-body">
+            <?php if (session('success')): ?>
+                <div class="alert alert-success alert-dismissible fade show py-2 mb-3"><i class="bi bi-check-circle"></i> <?= esc(session('success')) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            <?php endif ?>
+            <?php if (session('error')): ?>
+                <div class="alert alert-danger alert-dismissible fade show py-2 mb-3"><?= esc(session('error')) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            <?php endif ?>
             <?php if (!empty($dosen['user_id'])): ?>
                 <p class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Dosen ini sudah memiliki akun login (peran <span class="badge bg-info">dosen</span>). Dosen dapat masuk dan memutakhirkan datanya sendiri.</p>
                 <form method="post" action="<?= site_url("dosen/{$dosen['id']}/akun/reset") ?>" class="d-inline" onsubmit="return confirm('Reset password akun dosen ini?')">
@@ -146,11 +154,20 @@
                 <?php if (empty($dosen['email'])): ?>
                     <p class="text-danger mb-0"><i class="bi bi-exclamation-circle"></i> Lengkapi <strong>email</strong> dosen terlebih dahulu (dipakai untuk login), lalu buat akun di sini.</p>
                 <?php else: ?>
-                    <p class="mb-2 small text-muted">Buat akun login agar dosen dapat memutakhirkan profil, publikasi, penelitian/PkM, dan dokumennya sendiri. Email login: <strong><?= esc($dosen['email']) ?></strong>.</p>
-                    <form method="post" action="<?= site_url("dosen/{$dosen['id']}/akun") ?>" class="d-inline" onsubmit="return confirm('Buat akun login untuk dosen ini?')">
-                        <?= csrf_field() ?>
-                        <button class="btn btn-sm btn-primary"><i class="bi bi-person-plus"></i> Buat Akun Login</button>
-                    </form>
+                    <p class="mb-2 small text-muted">Buat akun baru atau tautkan akun yang sudah ada. Email login: <strong><?= esc($dosen['email']) ?></strong>.</p>
+                    <div class="d-flex flex-wrap gap-2 align-items-start">
+                        <form method="post" action="<?= site_url("dosen/{$dosen['id']}/akun") ?>" onsubmit="return confirm('Buat akun login untuk dosen ini?')">
+                            <?= csrf_field() ?>
+                            <button class="btn btn-sm btn-primary"><i class="bi bi-person-plus"></i> Buat Akun Baru</button>
+                        </form>
+                        <div class="vr d-none d-sm-block"></div>
+                        <form method="post" action="<?= site_url("dosen/{$dosen['id']}/akun/tautkan") ?>" class="d-flex gap-2 align-items-center flex-wrap">
+                            <?= csrf_field() ?>
+                            <input type="text" name="username_or_email" class="form-control form-control-sm" style="width:200px" placeholder="Username atau email akun" required>
+                            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-link-45deg"></i> Tautkan Akun yang Ada</button>
+                        </form>
+                    </div>
+                    <div class="form-text mt-1">Gunakan "Tautkan" jika dosen sudah punya akun login (mis. sebagai kaprodi) dan ingin akunnya dikaitkan ke data dosen ini.</div>
                 <?php endif ?>
             <?php endif ?>
         </div>
