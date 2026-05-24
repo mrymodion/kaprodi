@@ -133,10 +133,43 @@ class AiController extends BaseController
 
     private function extractJson(string $raw): ?array
     {
-        if (preg_match('/\{.*\}/s', $raw, $m)) {
-            $d = json_decode($m[0], true);
-            return is_array($d) ? $d : null;
+        if (!preg_match('/\{.*\}/s', $raw, $m)) {
+            return null;
         }
-        return null;
+        $jsonStr = $m[0];
+        $d = json_decode($jsonStr, true);
+        if (is_array($d)) {
+            return $d;
+        }
+        // Model sering menaruh baris-baru/tab MENTAH di dalam nilai string
+        // (mis. misi/tujuan poin per baris), yang membuat JSON tidak valid.
+        // Escape karakter kontrol di dalam string lalu coba decode lagi.
+        $d = json_decode($this->escapeControlInStrings($jsonStr), true);
+        return is_array($d) ? $d : null;
+    }
+
+    /** Escape karakter kontrol mentah (newline/CR/tab) yang berada di dalam nilai string JSON. */
+    private function escapeControlInStrings(string $s): string
+    {
+        $out = '';
+        $inStr = false;
+        $esc = false;
+        $len = strlen($s);
+        for ($i = 0; $i < $len; $i++) {
+            $c = $s[$i];
+            if ($inStr) {
+                if ($esc) { $out .= $c; $esc = false; continue; }
+                if ($c === '\\') { $out .= $c; $esc = true; continue; }
+                if ($c === '"') { $out .= $c; $inStr = false; continue; }
+                if ($c === "\n") { $out .= '\\n'; continue; }
+                if ($c === "\r") { $out .= '\\r'; continue; }
+                if ($c === "\t") { $out .= '\\t'; continue; }
+                $out .= $c;
+            } else {
+                $out .= $c;
+                if ($c === '"') { $inStr = true; }
+            }
+        }
+        return $out;
     }
 }
