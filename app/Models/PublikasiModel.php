@@ -130,19 +130,18 @@ class PublikasiModel extends AppModel
         $q = $this->where('prodi_id', $prodiId)->orderBy('tahun DESC, judul ASC');
         if ($kategori) $q->where('kategori', $kategori);
         if ($onlyUnclaimed) {
-            $q->whereNotIn('id', function ($builder) {
-                return $builder->select('DISTINCT publikasi_id')->from('publikasi_dosen');
-            });
+            $sub = \Config\Database::connect()->table('publikasi_dosen')->select('publikasi_id')->getCompiledSelect();
+            $q->where("publikasi.id NOT IN ({$sub})", null, false);
         }
         return $q->findAll();
     }
 
     public function countUnclaimedByProdi(int $prodiId): int
     {
+        $sub = \Config\Database::connect()->table('publikasi_dosen')->select('publikasi_id')->getCompiledSelect();
         return (int) $this->where('prodi_id', $prodiId)
-            ->whereNotIn('id', function ($builder) {
-                return $builder->select('DISTINCT publikasi_id')->from('publikasi_dosen');
-            })->countAllResults();
+            ->where("id NOT IN ({$sub})", null, false)
+            ->countAllResults();
     }
 
     public function summaryByProdi(int $prodiId): array
