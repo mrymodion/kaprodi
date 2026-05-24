@@ -96,6 +96,7 @@ class KaryaController extends BaseController
             'kategori','jenis','judul','penulis','nama_media','tahun','volume','doi','url','sitasi','sinta_score',
         ]);
         $data['prodi_id'] = (int) $d['prodi_id'];
+        $data['doi']      = PublikasiModel::normDoi($data['doi'] ?? '') ?: null;
         if (!$this->validateData($data, $model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -135,6 +136,7 @@ class KaryaController extends BaseController
             'kategori','jenis','judul','penulis','nama_media','tahun','volume','doi','url','sitasi','sinta_score',
         ]);
         $data['prodi_id'] = (int) $item['prodi_id'];
+        $data['doi']      = PublikasiModel::normDoi($data['doi'] ?? '') ?: null;
         if (!$this->validateData($data, $model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -198,7 +200,7 @@ class KaryaController extends BaseController
 
         [$existDoi, $existTitle] = $this->ownedKeys((int) $d['id']);
         foreach ($res['items'] as &$it) {
-            $doiKey = strtolower(trim($it['doi']));
+            $doiKey = PublikasiModel::normDoi($it['doi']);
             $titleKey = $this->normTitle($it['judul']);
             $it['exists'] = ($doiKey !== '' && isset($existDoi[$doiKey])) || ($titleKey !== '' && isset($existTitle[$titleKey]));
         }
@@ -230,8 +232,8 @@ class KaryaController extends BaseController
             if (empty($r['sel'])) continue;
             $judul = trim((string) ($r['judul'] ?? ''));
             if (strlen($judul) < 5) { $skipped++; continue; }
-            $doi = trim((string) ($r['doi'] ?? ''));
-            $doiKey = strtolower($doi);
+            $doi = PublikasiModel::normDoi($r['doi'] ?? '');
+            $doiKey = $doi;
             $titleKey = $this->normTitle($judul);
 
             // Sudah ada di prodi? Tautkan dosen ini ke record yang ada (karya bersama).
@@ -286,7 +288,7 @@ class KaryaController extends BaseController
     {
         $doi = []; $title = [];
         foreach ((new PublikasiModel())->listByDosen($dosenId) as $r) {
-            $dd = strtolower(trim((string) ($r['doi'] ?? '')));
+            $dd = PublikasiModel::normDoi($r['doi'] ?? '');
             if ($dd !== '') $doi[$dd] = true;
             $tt = $this->normTitle((string) ($r['judul'] ?? ''));
             if ($tt !== '') $title[$tt] = true;
@@ -300,7 +302,7 @@ class KaryaController extends BaseController
         $doi = []; $title = [];
         foreach ((new PublikasiModel())->select('id, doi, judul')->where('prodi_id', $prodiId)->findAll() as $r) {
             $id = (int) $r['id'];
-            $dd = strtolower(trim((string) ($r['doi'] ?? '')));
+            $dd = PublikasiModel::normDoi($r['doi'] ?? '');
             if ($dd !== '') $doi[$dd] = $id;
             $tt = $this->normTitle((string) ($r['judul'] ?? ''));
             if ($tt !== '') $title[$tt] = $id;
