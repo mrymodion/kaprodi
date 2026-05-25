@@ -47,6 +47,16 @@ trait ExcelImport
         if (!$file || !$file->isValid()) return 'File tidak valid. Unggah file Excel (.xlsx).';
         $ext = strtolower($file->getClientExtension() ?: $file->getExtension());
         if (!in_array($ext, ['xlsx', 'xls'], true)) return 'Format harus .xlsx atau .xls.';
+
+        // Verifikasi magic bytes agar file tidak sekadar di-rename ke .xlsx/.xls.
+        $fh   = @fopen($file->getTempName(), 'rb');
+        $head = $fh ? fread($fh, 8) : '';
+        if ($fh) fclose($fh);
+        $isZip = strncmp($head, "PK", 2) === 0;                                   // xlsx = arsip ZIP
+        $isOle = strncmp($head, "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1", 8) === 0;      // xls  = OLE2
+        if (($ext === 'xlsx' && !$isZip) || ($ext === 'xls' && !$isOle)) {
+            return 'Berkas yang diunggah bukan file Excel yang sah.';
+        }
         try {
             $ss = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getTempName());
         } catch (\Throwable $e) {
