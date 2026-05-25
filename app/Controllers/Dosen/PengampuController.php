@@ -66,15 +66,18 @@ class PengampuController extends BaseController
         }
 
         return view('dosen/pengampu/index', [
-            'dosen'  => $dosen,
-            'rekap'  => $rekap,
-            'taId'   => $taId,
-            'taList' => $this->taList(),
-            'kop'    => $this->kopDataUri(),
+            'dosen'    => $dosen,
+            'rekap'    => $rekap,
+            'taId'     => $taId,
+            'taList'   => $this->taList(),
+            'kopAtas'  => $this->kopDataUri('kop_path'),
+            'kopBawah' => $this->kopDataUri('kop_footer_path'),
         ]);
     }
 
-    // ───────────────────────── Kop Surat (letterhead) ─────────────────────────
+    // ───────────────────────── Kop Surat (header & footer) ─────────────────────────
+
+    private const KOP_COLS = ['atas' => 'kop_path', 'bawah' => 'kop_footer_path'];
 
     private function kopDir(): string
     {
@@ -88,32 +91,31 @@ class PengampuController extends BaseController
         $prodiId = $this->prodiId();
         if (!$prodiId) return redirect()->to(site_url('dosen/pengampu'))->with('error', 'Pilih prodi aktif terlebih dahulu.');
 
-        $file = $this->request->getFile('kop');
-        if (!$file || !$file->isValid()) {
-            return redirect()->back()->with('error', 'Berkas kop surat tidak valid.');
-        }
-        $ext = strtolower($file->getClientExtension() ?: $file->getExtension());
-        if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
-            return redirect()->back()->with('error', 'Kop surat harus berupa gambar JPG atau PNG.');
-        }
-        if ($file->getSize() > 3 * 1024 * 1024) {
-            return redirect()->back()->with('error', 'Ukuran gambar maksimal 3 MB.');
-        }
-        [$w, $h] = @getimagesize($file->getTempName()) ?: [0, 0];
-        if ($w < 1) {
-            return redirect()->back()->with('error', 'Berkas bukan gambar yang sah.');
+        $diunggah = 0;
+        foreach (self::KOP_COLS as $jenis => $col) {
+            $file = $this->request->getFile('kop_' . $jenis);
+            if (!$file || !$file->isValid() || $file->getSize() === 0) continue; // dilewati bila tak diisi
+
+            $ext = strtolower($file->getClientExtension() ?: $file->getExtension());
+            if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+                return redirect()->back()->with('error', 'Kop surat harus berupa gambar JPG atau PNG.');
+            }
+            if ($file->getSize() > 3 * 1024 * 1024) {
+                return redirect()->back()->with('error', 'Ukuran gambar maksimal 3 MB.');
+            }
+            [$w] = @getimagesize($file->getTempName()) ?: [0];
+            if ($w < 1) {
+                return redirect()->back()->with('error', 'Berkas bukan gambar yang sah.');
+            }
+
+            $this->deleteKopFile($prodiId, $col);
+            $name = 'kop_' . $jenis . '_' . $prodiId . '_' . bin2hex(random_bytes(4)) . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
+            $file->move($this->kopDir(), $name);
+            Database::connect()->table('prodi')->where('id', $prodiId)->update([$col => $name]);
+            $diunggah++;
         }
 
-        $db = Database::connect();
-        $old = $db->table('prodi')->select('kop_path')->where('id', $prodiId)->get()->getRowArray();
-        if (!empty($old['kop_path']) && is_file($this->kopDir() . basename($old['kop_path']))) {
-            @unlink($this->kopDir() . basename($old['kop_path']));
-        }
-
-        $name = 'kop_' . $prodiId . '_' . bin2hex(random_bytes(4)) . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
-        $file->move($this->kopDir(), $name);
-        $db->table('prodi')->where('id', $prodiId)->update(['kop_path' => $name]);
-
+        if (!$diunggah) return redirect()->back()->with('error', 'Pilih minimal satu gambar (kop atas atau kop bawah).');
         return redirect()->to(site_url('dosen/pengampu'))->with('success', 'Kop surat diperbarui.');
     }
 
@@ -121,21 +123,29 @@ class PengampuController extends BaseController
     {
         $prodiId = $this->prodiId();
         if (!$prodiId) return redirect()->to(site_url('dosen/pengampu'));
-        $db = Database::connect();
-        $row = $db->table('prodi')->select('kop_path')->where('id', $prodiId)->get()->getRowArray();
-        if (!empty($row['kop_path']) && is_file($this->kopDir() . basename($row['kop_path']))) {
-            @unlink($this->kopDir() . basename($row['kop_path']));
+        $jenis = (string) $this->request->getPost('jenis');
+        $col = self::KOP_COLS[$jenis] ?? null;
+        if ($col) {
+            $this->deleteKopFile($prodiId, $col);
+            Database::connect()->table('prodi')->where('id', $prodiId)->update([$col => null]);
         }
-        $db->table('prodi')->where('id', $prodiId)->update(['kop_path' => null]);
         return redirect()->to(site_url('dosen/pengampu'))->with('success', 'Kop surat dihapus.');
     }
 
-    /** Kop surat prodi sebagai data URI (untuk preview & dompdf), null bila belum diunggah. */
-    private function kopDataUri(): ?string
+    private function deleteKopFile(int $prodiId, string $col): void
     {
-        $row = Database::connect()->table('prodi')->select('kop_path')->where('id', $this->prodiId())->get()->getRowArray();
-        if (empty($row['kop_path'])) return null;
-        $p = $this->kopDir() . basename($row['kop_path']);
+        $row = Database::connect()->table('prodi')->select($col)->where('id', $prodiId)->get()->getRowArray();
+        if (!empty($row[$col]) && is_file($this->kopDir() . basename($row[$col]))) {
+            @unlink($this->kopDir() . basename($row[$col]));
+        }
+    }
+
+    /** Gambar kop (header/footer) sebagai data URI untuk preview & dompdf; null bila kosong. */
+    private function kopDataUri(string $col): ?string
+    {
+        $row = Database::connect()->table('prodi')->select($col)->where('id', $this->prodiId())->get()->getRowArray();
+        if (empty($row[$col])) return null;
+        $p = $this->kopDir() . basename($row[$col]);
         if (!is_file($p) || !is_readable($p)) return null;
         $ext = strtolower(pathinfo($p, PATHINFO_EXTENSION)) ?: 'png';
         return 'data:image/' . ($ext === 'jpg' ? 'jpeg' : $ext) . ';base64,' . base64_encode((string) file_get_contents($p));
@@ -260,7 +270,8 @@ class PengampuController extends BaseController
         $data = [
             'kop'        => $this->letterhead(),
             'logo'       => $this->logoDataUri(),
-            'kopImage'   => $this->kopDataUri(),
+            'kopImage'   => $this->kopDataUri('kop_path'),
+            'kopFooter'  => $this->kopDataUri('kop_footer_path'),
             'dosen'      => $d,
             'namaDosen'  => self::namaLengkap($d),
             'ta'         => $ta,
