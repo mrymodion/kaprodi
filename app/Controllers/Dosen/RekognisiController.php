@@ -5,6 +5,7 @@ namespace App\Controllers\Dosen;
 use App\Controllers\BaseController;
 use App\Models\DosenModel;
 use App\Models\RekognisiDosenModel;
+use App\Services\EvidenceStorage;
 use Config\Database;
 
 /**
@@ -70,12 +71,14 @@ class RekognisiController extends BaseController
             'penyelenggara'     => trim((string) $this->request->getPost('penyelenggara')) ?: null,
             'tingkat'           => in_array($this->request->getPost('tingkat'), ['lokal', 'nasional', 'internasional'], true) ? $this->request->getPost('tingkat') : 'nasional',
             'tahun'             => (int) ($this->request->getPost('tahun') ?: 0) ?: null,
-            'link_bukti'        => trim((string) $this->request->getPost('link_bukti')) ?: null,
             'created_at'        => date('Y-m-d H:i:s'),
         ];
         if (!$this->validateData($data, $this->model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
+        $res = (new EvidenceStorage())->syncUpload($this->request->getFile('link_bukti'), false, null);
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
+        $data['link_bukti'] = $res['value'];
         $this->model->insert($data);
         return redirect()->to(site_url('dosen/rekognisi'))->with('success', 'Rekognisi ditambahkan.');
     }

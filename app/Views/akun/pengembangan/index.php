@@ -19,7 +19,7 @@
 <div class="card mb-3">
     <div class="card-header bg-success text-white fw-semibold">Tambah Kegiatan Pengembangan</div>
     <div class="card-body">
-        <form method="post" action="<?= site_url('akun/pengembangan') ?>" class="row g-2">
+        <form method="post" action="<?= site_url('akun/pengembangan') ?>" enctype="multipart/form-data" class="row g-2">
             <?= csrf_field() ?>
             <div class="col-md-5">
                 <label class="form-label small mb-0">Jenis / Nama Kegiatan <span class="text-danger">*</span></label>
@@ -42,8 +42,8 @@
                 <button class="btn btn-sm btn-primary w-100"><i class="bi bi-plus-circle"></i> Tambah</button>
             </div>
             <div class="col-12">
-                <label class="form-label small mb-0">Link Bukti (opsional)</label>
-                <input type="url" name="link_bukti" class="form-control form-control-sm" placeholder="https://...">
+                <label class="form-label small mb-0">Bukti (PDF, opsional)</label>
+                <input type="file" name="link_bukti" class="form-control form-control-sm" accept="application/pdf">
             </div>
         </form>
     </div>
@@ -63,7 +63,10 @@
                         <td><?= esc($r['jenis_pengembangan']) ?></td>
                         <td><small><?= esc($r['ta_kode'] ?? '-') ?></small></td>
                         <td class="text-center"><?= (int) $r['jumlah'] ?></td>
-                        <td><?php if (!empty($r['link_bukti'])): ?><a href="<?= esc($r['link_bukti']) ?>" target="_blank" rel="noopener"><i class="bi bi-link-45deg"></i></a><?php else: ?><span class="text-muted">-</span><?php endif ?></td>
+                        <td><?php $bk = $r['link_bukti'] ?? ''; ?>
+                            <?php if (\App\Services\EvidenceStorage::isStoredFile($bk)): ?><a href="<?= site_url('eviden/file/' . $bk) ?>" target="_blank"><i class="bi bi-file-earmark-pdf text-danger"></i></a>
+                            <?php elseif (!empty($bk)): ?><a href="<?= esc($bk, 'attr') ?>" target="_blank" rel="noopener"><i class="bi bi-link-45deg"></i></a>
+                            <?php else: ?><span class="text-muted">-</span><?php endif ?></td>
                         <td class="text-end">
                             <form method="post" action="<?= site_url("akun/pengembangan/{$r['id']}/delete") ?>" class="d-inline" onsubmit="return confirm('Hapus data ini?')">
                                 <?= csrf_field() ?>
