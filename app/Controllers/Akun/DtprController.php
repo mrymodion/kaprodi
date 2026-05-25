@@ -7,6 +7,7 @@ use App\Models\DosenModel;
 use App\Models\DosenEwmpModel;
 use App\Models\HkiModel;
 use App\Models\RekognisiDosenModel;
+use App\Services\EvidenceStorage;
 use Config\Database;
 
 /**
@@ -134,31 +135,68 @@ class DtprController extends BaseController
         ]);
     }
 
-    public function hkiStore()
+    public function hkiForm(int $id = 0)
+    {
+        $d = $this->dosen();
+        if (!$d) return view('akun/not_linked');
+        $item = null;
+        if ($id) {
+            $item = (new HkiModel())->find($id);
+            if (!$item || (int) $item['dosen_id'] !== (int) $d['id']) {
+                return redirect()->to(site_url('akun/hki'))->with('error', 'HKI tidak ditemukan / bukan milik Anda.');
+            }
+        }
+        return view('akun/hki/form', [
+            'item'   => $item,
+            'jenis'  => HkiModel::JENIS_LABELS,
+            'action' => $id ? site_url("akun/hki/{$id}/update") : site_url('akun/hki/baru'),
+        ]);
+    }
+
+    public function hkiStore(int $id = 0)
     {
         $d = $this->dosen();
         if (!$d) return view('akun/not_linked');
         $model = new HkiModel();
+
+        $existing = null;
+        if ($id) {
+            $existing = $model->find($id);
+            if (!$existing || (int) $existing['dosen_id'] !== (int) $d['id']) {
+                return redirect()->to(site_url('akun/hki'))->with('error', 'Bukan milik Anda.');
+            }
+        }
+
+        $jenis = (string) $this->request->getPost('jenis');
         $data = [
             'prodi_id'   => (int) $d['prodi_id'],
             'dosen_id'   => (int) $d['id'],
             'kategori'   => $this->request->getPost('kategori') === 'pkm' ? 'pkm' : 'penelitian',
-            'jenis'      => (string) $this->request->getPost('jenis'),
+            'jenis'      => array_key_exists($jenis, HkiModel::JENIS_LABELS) ? $jenis : 'hak_cipta',
             'judul'      => trim((string) $this->request->getPost('judul')),
             'no_hki'     => trim((string) $this->request->getPost('no_hki')) ?: null,
             'tahun'      => (int) ($this->request->getPost('tahun') ?: 0) ?: null,
             'pemilik'    => trim((string) $this->request->getPost('pemilik')) ?: $this->namaDosen($d),
             'status'     => $this->request->getPost('status') === 'terdaftar' ? 'terdaftar' : 'granted',
-            'link_bukti' => trim((string) $this->request->getPost('link_bukti')) ?: null,
-            'created_at' => date('Y-m-d H:i:s'),
         ];
-        if (!array_key_exists($data['jenis'], HkiModel::JENIS_LABELS)) {
-            $data['jenis'] = 'hak_cipta';
-        }
         if (!$this->validateData($data, $model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
-        $model->insert($data);
+
+        $res = (new EvidenceStorage())->syncUpload(
+            $this->request->getFile('link_bukti'),
+            (bool) $this->request->getPost('hapus_link_bukti'),
+            $existing['link_bukti'] ?? null
+        );
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
+        $data['link_bukti'] = $res['value'];
+
+        if ($id && $existing) {
+            $model->update($id, $data);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $model->insert($data);
+        }
         return redirect()->to(site_url('akun/hki'))->with('success', 'HKI disimpan.');
     }
 
