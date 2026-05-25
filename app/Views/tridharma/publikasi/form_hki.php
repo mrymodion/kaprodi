@@ -82,6 +82,7 @@
                     <?php endif ?>
                     <input type="file" name="link_bukti" class="form-control" accept="application/pdf">
                     <small class="text-muted">Unggah PDF (maks <?= (int) env('storage.maxUploadMb', 20) ?> MB, dikompres bila Ghostscript ada).</small>
+                    <?= view('partials/hki_scan', ['scanUrl' => site_url('publikasi/hki/scan')]) ?>
                 </div>
             </div>
             <div class="mt-4">

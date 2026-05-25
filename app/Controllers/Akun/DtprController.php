@@ -17,6 +17,8 @@ use Config\Database;
  */
 class DtprController extends BaseController
 {
+    use \App\Controllers\Concerns\ScanHki;
+
     private DosenModel $dosenModel;
 
     public function __construct()
@@ -200,6 +202,12 @@ class DtprController extends BaseController
             $model->insert($data);
         }
         return redirect()->to(site_url('akun/hki'))->with('success', 'HKI disimpan.');
+    }
+
+    public function hkiScan()
+    {
+        if (!$this->dosen()) return $this->response->setJSON(['ok' => false, 'error' => 'Akun belum tertaut dosen.']);
+        return $this->scanHkiResponse();
     }
 
     public function hkiKlaim(int $id)
