@@ -379,6 +379,13 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('rekognisi/export',         'Dosen\RekognisiController::export');
         $routes->post('rekognisi',               'Dosen\RekognisiController::store');
         $routes->post('rekognisi/(:num)/delete', 'Dosen\RekognisiController::delete/$1');
+        // Penugasan mengajar (MK diampu) + Surat Tugas Mengajar
+        $routes->get('pengampu',                 'Dosen\PengampuController::index');
+        $routes->post('pengampu/store',          'Dosen\PengampuController::store');
+        $routes->post('pengampu/(:num)/delete',  'Dosen\PengampuController::delete/$1');
+        $routes->get('pengampu/(:num)/kelola',   'Dosen\PengampuController::kelola/$1');
+        $routes->get('pengampu/(:num)/surat',    'Dosen\PengampuController::suratForm/$1');
+        $routes->post('pengampu/(:num)/surat',   'Dosen\PengampuController::suratGenerate/$1');
         $routes->get('(:num)',                   'Dosen\DosenController::show/$1');
         $routes->get('(:num)/edit',              'Dosen\DosenController::edit/$1');
         $routes->post('(:num)/update',           'Dosen\DosenController::update/$1');
