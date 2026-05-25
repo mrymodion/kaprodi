@@ -67,14 +67,14 @@
             <div class="card-header bg-white fw-semibold">Mata Kuliah Diampu</div>
             <div class="card-body p-0">
                 <table class="table table-sm mb-0 align-middle">
-                    <thead class="table-light"><tr><th>Mata Kuliah</th><th class="text-center">SKS</th><th class="text-center">Kelas</th><th class="text-center">Total</th></tr></thead>
+                    <thead class="table-light"><tr><th>Kode</th><th>Mata Kuliah</th><th class="text-center">SKS</th><th class="text-center">Kelas</th><th class="text-center">Total</th></tr></thead>
                     <tbody>
                     <?php if (empty($list)): ?>
-                        <tr><td colspan="4" class="text-center text-muted py-3">—</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted py-3">—</td></tr>
                     <?php else: $g = 0; foreach ($list as $r): $g += (float) $r['total_sks']; ?>
-                        <tr><td><?= esc($r['nama_mk']) ?></td><td class="text-center"><?= (float) $r['sks'] ?></td><td class="text-center"><?= (int) $r['jumlah_kelas'] ?></td><td class="text-center"><?= (float) $r['total_sks'] ?></td></tr>
+                        <tr><td><small><?= esc($r['kode_mk'] ?? '-') ?></small></td><td><?= esc($r['nama_mk']) ?></td><td class="text-center"><?= (float) $r['sks'] ?></td><td class="text-center"><?= (int) $r['jumlah_kelas'] ?></td><td class="text-center"><?= (float) $r['total_sks'] ?></td></tr>
                     <?php endforeach ?>
-                        <tr class="table-light fw-bold"><td class="text-end" colspan="3">Total SKS</td><td class="text-center"><?= $g ?></td></tr>
+                        <tr class="table-light fw-bold"><td class="text-end" colspan="4">Total SKS</td><td class="text-center"><?= $g ?></td></tr>
                     <?php endif ?>
                     </tbody>
                 </table>

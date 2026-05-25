@@ -1982,7 +1982,8 @@ insert  into `migrations`(`id`,`version`,`class`,`group`,`namespace`,`time`,`bat
 (21,'2026-01-01-000018','App\\Database\\Migrations\\AddDtprSelfServiceTables','default','App',1779664482,9),
 (22,'2026-01-01-000019','App\\Database\\Migrations\\CreateSpmiTables','default','App',1779664482,9),
 (23,'2026-01-01-000020','App\\Database\\Migrations\\AddSpmiCompletenessTables','default','App',1779664482,9),
-(24,'2026-01-01-000021','App\\Database\\Migrations\\CreatePengampuMk','default','App',1779664482,10);
+(24,'2026-01-01-000021','App\\Database\\Migrations\\CreatePengampuMk','default','App',1779664482,10),
+(25,'2026-01-01-000022','App\\Database\\Migrations\\AddKodeMkToPengampu','default','App',1779664482,11);
 
 /*Table structure for table `mk_cpl` */
 
@@ -2011,6 +2012,7 @@ CREATE TABLE `pengampu_mk` (
   `dosen_id` int(10) unsigned NOT NULL,
   `tahun_akademik_id` int(10) unsigned NOT NULL,
   `mata_kuliah_id` int(10) unsigned DEFAULT NULL,
+  `kode_mk` varchar(30) DEFAULT NULL,
   `nama_mk` varchar(200) NOT NULL,
   `kategori` enum('ps_sendiri','ps_lain_pt','pt_lain') NOT NULL DEFAULT 'ps_sendiri',
   `sks` decimal(4,1) NOT NULL DEFAULT 0.0,

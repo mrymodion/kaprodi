@@ -45,13 +45,17 @@
             <div class="col-md-5">
                 <label class="form-label small mb-0">Pilih dari MK Prodi (PS sendiri)</label>
                 <select name="mata_kuliah_id" id="mkSelect" class="form-select form-select-sm">
-                    <option value="" data-sks="0" data-nama="">— manual / MK luar prodi —</option>
+                    <option value="" data-sks="0" data-nama="" data-kode="">— manual / MK luar prodi —</option>
                     <?php foreach ($mkList as $mk): $tot = $mk['sks_teori'] + $mk['sks_praktek'] + $mk['sks_lapangan']; ?>
-                        <option value="<?= $mk['id'] ?>" data-sks="<?= $tot ?>" data-nama="<?= esc($mk['kode'] . ' - ' . $mk['nama'], 'attr') ?>"><?= esc($mk['kode'] . ' - ' . $mk['nama']) ?> (<?= $tot ?> SKS)</option>
+                        <option value="<?= $mk['id'] ?>" data-sks="<?= $tot ?>" data-kode="<?= esc($mk['kode'], 'attr') ?>" data-nama="<?= esc($mk['nama'], 'attr') ?>"><?= esc($mk['kode'] . ' - ' . $mk['nama']) ?> (<?= $tot ?> SKS)</option>
                     <?php endforeach ?>
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-2">
+                <label class="form-label small mb-0">Kode MK</label>
+                <input type="text" name="kode_mk" id="kodeMk" class="form-control form-control-sm" placeholder="mis. MKB013">
+            </div>
+            <div class="col-md-3">
                 <label class="form-label small mb-0">Nama Mata Kuliah <span class="text-danger">*</span></label>
                 <input type="text" name="nama_mk" id="namaMk" class="form-control form-control-sm" placeholder="mis. Basis Data">
             </div>
@@ -74,7 +78,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover table-sm mb-0 align-middle">
-                <thead class="table-light"><tr><th>#</th><th>Kategori</th><th>Mata Kuliah</th><th class="text-center">SKS</th><th class="text-center">Kelas</th><th class="text-center">Total SKS</th><th></th></tr></thead>
+                <thead class="table-light"><tr><th>#</th><th>Kategori</th><th>Kode</th><th>Mata Kuliah</th><th class="text-center">SKS</th><th class="text-center">Kelas</th><th class="text-center">Total SKS</th><th></th></tr></thead>
                 <tbody>
                 <?php if (empty($list)): ?>
                     <tr><td colspan="7" class="text-center text-muted py-4">Belum ada mata kuliah diampu pada TA ini.</td></tr>
@@ -82,6 +86,7 @@
                     <tr>
                         <td><?= $i + 1 ?></td>
                         <td><small><?= esc($kategori[$r['kategori']] ?? $r['kategori']) ?></small></td>
+                        <td><small><?= esc($r['kode_mk'] ?? '-') ?></small></td>
                         <td><?= esc($r['nama_mk']) ?></td>
                         <td class="text-center"><?= (float) $r['sks'] ?></td>
                         <td class="text-center"><?= (int) $r['jumlah_kelas'] ?></td>
@@ -94,7 +99,7 @@
                         </td>
                     </tr>
                 <?php endforeach ?>
-                    <tr class="table-light fw-bold"><td colspan="5" class="text-end">Total SKS Pendidikan</td><td class="text-center"><?= $grand ?></td><td></td></tr>
+                    <tr class="table-light fw-bold"><td colspan="6" class="text-end">Total SKS Pendidikan</td><td class="text-center"><?= $grand ?></td><td></td></tr>
                 <?php endif ?>
                 </tbody>
             </table>
@@ -106,15 +111,17 @@
 (function () {
     var sel = document.getElementById('mkSelect');
     if (!sel) return;
-    var nama = document.getElementById('namaMk'), sks = document.getElementById('sks'), kat = document.getElementById('kategori');
+    var nama = document.getElementById('namaMk'), kode = document.getElementById('kodeMk'), sks = document.getElementById('sks'), kat = document.getElementById('kategori');
     sel.addEventListener('change', function () {
         var opt = sel.options[sel.selectedIndex];
         if (sel.value) {
             nama.value = opt.getAttribute('data-nama'); nama.readOnly = true;
+            kode.value = opt.getAttribute('data-kode'); kode.readOnly = true;
             sks.value = opt.getAttribute('data-sks'); sks.readOnly = true;
             kat.value = 'ps_sendiri';
         } else {
             nama.value = ''; nama.readOnly = false;
+            kode.value = ''; kode.readOnly = false;
             sks.value = 0; sks.readOnly = false;
         }
     });

@@ -143,6 +143,7 @@ class DtprController extends BaseController
 
         $mkId   = (int) ($this->request->getPost('mata_kuliah_id') ?: 0);
         $namaMk = trim((string) $this->request->getPost('nama_mk'));
+        $kodeMk = trim((string) $this->request->getPost('kode_mk'));
         $sks    = (float) $this->request->getPost('sks');
 
         // Bila MK dipilih dari daftar prodi, ambil nama & SKS dari master (lebih tepercaya).
@@ -152,7 +153,8 @@ class DtprController extends BaseController
             if (!$mk || !$kur || (int) $kur['prodi_id'] !== (int) $d['prodi_id']) {
                 return redirect()->back()->withInput()->with('error', 'Mata kuliah tidak ditemukan di prodi Anda.');
             }
-            $namaMk = trim($mk['kode'] . ' - ' . $mk['nama']);
+            $namaMk = trim($mk['nama']);
+            $kodeMk = trim((string) $mk['kode']);
             $sks    = (float) ($mk['sks_teori'] + $mk['sks_praktek'] + $mk['sks_lapangan']);
         } else {
             if (mb_strlen($namaMk) < 3) return redirect()->back()->withInput()->with('error', 'Isi nama mata kuliah.');
@@ -165,6 +167,7 @@ class DtprController extends BaseController
             'dosen_id'          => (int) $d['id'],
             'tahun_akademik_id' => $taId,
             'mata_kuliah_id'    => $mkId ?: null,
+            'kode_mk'           => $kodeMk ?: null,
             'nama_mk'           => $namaMk,
             'kategori'          => $kategori,
             'sks'               => $sks,

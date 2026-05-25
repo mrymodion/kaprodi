@@ -13,7 +13,7 @@ class PengampuMkModel extends AppModel
 
     protected $allowedFields = [
         'dosen_id', 'tahun_akademik_id', 'mata_kuliah_id',
-        'nama_mk', 'kategori', 'sks', 'jumlah_kelas', 'created_at',
+        'kode_mk', 'nama_mk', 'kategori', 'sks', 'jumlah_kelas', 'created_at',
     ];
 
     public const KATEGORI_LABELS = [
