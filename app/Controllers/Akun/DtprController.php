@@ -8,6 +8,7 @@ use App\Models\DosenEwmpModel;
 use App\Models\HkiModel;
 use App\Models\RekognisiDosenModel;
 use App\Services\EvidenceStorage;
+use App\Services\SertifikatParser;
 use Config\Database;
 
 /**
@@ -18,6 +19,7 @@ use Config\Database;
 class DtprController extends BaseController
 {
     use \App\Controllers\Concerns\ScanHki;
+    use \App\Controllers\Concerns\ScanDokumen;
 
     private DosenModel $dosenModel;
 
@@ -123,6 +125,12 @@ class DtprController extends BaseController
         Database::connect()->table('pengembangan_dtpr')
             ->where(['id' => $id, 'dosen_id' => (int) $d['id']])->delete();
         return redirect()->to(site_url('akun/pengembangan'))->with('success', 'Data dihapus.');
+    }
+
+    public function pengembanganScan()
+    {
+        if (!$this->dosen()) return $this->response->setJSON(['ok' => false, 'error' => 'Akun belum tertaut dosen.']);
+        return $this->scanDokumenResponse(fn(string $t) => (new SertifikatParser())->parsePengembangan($t));
     }
 
     // ───────────────────────── HKI (3.C.3 / 4.C.3) ─────────────────────────
@@ -276,6 +284,12 @@ class DtprController extends BaseController
         $data['link_bukti'] = $res['value'];
         $model->insert($data);
         return redirect()->to(site_url('akun/rekognisi'))->with('success', 'Rekognisi disimpan.');
+    }
+
+    public function rekognisiScan()
+    {
+        if (!$this->dosen()) return $this->response->setJSON(['ok' => false, 'error' => 'Akun belum tertaut dosen.']);
+        return $this->scanDokumenResponse(fn(string $t) => (new SertifikatParser())->parseRekognisi($t));
     }
 
     public function rekognisiDelete(int $id)
