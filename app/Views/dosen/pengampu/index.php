@@ -17,6 +17,40 @@
 
 <div class="alert alert-info small"><i class="bi bi-info-circle"></i> Input mata kuliah yang diampu tiap dosen per tahun akademik, lalu cetak <strong>Surat Tugas Mengajar</strong> (PDF) per dosen. Data ini juga dipakai untuk menghitung SKS Pendidikan EWMP secara otomatis.</div>
 
+<div class="card mb-3">
+    <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-image"></i> Kop Surat (Letterhead)</span>
+        <small class="text-muted">Dipakai di bagian atas PDF Surat Tugas</small>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-7">
+                <?php if (!empty($kop)): ?>
+                    <div class="border rounded p-2 mb-2 bg-light text-center">
+                        <img src="<?= $kop ?>" alt="Kop surat" style="max-width:100%;max-height:120px;object-fit:contain">
+                    </div>
+                <?php else: ?>
+                    <div class="alert alert-warning small mb-2"><i class="bi bi-exclamation-triangle"></i> Belum ada kop surat. Tanpa kop, PDF memakai kepala surat dari data prodi/perguruan tinggi.</div>
+                <?php endif ?>
+                <form method="post" action="<?= site_url('dosen/pengampu/kop') ?>" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
+                    <?= csrf_field() ?>
+                    <input type="file" name="kop" class="form-control form-control-sm" accept="image/png,image/jpeg" required>
+                    <button class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> Unggah</button>
+                </form>
+                <div class="form-text">Format JPG/PNG, maks 3 MB. Sebaiknya gambar kop selebar halaman (mis. 1200&times;250 px).</div>
+            </div>
+            <?php if (!empty($kop)): ?>
+            <div class="col-md-5 text-md-end">
+                <form method="post" action="<?= site_url('dosen/pengampu/kop/hapus') ?>" onsubmit="return confirm('Hapus kop surat?')">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Hapus Kop</button>
+                </form>
+            </div>
+            <?php endif ?>
+        </div>
+    </div>
+</div>
+
 <div class="mb-3" style="max-width:320px">
     <label class="form-label small mb-0 fw-semibold">Tahun Akademik</label>
     <select class="form-select form-select-sm" onchange="location.href='<?= site_url('dosen/pengampu') ?>?ta_id='+this.value">
