@@ -152,7 +152,8 @@ $hasInstrumen  = $activeProdiId
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/hki') ? 'active' : '' ?>" href="<?= site_url('akun/hki') ?>"><i class="bi bi-shield-check"></i> HKI Saya</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/rekognisi') ? 'active' : '' ?>" href="<?= site_url('akun/rekognisi') ?>"><i class="bi bi-award"></i> Rekognisi Saya</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/pengembangan') ? 'active' : '' ?>" href="<?= site_url('akun/pengembangan') ?>"><i class="bi bi-mortarboard"></i> Pengembangan Diri</a>
-                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/ewmp') ? 'active' : '' ?>" href="<?= site_url('akun/ewmp') ?>"><i class="bi bi-table"></i> EWMP Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/ewmp') && !str_starts_with(uri_string(), 'akun/ewmp/pengampu') ? 'active' : '' ?>" href="<?= site_url('akun/ewmp') ?>"><i class="bi bi-table"></i> EWMP Saya</a>
+                    <a class="nav-link <?= str_starts_with(uri_string(), 'akun/ewmp/pengampu') ? 'active' : '' ?>" href="<?= site_url('akun/ewmp/pengampu') ?>"><i class="bi bi-easel"></i> MK Diampu</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/profil') ? 'active' : '' ?>" href="<?= site_url('akun/profil') ?>"><i class="bi bi-pencil-square"></i> Edit Profil</a>
                     <a class="nav-link <?= str_starts_with(uri_string(), 'akun/password') ? 'active' : '' ?>" href="<?= site_url('akun/password') ?>"><i class="bi bi-key"></i> Ganti Password</a>
                 </nav>
