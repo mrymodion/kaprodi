@@ -44,6 +44,7 @@
             <div class="col-12">
                 <label class="form-label small mb-0">Bukti (PDF, opsional)</label>
                 <input type="file" name="link_bukti" class="form-control form-control-sm" accept="application/pdf">
+                <?= view('partials/doc_scan', ['scanUrl' => site_url('akun/pengembangan/scan')]) ?>
             </div>
         </form>
     </div>

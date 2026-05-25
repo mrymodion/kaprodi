@@ -66,6 +66,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         // Pengembangan diri (LKPS 3.A.3)
         $routes->get('pengembangan',               'Akun\DtprController::pengembangan');
         $routes->post('pengembangan',              'Akun\DtprController::pengembanganStore');
+        $routes->post('pengembangan/scan',         'Akun\DtprController::pengembanganScan');
         $routes->post('pengembangan/(:num)/delete','Akun\DtprController::pengembanganDelete/$1');
 
         // HKI milik dosen (3.C.3 / 4.C.3)
@@ -81,6 +82,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         // Rekognisi dosen (C3)
         $routes->get('rekognisi',                  'Akun\DtprController::rekognisi');
         $routes->post('rekognisi/baru',            'Akun\DtprController::rekognisiStore');
+        $routes->post('rekognisi/scan',            'Akun\DtprController::rekognisiScan');
         $routes->post('rekognisi/(:num)/delete',   'Akun\DtprController::rekognisiDelete/$1');
     });
 
