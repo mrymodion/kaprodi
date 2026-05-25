@@ -65,13 +65,17 @@ class PengampuController extends BaseController
             foreach ($rows as $r) $rekap[(int) $r['dosen_id']] = $r;
         }
 
+        $kid = (int) (Database::connect()->table('prodi')->select('kaprodi_dosen_id')->where('id', $prodiId)->get()->getRowArray()['kaprodi_dosen_id'] ?? 0);
+        $kd  = $kid ? (new DosenModel())->find($kid) : null;
+
         return view('dosen/pengampu/index', [
-            'dosen'    => $dosen,
-            'rekap'    => $rekap,
-            'taId'     => $taId,
-            'taList'   => $this->taList(),
-            'kopAtas'  => $this->kopDataUri('kop_path'),
-            'kopBawah' => $this->kopDataUri('kop_footer_path'),
+            'dosen'       => $dosen,
+            'rekap'       => $rekap,
+            'taId'        => $taId,
+            'taList'      => $this->taList(),
+            'kopAtas'     => $this->kopDataUri('kop_path'),
+            'kopBawah'    => $this->kopDataUri('kop_footer_path'),
+            'kaprodiNama' => $kd ? self::namaLengkap($kd) : '',
         ]);
     }
 
@@ -308,17 +312,25 @@ class PengampuController extends BaseController
         return $row ?: ['prodi_nama' => '-', 'jenjang' => '', 'upps_nama' => '', 'pt_nama' => '-', 'pt_alamat' => '', 'logo_path' => null];
     }
 
-    /** Penandatangan default = kaprodi prodi aktif; fallback ke profil dosen user yang login. */
+    /** Penandatangan default = kaprodi yang ditunjuk; fallback ke user_prodi, lalu akun login. */
     private function kaprodiSigner(): array
     {
-        // 1) Dosen yang terdaftar sebagai kaprodi pada prodi aktif (via user_prodi).
-        $row = Database::connect()->table('user_prodi up')
-            ->select('d.nama, d.nidn, d.nip, d.gelar_depan, d.gelar_belakang')
-            ->join('dosen d', 'd.user_id = up.user_id')
-            ->where(['up.prodi_id' => $this->prodiId(), 'up.peran' => 'kaprodi'])
-            ->get()->getRowArray();
+        $db = Database::connect();
 
-        // 2) Fallback: profil dosen milik akun yang sedang login (umumnya kaprodi pembuat surat).
+        // 1) Dosen yang ditunjuk sebagai kaprodi pada data prodi.
+        $kid = (int) ($db->table('prodi')->select('kaprodi_dosen_id')->where('id', $this->prodiId())->get()->getRowArray()['kaprodi_dosen_id'] ?? 0);
+        $row = $kid ? (new DosenModel())->find($kid) : null;
+
+        // 2) Dosen yang terdaftar sebagai kaprodi pada prodi aktif (via user_prodi).
+        if (!$row || empty($row['nama'])) {
+            $row = $db->table('user_prodi up')
+                ->select('d.nama, d.nidn, d.nip, d.gelar_depan, d.gelar_belakang')
+                ->join('dosen d', 'd.user_id = up.user_id')
+                ->where(['up.prodi_id' => $this->prodiId(), 'up.peran' => 'kaprodi'])
+                ->get()->getRowArray();
+        }
+
+        // 3) Fallback: profil dosen milik akun yang sedang login (umumnya kaprodi pembuat surat).
         if (!$row || empty($row['nama'])) {
             $uid = (int) (auth()->id() ?? 0);
             $row = $uid ? (new DosenModel())->findByUserId($uid) : null;

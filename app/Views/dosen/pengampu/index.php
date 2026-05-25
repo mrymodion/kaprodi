@@ -18,6 +18,18 @@
 <div class="alert alert-info small"><i class="bi bi-info-circle"></i> Input mata kuliah yang diampu tiap dosen per tahun akademik, lalu cetak <strong>Surat Tugas Mengajar</strong> (PDF) per dosen. Data ini juga dipakai untuk menghitung SKS Pendidikan EWMP secara otomatis.</div>
 
 <div class="card mb-3">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-person-vcard"></i> Kaprodi (Penandatangan Surat)</div>
+    <div class="card-body">
+        <?php if (!empty($kaprodiNama)): ?>
+            <p class="mb-1"><i class="bi bi-check-circle-fill text-success"></i> Penandatangan: <strong><?= esc($kaprodiNama) ?></strong></p>
+        <?php else: ?>
+            <p class="mb-1 text-warning"><i class="bi bi-exclamation-triangle"></i> Kaprodi penandatangan belum ditentukan.</p>
+        <?php endif ?>
+        <div class="form-text">Penandatangan ditetapkan di <strong>Manajemen User</strong>: pada mapping user, pilih peran <em>kaprodi</em> + prodi, lalu pilih <em>Dosen DTPR</em>-nya. Nama (beserta gelar) &amp; NIP/NIDN pada Surat Tugas mengikuti profil dosen tersebut.</div>
+    </div>
+</div>
+
+<div class="card mb-3">
     <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-image"></i> Kop Surat (Header &amp; Footer)</span>
         <small class="text-muted">Dipakai di PDF Surat Tugas</small>
