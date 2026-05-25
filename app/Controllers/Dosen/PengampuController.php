@@ -65,29 +65,18 @@ class PengampuController extends BaseController
             foreach ($rows as $r) $rekap[(int) $r['dosen_id']] = $r;
         }
 
+        $kid = (int) (Database::connect()->table('prodi')->select('kaprodi_dosen_id')->where('id', $prodiId)->get()->getRowArray()['kaprodi_dosen_id'] ?? 0);
+        $kd  = $kid ? (new DosenModel())->find($kid) : null;
+
         return view('dosen/pengampu/index', [
-            'dosen'     => $dosen,
-            'rekap'     => $rekap,
-            'taId'      => $taId,
-            'taList'    => $this->taList(),
-            'kopAtas'   => $this->kopDataUri('kop_path'),
-            'kopBawah'  => $this->kopDataUri('kop_footer_path'),
-            'kaprodiId' => (int) (Database::connect()->table('prodi')->select('kaprodi_dosen_id')->where('id', $prodiId)->get()->getRowArray()['kaprodi_dosen_id'] ?? 0),
+            'dosen'       => $dosen,
+            'rekap'       => $rekap,
+            'taId'        => $taId,
+            'taList'      => $this->taList(),
+            'kopAtas'     => $this->kopDataUri('kop_path'),
+            'kopBawah'    => $this->kopDataUri('kop_footer_path'),
+            'kaprodiNama' => $kd ? self::namaLengkap($kd) : '',
         ]);
-    }
-
-    /** Tetapkan/ganti dosen yang menjabat Kaprodi (penandatangan surat) untuk prodi aktif. */
-    public function setKaprodi()
-    {
-        $prodiId = $this->prodiId();
-        if (!$prodiId) return redirect()->to(site_url('dosen/pengampu'))->with('error', 'Pilih prodi aktif terlebih dahulu.');
-
-        $dosenId = (int) $this->request->getPost('kaprodi_dosen_id');
-        if ($dosenId && !$this->dosenInProdi($dosenId)) {
-            return redirect()->back()->with('error', 'Dosen tidak ditemukan di prodi Anda.');
-        }
-        Database::connect()->table('prodi')->where('id', $prodiId)->update(['kaprodi_dosen_id' => $dosenId ?: null]);
-        return redirect()->to(site_url('dosen/pengampu'))->with('success', $dosenId ? 'Kaprodi (penandatangan) diperbarui.' : 'Kaprodi (penandatangan) dikosongkan.');
     }
 
     // ───────────────────────── Kop Surat (header & footer) ─────────────────────────

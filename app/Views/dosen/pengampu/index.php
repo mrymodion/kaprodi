@@ -20,24 +20,12 @@
 <div class="card mb-3">
     <div class="card-header bg-white fw-semibold"><i class="bi bi-person-vcard"></i> Kaprodi (Penandatangan Surat)</div>
     <div class="card-body">
-        <form method="post" action="<?= site_url('dosen/pengampu/kaprodi') ?>" class="row g-2 align-items-end">
-            <?= csrf_field() ?>
-            <div class="col-md-8">
-                <label class="form-label small mb-0">Pilih dosen yang menjabat Ketua Program Studi</label>
-                <select name="kaprodi_dosen_id" class="form-select form-select-sm">
-                    <option value="0">— Belum ditentukan —</option>
-                    <?php foreach ($dosen as $d): ?>
-                        <option value="<?= $d['id'] ?>" <?= $kaprodiId === (int) $d['id'] ? 'selected' : '' ?>>
-                            <?= esc(trim(($d['gelar_depan'] ? $d['gelar_depan'] . ' ' : '') . $d['nama'] . ($d['gelar_belakang'] ? ', ' . $d['gelar_belakang'] : ''))) ?><?= !empty($d['nidn']) ? ' — NIDN ' . esc($d['nidn']) : '' ?>
-                        </option>
-                    <?php endforeach ?>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan Kaprodi</button>
-            </div>
-        </form>
-        <div class="form-text">Nama (beserta gelar) &amp; NIP/NIDN penandatangan pada Surat Tugas diambil dari profil dosen ini. Ubah pilihan ini saat terjadi pergantian kaprodi.</div>
+        <?php if (!empty($kaprodiNama)): ?>
+            <p class="mb-1"><i class="bi bi-check-circle-fill text-success"></i> Penandatangan: <strong><?= esc($kaprodiNama) ?></strong></p>
+        <?php else: ?>
+            <p class="mb-1 text-warning"><i class="bi bi-exclamation-triangle"></i> Kaprodi penandatangan belum ditentukan.</p>
+        <?php endif ?>
+        <div class="form-text">Penandatangan ditetapkan di <strong>Manajemen User</strong>: pada mapping user, pilih peran <em>kaprodi</em> + prodi, lalu pilih <em>Dosen DTPR</em>-nya. Nama (beserta gelar) &amp; NIP/NIDN pada Surat Tugas mengikuti profil dosen tersebut.</div>
     </div>
 </div>
 

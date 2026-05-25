@@ -31,25 +31,34 @@
     </div>
 
     <hr>
-    <label class="form-label"><strong>Mapping Prodi & Peran</strong> (baris pertama = default)</label>
+    <label class="form-label"><strong>Mapping Prodi, Peran & Dosen</strong> (baris pertama = default)</label>
+    <div class="row g-2 mb-1 small text-muted d-none d-md-flex">
+        <div class="col-md-5">Prodi</div><div class="col-md-3">Peran</div><div class="col-md-4">Dosen DTPR (untuk peran kaprodi/dosen)</div>
+    </div>
+    <?php $linkedProdiId = 0; foreach ($dosenAll as $da) { if ((int) $da['id'] === (int) $linkedDosenId) { $linkedProdiId = (int) $da['prodi_id']; break; } } ?>
     <div id="prodiRows">
-        <?php $rows = $mapping ?: [['prodi_id'=>'','peran'=>'']]; foreach ($rows as $i => $r): ?>
+        <?php $rows = $mapping ?: [['prodi_id'=>'','peran'=>'']]; foreach ($rows as $i => $r): $rowProdi = (int) ($r['prodi_id'] ?? 0); $rowDosen = ($rowProdi && $rowProdi === $linkedProdiId) ? (int) $linkedDosenId : 0; ?>
             <div class="row g-2 mb-2">
-                <div class="col-md-7">
-                    <select name="prodi[]" class="form-select">
+                <div class="col-md-5">
+                    <select name="prodi[]" class="form-select prodi-sel">
                         <option value="">-- pilih prodi --</option>
                         <?php foreach ($prodi as $p): ?>
-                            <option value="<?= $p['id'] ?>" <?= isset($r['prodi_id']) && $r['prodi_id']==$p['id']?'selected':'' ?>>
+                            <option value="<?= $p['id'] ?>" <?= $rowProdi == $p['id'] ?'selected':'' ?>>
                                 <?= esc($p['nama']) ?> (<?= $p['jenjang'] ?>)
                             </option>
                         <?php endforeach ?>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <select name="peran[]" class="form-select">
                         <?php foreach (array_keys($groups) as $g): ?>
                             <option value="<?= $g ?>" <?= isset($r['peran']) && $r['peran']==$g?'selected':'' ?>><?= $g ?></option>
                         <?php endforeach ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select name="dosen[]" class="form-select dosen-sel" data-current="<?= $rowDosen ?>">
+                        <option value="0">— (tidak ditautkan) —</option>
                     </select>
                 </div>
             </div>
@@ -65,11 +74,43 @@
 </form>
 
 <script>
+var DOSEN = <?= json_encode(array_map(fn($d) => ['id' => (int) $d['id'], 'prodi' => (int) $d['prodi_id'], 'label' => $d['label']], $dosenAll), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+
+function fillDosen(row) {
+    var prodiSel = row.querySelector('.prodi-sel');
+    var dosenSel = row.querySelector('.dosen-sel');
+    if (!prodiSel || !dosenSel) return;
+    var pid = parseInt(prodiSel.value || '0', 10);
+    var current = parseInt(dosenSel.getAttribute('data-current') || dosenSel.value || '0', 10);
+    dosenSel.innerHTML = '<option value="0">— (tidak ditautkan) —</option>';
+    DOSEN.filter(function (d) { return d.prodi === pid; }).forEach(function (d) {
+        var o = document.createElement('option');
+        o.value = d.id; o.textContent = d.label;
+        if (d.id === current) o.selected = true;
+        dosenSel.appendChild(o);
+    });
+}
+
+function bindRow(row) {
+    var prodiSel = row.querySelector('.prodi-sel');
+    if (prodiSel) prodiSel.addEventListener('change', function () {
+        var ds = row.querySelector('.dosen-sel');
+        if (ds) ds.setAttribute('data-current', '0'); // ganti prodi → reset tautan
+        fillDosen(row);
+    });
+    fillDosen(row);
+}
+
 function addRow() {
     const tmpl = document.querySelector('#prodiRows .row');
     const clone = tmpl.cloneNode(true);
     clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+    var ds = clone.querySelector('.dosen-sel');
+    if (ds) ds.setAttribute('data-current', '0');
     document.getElementById('prodiRows').appendChild(clone);
+    bindRow(clone);
 }
+
+document.querySelectorAll('#prodiRows .row').forEach(bindRow);
 </script>
 <?= $this->endSection() ?>
