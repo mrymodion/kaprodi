@@ -37,7 +37,7 @@
                     <input type="file" name="kop" class="form-control form-control-sm" accept="image/png,image/jpeg" required>
                     <button class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> Unggah</button>
                 </form>
-                <div class="form-text">Format JPG/PNG, maks 3 MB. Sebaiknya gambar kop selebar halaman (mis. 1200&times;250 px).</div>
+                <div class="form-text">Unggah gambar <strong>kop surat lengkap</strong> (logo + nama institusi + alamat dalam satu gambar memanjang), bukan logo saja. Format JPG/PNG, maks 3 MB, idealnya rasio lebar (mis. 1200&times;250 px). Jika hanya punya logo, lebih baik <strong>hapus kop</strong> ini &mdash; kepala surat otomatis dibuat dari data prodi/perguruan tinggi.</div>
             </div>
             <?php if (!empty($kop)): ?>
             <div class="col-md-5 text-md-end">

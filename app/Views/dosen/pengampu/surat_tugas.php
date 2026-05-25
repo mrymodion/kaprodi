@@ -14,8 +14,8 @@ $semLabel = in_array($sem, ['ganjil', 'genap'], true) ? 'semester ' . ucfirst($s
 <style>
     * { font-family: Helvetica, Arial, sans-serif; }
     body { font-size: 12px; color: #000; margin: 0; }
-    .kop-img { text-align: center; margin-bottom: 14px; }
-    .kop-img img { width: 100%; max-height: 170px; object-fit: contain; }
+    .kop-img { text-align: center; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 3px double #000; }
+    .kop-img img { height: 110px; width: auto; }
     .kop { border-bottom: 3px double #000; padding-bottom: 6px; margin-bottom: 16px; }
     .kop table { width: 100%; border-collapse: collapse; }
     .kop .logo { width: 80px; text-align: center; vertical-align: middle; }
