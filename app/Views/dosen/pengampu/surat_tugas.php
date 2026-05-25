@@ -1,11 +1,14 @@
 <?php
-/** @var array $kop @var ?string $logo @var array $dosen @var string $namaDosen @var array $ta @var array $list @var array $kategori */
+/** @var array $kop @var ?string $logo @var ?string $kopImage @var ?string $kopFooter @var array $dosen @var string $namaDosen @var array $ta @var array $list @var array $kategori */
 $uppsLabel = trim(ucfirst((string) ($kop['upps_jenis'] ?? '')) . ' ' . ($kop['upps_nama'] ?? ''));
 $alamat = trim(implode(', ', array_filter([$kop['pt_alamat'] ?? '', $kop['pt_kota'] ?? '', $kop['pt_provinsi'] ?? ''])));
 $prodiNama = trim(($kop['prodi_nama'] ?? '') . (!empty($kop['jenjang']) ? ' ' . $kop['jenjang'] : ''));
 $ptNama = $kop['pt_nama'] ?? '';
 $sem = strtolower((string) ($ta['semester'] ?? ''));
 $semLabel = in_array($sem, ['ganjil', 'genap'], true) ? 'semester ' . ucfirst($sem) . ' ' : '';
+$useImg = !empty($kopImage);                 // mode kop gambar (banner full-width)
+$hasFooter = !empty($kopFooter);
+$padBottom = $hasFooter ? 90 : 24;
 ?>
 <!DOCTYPE html>
 <html>
@@ -13,9 +16,18 @@ $semLabel = in_array($sem, ['ganjil', 'genap'], true) ? 'semester ' . ucfirst($s
 <meta charset="utf-8">
 <style>
     * { font-family: Helvetica, Arial, sans-serif; }
+<?php if ($useImg): ?>
+    @page { margin: 0; }
+    body { font-size: 12px; color: #000; margin: 0; padding-bottom: <?= $padBottom ?>px; }
+    .kop-atas { width: 100%; }
+    .kop-atas img { width: 100%; height: auto; display: block; }
+    .kop-bawah { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; }
+    .kop-bawah img { width: 100%; height: auto; display: block; }
+    .content { padding: 10px 40px 0 40px; }
+<?php else: ?>
+    @page { margin: 1.8cm; }
     body { font-size: 12px; color: #000; margin: 0; }
-    .kop-img { text-align: center; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 3px double #000; }
-    .kop-img img { height: 110px; width: auto; }
+    .content { }
     .kop { border-bottom: 3px double #000; padding-bottom: 6px; margin-bottom: 16px; }
     .kop table { width: 100%; border-collapse: collapse; }
     .kop .logo { width: 80px; text-align: center; vertical-align: middle; }
@@ -25,6 +37,7 @@ $semLabel = in_array($sem, ['ganjil', 'genap'], true) ? 'semester ' . ucfirst($s
     .kop .upps { font-size: 13px; font-weight: bold; text-transform: uppercase; }
     .kop .prodi { font-size: 12px; }
     .kop .addr { font-size: 9.5px; margin-top: 2px; }
+<?php endif ?>
     h1.title { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; text-decoration: underline; margin: 6px 0 0; }
     .nomor { text-align: center; font-size: 12px; margin: 2px 0 18px; }
     p { margin: 8px 0; text-align: justify; line-height: 1.5; }
@@ -41,9 +54,14 @@ $semLabel = in_array($sem, ['ganjil', 'genap'], true) ? 'semester ' . ucfirst($s
 </head>
 <body>
 
-<?php if (!empty($kopImage)): ?>
-<div class="kop-img"><img src="<?= $kopImage ?>" alt=""></div>
-<?php else: ?>
+<?php if ($useImg): ?>
+    <div class="kop-atas"><img src="<?= $kopImage ?>" alt=""></div>
+    <?php if ($hasFooter): ?><div class="kop-bawah"><img src="<?= $kopFooter ?>" alt=""></div><?php endif ?>
+<?php endif ?>
+
+<div class="content">
+
+<?php if (!$useImg): ?>
 <div class="kop">
     <table>
         <tr>
@@ -103,5 +121,6 @@ $semLabel = in_array($sem, ['ganjil', 'genap'], true) ? 'semester ' . ucfirst($s
     </tr>
 </table>
 
+</div>
 </body>
 </html>

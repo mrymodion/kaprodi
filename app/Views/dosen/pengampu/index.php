@@ -19,35 +19,51 @@
 
 <div class="card mb-3">
     <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-image"></i> Kop Surat (Letterhead)</span>
-        <small class="text-muted">Dipakai di bagian atas PDF Surat Tugas</small>
+        <span><i class="bi bi-image"></i> Kop Surat (Header &amp; Footer)</span>
+        <small class="text-muted">Dipakai di PDF Surat Tugas</small>
     </div>
     <div class="card-body">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-7">
-                <?php if (!empty($kop)): ?>
-                    <div class="border rounded p-2 mb-2 bg-light text-center">
-                        <img src="<?= $kop ?>" alt="Kop surat" style="max-width:100%;max-height:120px;object-fit:contain">
-                    </div>
-                <?php else: ?>
-                    <div class="alert alert-warning small mb-2"><i class="bi bi-exclamation-triangle"></i> Belum ada kop surat. Tanpa kop, PDF memakai kepala surat dari data prodi/perguruan tinggi.</div>
-                <?php endif ?>
-                <form method="post" action="<?= site_url('dosen/pengampu/kop') ?>" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
-                    <?= csrf_field() ?>
-                    <input type="file" name="kop" class="form-control form-control-sm" accept="image/png,image/jpeg" required>
-                    <button class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> Unggah</button>
-                </form>
-                <div class="form-text">Unggah gambar <strong>kop surat lengkap</strong> (logo + nama institusi + alamat dalam satu gambar memanjang), bukan logo saja. Format JPG/PNG, maks 3 MB, idealnya rasio lebar (mis. 1200&times;250 px). Jika hanya punya logo, lebih baik <strong>hapus kop</strong> ini &mdash; kepala surat otomatis dibuat dari data prodi/perguruan tinggi.</div>
+        <form method="post" action="<?= site_url('dosen/pengampu/kop') ?>" enctype="multipart/form-data">
+            <?= csrf_field() ?>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold mb-1">Kop Atas (Header)</label>
+                    <?php if (!empty($kopAtas)): ?>
+                        <div class="border rounded p-2 mb-2 bg-light text-center"><img src="<?= $kopAtas ?>" alt="Kop atas" style="max-width:100%;max-height:90px;object-fit:contain"></div>
+                    <?php else: ?>
+                        <div class="alert alert-warning small mb-2 py-1"><i class="bi bi-exclamation-triangle"></i> Belum ada kop atas.</div>
+                    <?php endif ?>
+                    <input type="file" name="kop_atas" class="form-control form-control-sm" accept="image/png,image/jpeg">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold mb-1">Kop Bawah (Footer)</label>
+                    <?php if (!empty($kopBawah)): ?>
+                        <div class="border rounded p-2 mb-2 bg-light text-center"><img src="<?= $kopBawah ?>" alt="Kop bawah" style="max-width:100%;max-height:90px;object-fit:contain"></div>
+                    <?php else: ?>
+                        <div class="alert alert-secondary small mb-2 py-1"><i class="bi bi-info-circle"></i> Opsional.</div>
+                    <?php endif ?>
+                    <input type="file" name="kop_bawah" class="form-control form-control-sm" accept="image/png,image/jpeg">
+                </div>
             </div>
-            <?php if (!empty($kop)): ?>
-            <div class="col-md-5 text-md-end">
-                <form method="post" action="<?= site_url('dosen/pengampu/kop/hapus') ?>" onsubmit="return confirm('Hapus kop surat?')">
-                    <?= csrf_field() ?>
-                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Hapus Kop</button>
-                </form>
-            </div>
+            <div class="form-text mt-2">Unggah gambar <strong>banner memanjang</strong> (lebar penuh) format JPG/PNG, maks 3 MB &mdash; kop akan menempel di tepi atas/bawah halaman. Isi salah satu atau keduanya. Bila tak ada kop atas, kepala surat otomatis dibuat dari data prodi/perguruan tinggi.</div>
+            <div class="mt-2"><button class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> Simpan Kop</button></div>
+        </form>
+        <?php if (!empty($kopAtas) || !empty($kopBawah)): ?>
+        <div class="mt-2 d-flex gap-2 flex-wrap">
+            <?php if (!empty($kopAtas)): ?>
+            <form method="post" action="<?= site_url('dosen/pengampu/kop/hapus') ?>" onsubmit="return confirm('Hapus kop atas?')" class="d-inline">
+                <?= csrf_field() ?><input type="hidden" name="jenis" value="atas">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Hapus Kop Atas</button>
+            </form>
+            <?php endif ?>
+            <?php if (!empty($kopBawah)): ?>
+            <form method="post" action="<?= site_url('dosen/pengampu/kop/hapus') ?>" onsubmit="return confirm('Hapus kop bawah?')" class="d-inline">
+                <?= csrf_field() ?><input type="hidden" name="jenis" value="bawah">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Hapus Kop Bawah</button>
+            </form>
             <?php endif ?>
         </div>
+        <?php endif ?>
     </div>
 </div>
 
