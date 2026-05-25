@@ -100,6 +100,8 @@ class DtprController extends BaseController
         if (strlen($jenis) < 3) {
             return redirect()->back()->with('error', 'Isi jenis/nama kegiatan pengembangan.');
         }
+        $res = (new EvidenceStorage())->syncUpload($this->request->getFile('link_bukti'), false, null);
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
         Database::connect()->table('pengembangan_dtpr')->insert([
             'prodi_id'           => (int) $d['prodi_id'],
             'dosen_id'           => (int) $d['id'],
@@ -107,7 +109,7 @@ class DtprController extends BaseController
             'nama_dtpr'          => $this->namaDosen($d),
             'jenis_pengembangan' => $jenis,
             'jumlah'             => max(1, (int) $this->request->getPost('jumlah')),
-            'link_bukti'         => trim((string) $this->request->getPost('link_bukti')) ?: null,
+            'link_bukti'         => $res['value'],
         ]);
         return redirect()->to(site_url('akun/pengembangan'))->with('success', 'Pengembangan diri disimpan.');
     }
@@ -256,12 +258,14 @@ class DtprController extends BaseController
             'penyelenggara'     => trim((string) $this->request->getPost('penyelenggara')) ?: null,
             'tingkat'           => in_array($this->request->getPost('tingkat'), ['lokal', 'nasional', 'internasional'], true) ? $this->request->getPost('tingkat') : 'nasional',
             'tahun'             => (int) ($this->request->getPost('tahun') ?: 0) ?: null,
-            'link_bukti'        => trim((string) $this->request->getPost('link_bukti')) ?: null,
             'created_at'        => date('Y-m-d H:i:s'),
         ];
         if (!$this->validateData($data, $model->validationRules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
+        $res = (new EvidenceStorage())->syncUpload($this->request->getFile('link_bukti'), false, null);
+        if (isset($res['error'])) return redirect()->back()->withInput()->with('error', 'Bukti: ' . $res['error']);
+        $data['link_bukti'] = $res['value'];
         $model->insert($data);
         return redirect()->to(site_url('akun/rekognisi'))->with('success', 'Rekognisi disimpan.');
     }
