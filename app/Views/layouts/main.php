@@ -35,6 +35,14 @@ if ($isSuperadmin) {
         }
     }
 }
+
+// Apakah prodi aktif sudah memiliki instrumen LAM? Menu LKPS/LED/Penilaian
+// disembunyikan bila belum, karena fitur tersebut bergantung pada instrumen.
+$activeProdiId = (int) session('active_prodi_id');
+$hasInstrumen  = $activeProdiId
+    ? (bool) \Config\Database::connect()->table('prodi_instrumen')
+        ->where(['prodi_id' => $activeProdiId, 'aktif' => 1])->countAllResults()
+    : false;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -194,7 +202,7 @@ if ($isSuperadmin) {
                     <a class="nav-link <?= str_starts_with(uri_string(), 'spmi/auditor') ? 'active' : '' ?>" href="<?= site_url('spmi/auditor') ?>"><i class="bi bi-person-vcard"></i> Registry Auditor</a>
                 </nav>
             <?php endif ?>
-            <?php if ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate')): ?>
+            <?php if ($hasInstrumen && ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate'))): ?>
                 <div class="nav-section">Akreditasi</div>
                 <nav class="nav flex-column">
                     <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'kesiapan') ? 'active' : '' ?>" href="<?= site_url('kesiapan') ?>"><i class="bi bi-clipboard-data"></i> Kesiapan Akreditasi</a><?php endif ?>
@@ -202,6 +210,16 @@ if ($isSuperadmin) {
                     <?php if ($can('lkps.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'lkps') ? 'active' : '' ?>" href="<?= site_url('lkps') ?>"><i class="bi bi-file-earmark-spreadsheet"></i> LKPS</a><?php endif ?>
                     <?php if ($can('led.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'led') ? 'active' : '' ?>" href="<?= site_url('led') ?>"><i class="bi bi-file-earmark-word"></i> LED</a><?php endif ?>
                 </nav>
+            <?php elseif (!$hasInstrumen && ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate'))): ?>
+                <div class="nav-section">Akreditasi</div>
+                <div class="px-3 py-2 small text-muted">
+                    <i class="bi bi-info-circle"></i> Menu LKPS, LED, Penilaian &amp; Kesiapan muncul setelah prodi memiliki <strong>instrumen LAM</strong> aktif.
+                    <?php if ($can('instrumen.manage')): ?>
+                        <a href="<?= site_url('instrumen') ?>" class="d-block mt-1">Tetapkan instrumen &raquo;</a>
+                    <?php else: ?>
+                        <span class="d-block mt-1">Hubungi admin untuk menetapkannya.</span>
+                    <?php endif ?>
+                </div>
             <?php endif ?>
             <?php if ($can('users.manage') || $can('instrumen.manage')): ?>
                 <div class="nav-section">Administrasi</div>
