@@ -70,7 +70,10 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
 
         // HKI milik dosen (3.C.3 / 4.C.3)
         $routes->get('hki',                        'Akun\DtprController::hki');
+        $routes->get('hki/baru',                   'Akun\DtprController::hkiForm');
         $routes->post('hki/baru',                  'Akun\DtprController::hkiStore');
+        $routes->get('hki/(:num)/edit',            'Akun\DtprController::hkiForm/$1');
+        $routes->post('hki/(:num)/update',         'Akun\DtprController::hkiStore/$1');
         $routes->post('hki/(:num)/klaim',          'Akun\DtprController::hkiKlaim/$1');
         $routes->post('hki/(:num)/delete',         'Akun\DtprController::hkiDelete/$1');
 
