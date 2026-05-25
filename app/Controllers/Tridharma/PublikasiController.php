@@ -17,6 +17,8 @@ use App\Services\DoiImportClient;
 
 class PublikasiController extends BaseController
 {
+    use \App\Controllers\Concerns\ScanHki;
+
     protected PublikasiModel $model;
     protected HkiModel $hkiModel;
 
@@ -362,6 +364,11 @@ class PublikasiController extends BaseController
     }
 
     // ---------- HKI ----------
+
+    public function hkiScan()
+    {
+        return $this->scanHkiResponse();
+    }
 
     public function createHki(): string
     {

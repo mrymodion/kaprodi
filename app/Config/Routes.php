@@ -70,6 +70,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
 
         // HKI milik dosen (3.C.3 / 4.C.3)
         $routes->get('hki',                        'Akun\DtprController::hki');
+        $routes->post('hki/scan',                  'Akun\DtprController::hkiScan');
         $routes->get('hki/baru',                   'Akun\DtprController::hkiForm');
         $routes->post('hki/baru',                  'Akun\DtprController::hkiStore');
         $routes->get('hki/(:num)/edit',            'Akun\DtprController::hkiForm/$1');
@@ -325,6 +326,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('(:num)/delete',      'Tridharma\PublikasiController::deletePublikasi/$1');
         $routes->get('(:num)/pemilik',      'Tridharma\PublikasiController::pemilikPublikasi/$1');
         $routes->post('(:num)/pemilik',     'Tridharma\PublikasiController::simpanPemilik/$1');
+        $routes->post('hki/scan',           'Tridharma\PublikasiController::hkiScan');
         $routes->get('hki/create',          'Tridharma\PublikasiController::createHki');
         $routes->post('hki/store',          'Tridharma\PublikasiController::storeHki');
         $routes->get('hki/(:num)/edit',     'Tridharma\PublikasiController::editHki/$1');
