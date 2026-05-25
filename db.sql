@@ -1954,7 +1954,7 @@ CREATE TABLE `migrations` (
   `time` int(11) NOT NULL,
   `batch` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `migrations` */
 
@@ -1982,7 +1982,7 @@ insert  into `migrations`(`id`,`version`,`class`,`group`,`namespace`,`time`,`bat
 (21,'2026-01-01-000018','App\\Database\\Migrations\\AddDtprSelfServiceTables','default','App',1779664482,9),
 (22,'2026-01-01-000019','App\\Database\\Migrations\\CreateSpmiTables','default','App',1779664482,9),
 (23,'2026-01-01-000020','App\\Database\\Migrations\\AddSpmiCompletenessTables','default','App',1779664482,9),
-(24,'2026-01-01-000021','App\\Database\\Migrations\\CreatePengampuMk','default','App',1779664482,10);
+(24,'2026-01-01-000021','App\\Database\\Migrations\\CreatePengampuMk','default','App',1779698555,10);
 
 /*Table structure for table `mk_cpl` */
 
@@ -2001,31 +2001,6 @@ CREATE TABLE `mk_cpl` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `mk_cpl` */
-
-/*Table structure for table `pengampu_mk` */
-
-DROP TABLE IF EXISTS `pengampu_mk`;
-
-CREATE TABLE `pengampu_mk` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `dosen_id` int(10) unsigned NOT NULL,
-  `tahun_akademik_id` int(10) unsigned NOT NULL,
-  `mata_kuliah_id` int(10) unsigned DEFAULT NULL,
-  `nama_mk` varchar(200) NOT NULL,
-  `kategori` enum('ps_sendiri','ps_lain_pt','pt_lain') NOT NULL DEFAULT 'ps_sendiri',
-  `sks` decimal(4,1) NOT NULL DEFAULT 0.0,
-  `jumlah_kelas` int(11) NOT NULL DEFAULT 1,
-  `created_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `pengampu_mk_dosen_id_tahun_akademik_id` (`dosen_id`,`tahun_akademik_id`),
-  KEY `pengampu_mk_mata_kuliah_id_foreign` (`mata_kuliah_id`),
-  KEY `pengampu_mk_tahun_akademik_id_foreign` (`tahun_akademik_id`),
-  CONSTRAINT `pengampu_mk_dosen_id_foreign` FOREIGN KEY (`dosen_id`) REFERENCES `dosen` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `pengampu_mk_mata_kuliah_id_foreign` FOREIGN KEY (`mata_kuliah_id`) REFERENCES `mata_kuliah` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `pengampu_mk_tahun_akademik_id_foreign` FOREIGN KEY (`tahun_akademik_id`) REFERENCES `tahun_akademik` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-/*Data for the table `pengampu_mk` */
 
 /*Table structure for table `penelitian` */
 
@@ -2074,6 +2049,31 @@ CREATE TABLE `penelitian_anggota` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `penelitian_anggota` */
+
+/*Table structure for table `pengampu_mk` */
+
+DROP TABLE IF EXISTS `pengampu_mk`;
+
+CREATE TABLE `pengampu_mk` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `dosen_id` int(10) unsigned NOT NULL,
+  `tahun_akademik_id` int(10) unsigned NOT NULL,
+  `mata_kuliah_id` int(10) unsigned DEFAULT NULL,
+  `nama_mk` varchar(200) NOT NULL,
+  `kategori` enum('ps_sendiri','ps_lain_pt','pt_lain') NOT NULL DEFAULT 'ps_sendiri',
+  `sks` decimal(4,1) NOT NULL DEFAULT 0.0,
+  `jumlah_kelas` int(11) NOT NULL DEFAULT 1,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pengampu_mk_tahun_akademik_id_foreign` (`tahun_akademik_id`),
+  KEY `pengampu_mk_mata_kuliah_id_foreign` (`mata_kuliah_id`),
+  KEY `dosen_id_tahun_akademik_id` (`dosen_id`,`tahun_akademik_id`),
+  CONSTRAINT `pengampu_mk_dosen_id_foreign` FOREIGN KEY (`dosen_id`) REFERENCES `dosen` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `pengampu_mk_mata_kuliah_id_foreign` FOREIGN KEY (`mata_kuliah_id`) REFERENCES `mata_kuliah` (`id`) ON DELETE CASCADE ON UPDATE SET NULL,
+  CONSTRAINT `pengampu_mk_tahun_akademik_id_foreign` FOREIGN KEY (`tahun_akademik_id`) REFERENCES `tahun_akademik` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `pengampu_mk` */
 
 /*Table structure for table `pengembangan_dtpr` */
 
