@@ -6,6 +6,9 @@ use App\Controllers\BaseController;
 use App\Models\DosenModel;
 use App\Models\DosenEwmpModel;
 use App\Models\HkiModel;
+use App\Models\KurikulumModel;
+use App\Models\MataKuliahModel;
+use App\Models\PengampuMkModel;
 use App\Models\RekognisiDosenModel;
 use App\Services\EvidenceStorage;
 use App\Services\SertifikatParser;
@@ -80,6 +83,108 @@ class DtprController extends BaseController
         }
         (new DosenEwmpModel())->upsert((int) $d['id'], $taId, $data);
         return redirect()->to(site_url("akun/ewmp?ta_id={$taId}"))->with('success', 'EWMP berhasil disimpan.');
+    }
+
+    /** AJAX: hitung SKS Pendidikan dari mata kuliah diampu untuk satu TA. */
+    public function ewmpHitung()
+    {
+        $d = $this->dosen();
+        if (!$d) return $this->response->setJSON(['ok' => false, 'error' => 'Akun belum tertaut dosen.']);
+        $taId = (int) $this->request->getPost('tahun_akademik_id');
+        if (!$taId) return $this->response->setJSON(['ok' => false, 'error' => 'Tahun akademik belum dipilih.']);
+
+        $sum = (new PengampuMkModel())->sumByKategori((int) $d['id'], $taId);
+        return $this->response->setJSON([
+            'ok'        => true,
+            'fields'    => [
+                'sks_pendidikan_ps'         => $sum['ps_sendiri'],
+                'sks_pendidikan_ps_lain_pt' => $sum['ps_lain_pt'],
+                'sks_pendidikan_pt_lain'    => $sum['pt_lain'],
+            ],
+            'csrfName'  => csrf_token(),
+            'csrfHash'  => csrf_hash(),
+        ]);
+    }
+
+    // ─────────────────── MATA KULIAH DIAMPU (penugasan mengajar) ───────────────────
+
+    public function pengampu()
+    {
+        $d = $this->dosen();
+        if (!$d) return view('akun/not_linked');
+        $db   = Database::connect();
+        $taId = (int) ($this->request->getGet('ta_id') ?: ($db->table('tahun_akademik')->where('is_ts', 1)->get()->getRowArray()['id'] ?? 0));
+
+        $mkList = [];
+        $kur = (new KurikulumModel())->aktifByProdi((int) $d['prodi_id']);
+        if ($kur) {
+            $mkList = (new MataKuliahModel())->byKurikulum((int) $kur['id']);
+        }
+
+        return view('akun/ewmp/pengampu', [
+            'dosen'    => $d,
+            'taId'     => $taId,
+            'taList'   => $this->taList(),
+            'mkList'   => $mkList,
+            'list'     => $taId ? (new PengampuMkModel())->listByDosenTa((int) $d['id'], $taId) : [],
+            'kategori' => PengampuMkModel::KATEGORI_LABELS,
+        ]);
+    }
+
+    public function pengampuStore()
+    {
+        $d = $this->dosen();
+        if (!$d) return view('akun/not_linked');
+        $taId = (int) $this->request->getPost('tahun_akademik_id');
+        if (!$taId) return redirect()->back()->with('error', 'Pilih tahun akademik.');
+
+        $kategori = (string) $this->request->getPost('kategori');
+        if (!array_key_exists($kategori, PengampuMkModel::KATEGORI_LABELS)) $kategori = 'ps_sendiri';
+
+        $mkId   = (int) ($this->request->getPost('mata_kuliah_id') ?: 0);
+        $namaMk = trim((string) $this->request->getPost('nama_mk'));
+        $sks    = (float) $this->request->getPost('sks');
+
+        // Bila MK dipilih dari daftar prodi, ambil nama & SKS dari master (lebih tepercaya).
+        if ($mkId) {
+            $mk  = (new MataKuliahModel())->find($mkId);
+            $kur = $mk ? (new KurikulumModel())->find((int) $mk['kurikulum_id']) : null;
+            if (!$mk || !$kur || (int) $kur['prodi_id'] !== (int) $d['prodi_id']) {
+                return redirect()->back()->withInput()->with('error', 'Mata kuliah tidak ditemukan di prodi Anda.');
+            }
+            $namaMk = trim($mk['kode'] . ' - ' . $mk['nama']);
+            $sks    = (float) ($mk['sks_teori'] + $mk['sks_praktek'] + $mk['sks_lapangan']);
+        } else {
+            if (mb_strlen($namaMk) < 3) return redirect()->back()->withInput()->with('error', 'Isi nama mata kuliah.');
+            if ($sks <= 0)             return redirect()->back()->withInput()->with('error', 'Isi SKS mata kuliah (> 0).');
+        }
+
+        $jumlahKelas = max(1, (int) $this->request->getPost('jumlah_kelas'));
+
+        (new PengampuMkModel())->insert([
+            'dosen_id'          => (int) $d['id'],
+            'tahun_akademik_id' => $taId,
+            'mata_kuliah_id'    => $mkId ?: null,
+            'nama_mk'           => $namaMk,
+            'kategori'          => $kategori,
+            'sks'               => $sks,
+            'jumlah_kelas'      => $jumlahKelas,
+            'created_at'        => date('Y-m-d H:i:s'),
+        ]);
+        return redirect()->to(site_url("akun/ewmp/pengampu?ta_id={$taId}"))->with('success', 'Mata kuliah diampu ditambahkan.');
+    }
+
+    public function pengampuDelete(int $id)
+    {
+        $d = $this->dosen();
+        if (!$d) return view('akun/not_linked');
+        $model = new PengampuMkModel();
+        $item  = $model->find($id);
+        $taId  = (int) ($item['tahun_akademik_id'] ?? 0);
+        if ($item && (int) $item['dosen_id'] === (int) $d['id']) {
+            $model->delete($id);
+        }
+        return redirect()->to(site_url('akun/ewmp/pengampu' . ($taId ? "?ta_id={$taId}" : '')))->with('success', 'Data dihapus.');
     }
 
     // ───────────────────────── PENGEMBANGAN DIRI (3.A.3) ─────────────────────────

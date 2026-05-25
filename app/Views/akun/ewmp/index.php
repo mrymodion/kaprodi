@@ -32,6 +32,15 @@
                             <?php endforeach ?>
                         </select>
                     </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                        <button type="button" class="btn btn-sm btn-outline-info" id="btnHitungEwmp"<?= $taId ? '' : ' disabled' ?>>
+                            <i class="bi bi-calculator"></i> Hitung Pendidikan dari MK diampu
+                        </button>
+                        <a href="<?= site_url('akun/ewmp/pengampu?ta_id=' . $taId) ?>" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-easel"></i> Kelola MK Diampu
+                        </a>
+                        <span id="hitungStatus" class="small"></span>
+                    </div>
                     <?php
                     $fields = [
                         'sks_pendidikan_ps'         => 'Pendidikan di PS Sendiri',
@@ -99,6 +108,41 @@ function updateTotal() {
     else { s.className = 'alert alert-danger py-2 mb-3'; s.innerHTML = '<i class="bi bi-x-circle-fill"></i> EWMP melebihi 16 SKS.'; }
 }
 document.addEventListener('DOMContentLoaded', updateTotal);
+
+(function () {
+    var btn = document.getElementById('btnHitungEwmp');
+    if (!btn) return;
+    var form = btn.closest('form');
+    var status = document.getElementById('hitungStatus');
+    var csrfName = '<?= csrf_token() ?>';
+    var taId = '<?= (int) $taId ?>';
+
+    btn.addEventListener('click', function () {
+        var csrfEl = form.querySelector('input[name="' + csrfName + '"]');
+        var fd = new FormData();
+        fd.append('tahun_akademik_id', taId);
+        if (csrfEl) fd.append(csrfName, csrfEl.value);
+        btn.disabled = true;
+        status.textContent = 'Menghitung…'; status.className = 'small text-muted';
+
+        fetch('<?= site_url('akun/ewmp/hitung') ?>', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                btn.disabled = false;
+                if (d.csrfHash && csrfEl) csrfEl.value = d.csrfHash;
+                if (!d.ok) { status.textContent = d.error || 'Gagal menghitung.'; status.className = 'small text-danger'; return; }
+                var f = d.fields || {};
+                Object.keys(f).forEach(function (k) {
+                    var el = form.querySelector('[name="' + k + '"]');
+                    if (el) el.value = f[k];
+                });
+                updateTotal();
+                status.textContent = 'SKS Pendidikan terisi dari MK diampu. Lengkapi penelitian/PkM lalu simpan.';
+                status.className = 'small text-success';
+            })
+            .catch(function () { btn.disabled = false; status.textContent = 'Gagal menghubungi server.'; status.className = 'small text-danger'; });
+    });
+})();
 </script>
 
 <?= $this->endSection() ?>

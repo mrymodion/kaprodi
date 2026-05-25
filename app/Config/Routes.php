@@ -62,6 +62,11 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         // EWMP milik dosen
         $routes->get('ewmp',                       'Akun\DtprController::ewmp');
         $routes->post('ewmp',                      'Akun\DtprController::ewmpStore');
+        $routes->post('ewmp/hitung',               'Akun\DtprController::ewmpHitung');
+        // Mata kuliah diampu (penugasan mengajar) → sumber hitung EWMP pendidikan
+        $routes->get('ewmp/pengampu',              'Akun\DtprController::pengampu');
+        $routes->post('ewmp/pengampu',             'Akun\DtprController::pengampuStore');
+        $routes->post('ewmp/pengampu/(:num)/delete','Akun\DtprController::pengampuDelete/$1');
 
         // Pengembangan diri (LKPS 3.A.3)
         $routes->get('pengembangan',               'Akun\DtprController::pengembangan');
