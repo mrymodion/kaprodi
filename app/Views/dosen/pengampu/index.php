@@ -18,6 +18,30 @@
 <div class="alert alert-info small"><i class="bi bi-info-circle"></i> Input mata kuliah yang diampu tiap dosen per tahun akademik, lalu cetak <strong>Surat Tugas Mengajar</strong> (PDF) per dosen. Data ini juga dipakai untuk menghitung SKS Pendidikan EWMP secara otomatis.</div>
 
 <div class="card mb-3">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-person-vcard"></i> Kaprodi (Penandatangan Surat)</div>
+    <div class="card-body">
+        <form method="post" action="<?= site_url('dosen/pengampu/kaprodi') ?>" class="row g-2 align-items-end">
+            <?= csrf_field() ?>
+            <div class="col-md-8">
+                <label class="form-label small mb-0">Pilih dosen yang menjabat Ketua Program Studi</label>
+                <select name="kaprodi_dosen_id" class="form-select form-select-sm">
+                    <option value="0">— Belum ditentukan —</option>
+                    <?php foreach ($dosen as $d): ?>
+                        <option value="<?= $d['id'] ?>" <?= $kaprodiId === (int) $d['id'] ? 'selected' : '' ?>>
+                            <?= esc(trim(($d['gelar_depan'] ? $d['gelar_depan'] . ' ' : '') . $d['nama'] . ($d['gelar_belakang'] ? ', ' . $d['gelar_belakang'] : ''))) ?><?= !empty($d['nidn']) ? ' — NIDN ' . esc($d['nidn']) : '' ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> Simpan Kaprodi</button>
+            </div>
+        </form>
+        <div class="form-text">Nama (beserta gelar) &amp; NIP/NIDN penandatangan pada Surat Tugas diambil dari profil dosen ini. Ubah pilihan ini saat terjadi pergantian kaprodi.</div>
+    </div>
+</div>
+
+<div class="card mb-3">
     <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-image"></i> Kop Surat (Header &amp; Footer)</span>
         <small class="text-muted">Dipakai di PDF Surat Tugas</small>
