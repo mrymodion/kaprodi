@@ -14,6 +14,15 @@ trait ScanHki
     protected function scanHkiResponse()
     {
         $csrf = ['csrfName' => csrf_token(), 'csrfHash' => csrf_hash()];
+
+        // Jalur utama untuk shared hosting: teks sudah diekstrak di browser (PDF.js).
+        $teks = trim((string) $this->request->getPost('teks'));
+        if (mb_strlen($teks) >= 20) {
+            $res = (new HkiCertificateParser())->parse(mb_substr($teks, 0, 20000));
+            return $this->response->setJSON(['ok' => true, 'fields' => $res['fields'], 'source' => $res['source']] + $csrf);
+        }
+
+        // Jalur cadangan: server mengekstrak sendiri (butuh pdftotext / smalot).
         $file = $this->request->getFile('berkas');
 
         if (!$file || !$file->isValid()) {
