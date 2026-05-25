@@ -308,18 +308,26 @@ class PengampuController extends BaseController
         return $row ?: ['prodi_nama' => '-', 'jenjang' => '', 'upps_nama' => '', 'pt_nama' => '-', 'pt_alamat' => '', 'logo_path' => null];
     }
 
-    /** Penandatangan default = kaprodi prodi aktif (dari user_prodi → dosen). */
+    /** Penandatangan default = kaprodi prodi aktif; fallback ke profil dosen user yang login. */
     private function kaprodiSigner(): array
     {
+        // 1) Dosen yang terdaftar sebagai kaprodi pada prodi aktif (via user_prodi).
         $row = Database::connect()->table('user_prodi up')
             ->select('d.nama, d.nidn, d.nip, d.gelar_depan, d.gelar_belakang')
-            ->join('dosen d', 'd.user_id = up.user_id', 'left')
+            ->join('dosen d', 'd.user_id = up.user_id')
             ->where(['up.prodi_id' => $this->prodiId(), 'up.peran' => 'kaprodi'])
             ->get()->getRowArray();
+
+        // 2) Fallback: profil dosen milik akun yang sedang login (umumnya kaprodi pembuat surat).
+        if (!$row || empty($row['nama'])) {
+            $uid = (int) (auth()->id() ?? 0);
+            $row = $uid ? (new DosenModel())->findByUserId($uid) : null;
+        }
+
         if (!$row || empty($row['nama'])) return ['nama' => '', 'nip' => ''];
         return [
             'nama' => self::namaLengkap($row),
-            'nip'  => $row['nip'] ?: $row['nidn'] ?: '',
+            'nip'  => $row['nip'] ?: ($row['nidn'] ?: ''),
         ];
     }
 
