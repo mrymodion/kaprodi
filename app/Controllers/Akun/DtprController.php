@@ -220,15 +220,16 @@ class DtprController extends BaseController
         if (!$d) return view('akun/not_linked');
 
         $prodiId = (int) $d['prodi_id'];
-        $taId    = (int) $this->request->getPost('tahun_akademik_id');
+        $taId    = (int) $this->request->getGet('ta_id');
         $list    = $taId ? (new PengampuMkModel())->listByDosenTa((int) $d['id'], $taId) : [];
         if (empty($list)) {
-            return redirect()->back()->with('error', 'Belum ada mata kuliah diampu pada TA tersebut.');
+            return redirect()->to(site_url('akun/ewmp/surat?ta_id=' . $taId))->with('error', 'Belum ada mata kuliah diampu pada TA tersebut.');
         }
 
-        $db  = Database::connect();
-        $ta  = $db->table('tahun_akademik')->where('id', $taId)->get()->getRowArray() ?: ['kode' => '-'];
-        $kop = $this->suratLetterhead($prodiId);
+        $db     = Database::connect();
+        $ta     = $db->table('tahun_akademik')->where('id', $taId)->get()->getRowArray() ?: ['kode' => '-'];
+        $kop    = $this->suratLetterhead($prodiId);
+        $signer = $this->suratKaprodiSigner($prodiId);
 
         $data = [
             'kop'        => $kop,
@@ -240,12 +241,12 @@ class DtprController extends BaseController
             'ta'         => $ta,
             'list'       => $list,
             'kategori'   => PengampuMkModel::KATEGORI_LABELS,
-            'nomor'      => trim((string) $this->request->getPost('nomor')) ?: '...../...../...../' . date('Y'),
-            'kota'       => trim((string) $this->request->getPost('kota')) ?: '-',
-            'tanggal'    => trim((string) $this->request->getPost('tanggal')) ?: date('d-m-Y'),
-            'dasar'      => trim((string) $this->request->getPost('dasar')),
-            'signerNama' => trim((string) $this->request->getPost('signer_nama')),
-            'signerNip'  => trim((string) $this->request->getPost('signer_nip')),
+            'nomor'      => '...../...../...../' . date('Y'),
+            'kota'       => $kop['pt_kota'] ?? '',
+            'tanggal'    => date('d-m-Y'),
+            'dasar'      => '',
+            'signerNama' => $signer['nama'],
+            'signerNip'  => $signer['nip'],
         ];
 
         $html   = view('dosen/pengampu/surat_tugas', $data);
