@@ -247,6 +247,7 @@ class DtprController extends BaseController
             'dasar'      => '',
             'signerNama' => $signer['nama'],
             'signerNip'  => $signer['nip'],
+            'qr'         => (new \App\Services\SuratValidator())->qrDataUri((int) $d['id'], $taId),
         ];
 
         $html   = view('dosen/pengampu/surat_tugas', $data);

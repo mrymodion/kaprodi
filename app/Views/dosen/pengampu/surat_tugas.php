@@ -46,8 +46,11 @@ $padBottom = $hasFooter ? 90 : 24;
     table.mk th { background: #eee; text-align: center; }
     table.mk td.c { text-align: center; }
     .ttd { width: 100%; margin-top: 28px; }
-    .ttd td { vertical-align: top; font-size: 12px; }
-    .ttd .sign { width: 48%; }
+    .ttd td { vertical-align: bottom; font-size: 12px; }
+    .ttd .sign { width: 48%; vertical-align: top; }
+    .ttd .qr { width: 52%; }
+    .ttd .qr img { width: 78px; height: 78px; }
+    .ttd .qr .cap { font-size: 8.5px; color: #333; line-height: 1.3; }
     .sp { height: 64px; }
     .nm { font-weight: bold; text-decoration: underline; }
 </style>
@@ -110,7 +113,14 @@ $padBottom = $hasFooter ? 90 : 24;
 
 <table class="ttd">
     <tr>
-        <td>&nbsp;</td>
+        <td class="qr">
+            <?php if (!empty($qr)): ?>
+            <table><tr>
+                <td style="width:78px;vertical-align:top"><img src="<?= $qr ?>" alt="QR validasi"></td>
+                <td class="cap" style="vertical-align:top;padding-left:6px">Pindai QR untuk memvalidasi keaslian dokumen ini secara daring.</td>
+            </tr></table>
+            <?php endif ?>
+        </td>
         <td class="sign">
             <?= esc($kota) ?>, <?= esc($tanggal) ?><br>
             Ketua Program Studi <?= esc($prodiNama) ?>,

@@ -19,6 +19,9 @@ $routes->post('tracer/isi/(:segment)', 'Tracer\PublicTracerController::submit/$1
 $routes->get('kepuasan/isi/(:segment)',  'Tracer\PublicKepuasanController::form/$1');
 $routes->post('kepuasan/isi/(:segment)', 'Tracer\PublicKepuasanController::submit/$1');
 
+// Validasi publik Surat Tugas Mengajar via QR code (tanpa login)
+$routes->get('validasi/surat', 'Validasi::surat');
+
 // Routes yang butuh autentikasi (filter 'session' & 'prodiScope' diaktifkan di Config/Filters.php)
 $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     $routes->get('/', 'Dashboard::index');
