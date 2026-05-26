@@ -46,12 +46,12 @@ $padBottom = $hasFooter ? 90 : 24;
     table.mk th { background: #eee; text-align: center; }
     table.mk td.c { text-align: center; }
     .ttd { width: 100%; margin-top: 28px; }
-    .ttd td { vertical-align: bottom; font-size: 12px; }
-    .ttd .sign { width: 48%; vertical-align: top; }
-    .ttd .qr { width: 52%; }
-    .ttd .qr img { width: 78px; height: 78px; }
-    .ttd .qr .cap { font-size: 8.5px; color: #333; line-height: 1.3; }
+    .ttd td { vertical-align: top; font-size: 12px; }
+    .ttd .sign { width: 48%; }
     .sp { height: 64px; }
+    .qr-ttd { text-align: center; margin: 4px 0; }
+    .qr-ttd img { width: 72px; height: 72px; }
+    .qr-cap { font-size: 8px; color: #444; text-align: center; margin-top: 2px; }
     .nm { font-weight: bold; text-decoration: underline; }
 </style>
 </head>
@@ -113,18 +113,16 @@ $padBottom = $hasFooter ? 90 : 24;
 
 <table class="ttd">
     <tr>
-        <td class="qr">
-            <?php if (!empty($qr)): ?>
-            <table><tr>
-                <td style="width:78px;vertical-align:top"><img src="<?= $qr ?>" alt="QR validasi"></td>
-                <td class="cap" style="vertical-align:top;padding-left:6px">Pindai QR untuk memvalidasi keaslian dokumen ini secara daring.</td>
-            </tr></table>
-            <?php endif ?>
-        </td>
+        <td>&nbsp;</td>
         <td class="sign">
             <?= esc($kota) ?>, <?= esc($tanggal) ?><br>
             Ketua Program Studi <?= esc($prodiNama) ?>,
+            <?php if (!empty($qr)): ?>
+            <div class="qr-ttd"><img src="<?= $qr ?>" alt="QR validasi"></div>
+            <div class="qr-cap">Scan untuk validasi</div>
+            <?php else: ?>
             <div class="sp"></div>
+            <?php endif ?>
             <span class="nm"><?= esc($signerNama !== '' ? $signerNama : '..............................') ?></span><br>
             <?= $signerNip !== '' ? 'NIP/NIDN. ' . esc($signerNip) : '&nbsp;' ?>
         </td>
