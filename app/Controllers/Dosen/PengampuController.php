@@ -287,6 +287,7 @@ class PengampuController extends BaseController
             'dasar'      => trim((string) $this->request->getPost('dasar')),
             'signerNama' => trim((string) $this->request->getPost('signer_nama')),
             'signerNip'  => trim((string) $this->request->getPost('signer_nip')),
+            'qr'         => (new \App\Services\SuratValidator())->qrDataUri($dosenId, $taId),
         ];
 
         $html   = view('dosen/pengampu/surat_tugas', $data);
