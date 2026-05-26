@@ -190,6 +190,134 @@ class DtprController extends BaseController
         return redirect()->to(site_url('akun/ewmp/pengampu' . ($taId ? "?ta_id={$taId}" : '')))->with('success', 'Data dihapus.');
     }
 
+    // ───────────────────────── SURAT TUGAS MENGAJAR (download mandiri) ─────────────────────────
+
+    public function suratTugas()
+    {
+        $d = $this->dosen();
+        if (!$d) return view('akun/not_linked');
+
+        $prodiId = (int) $d['prodi_id'];
+        $db = Database::connect();
+        $taId = (int) ($this->request->getGet('ta_id') ?: ($db->table('tahun_akademik')->where('is_ts', 1)->get()->getRowArray()['id'] ?? 0));
+        $list = $taId ? (new PengampuMkModel())->listByDosenTa((int) $d['id'], $taId) : [];
+
+        return view('akun/ewmp/surat_form', [
+            'dosen'     => $d,
+            'namaDosen' => $this->namaDosen($d),
+            'taId'      => $taId,
+            'taList'    => $this->taList(),
+            'list'      => $list,
+            'signer'    => $this->suratKaprodiSigner($prodiId),
+            'kop'       => $this->suratLetterhead($prodiId),
+            'kategori'  => PengampuMkModel::KATEGORI_LABELS,
+        ]);
+    }
+
+    public function suratTugasGenerate()
+    {
+        $d = $this->dosen();
+        if (!$d) return view('akun/not_linked');
+
+        $prodiId = (int) $d['prodi_id'];
+        $taId    = (int) $this->request->getPost('tahun_akademik_id');
+        $list    = $taId ? (new PengampuMkModel())->listByDosenTa((int) $d['id'], $taId) : [];
+        if (empty($list)) {
+            return redirect()->back()->with('error', 'Belum ada mata kuliah diampu pada TA tersebut.');
+        }
+
+        $db  = Database::connect();
+        $ta  = $db->table('tahun_akademik')->where('id', $taId)->get()->getRowArray() ?: ['kode' => '-'];
+        $kop = $this->suratLetterhead($prodiId);
+
+        $data = [
+            'kop'        => $kop,
+            'logo'       => $this->suratLogoDataUri($kop),
+            'kopImage'   => $this->suratKopDataUri($prodiId, 'kop_path'),
+            'kopFooter'  => $this->suratKopDataUri($prodiId, 'kop_footer_path'),
+            'dosen'      => $d,
+            'namaDosen'  => $this->namaDosen($d),
+            'ta'         => $ta,
+            'list'       => $list,
+            'kategori'   => PengampuMkModel::KATEGORI_LABELS,
+            'nomor'      => trim((string) $this->request->getPost('nomor')) ?: '...../...../...../' . date('Y'),
+            'kota'       => trim((string) $this->request->getPost('kota')) ?: '-',
+            'tanggal'    => trim((string) $this->request->getPost('tanggal')) ?: date('d-m-Y'),
+            'dasar'      => trim((string) $this->request->getPost('dasar')),
+            'signerNama' => trim((string) $this->request->getPost('signer_nama')),
+            'signerNip'  => trim((string) $this->request->getPost('signer_nip')),
+        ];
+
+        $html   = view('dosen/pengampu/surat_tugas', $data);
+        $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false, 'defaultFont' => 'Helvetica']);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        $fname = 'Surat_Tugas_Mengajar_' . preg_replace('/[^A-Za-z0-9]/', '_', $d['nama']) . '_' . preg_replace('/[^A-Za-z0-9]/', '_', $ta['kode']) . '.pdf';
+        $dompdf->stream($fname, ['Attachment' => true]);
+        exit;
+    }
+
+    private function suratLetterhead(int $prodiId): array
+    {
+        $row = Database::connect()->table('prodi p')
+            ->select('p.nama AS prodi_nama, p.jenjang, p.gelar,
+                      u.nama AS upps_nama, u.jenis AS upps_jenis,
+                      pt.nama AS pt_nama, pt.alamat AS pt_alamat, pt.kota AS pt_kota, pt.provinsi AS pt_provinsi, pt.website AS pt_website, pt.logo_path')
+            ->join('upps u', 'u.id = p.upps_id', 'left')
+            ->join('perguruan_tinggi pt', 'pt.id = u.perguruan_tinggi_id', 'left')
+            ->where('p.id', $prodiId)->get()->getRowArray();
+        return $row ?: ['prodi_nama' => '-', 'jenjang' => '', 'upps_nama' => '', 'pt_nama' => '-', 'pt_alamat' => '', 'logo_path' => null];
+    }
+
+    private function suratKopDataUri(int $prodiId, string $col): ?string
+    {
+        $row = Database::connect()->table('prodi')->select($col)->where('id', $prodiId)->get()->getRowArray();
+        if (empty($row[$col])) return null;
+        $p = WRITEPATH . 'kop/' . basename($row[$col]);
+        if (!is_file($p) || !is_readable($p)) return null;
+        $ext = strtolower(pathinfo($p, PATHINFO_EXTENSION)) ?: 'png';
+        return 'data:image/' . ($ext === 'jpg' ? 'jpeg' : $ext) . ';base64,' . base64_encode((string) file_get_contents($p));
+    }
+
+    private function suratLogoDataUri(array $kop): ?string
+    {
+        $candidates = [];
+        if (!empty($kop['logo_path'])) {
+            $candidates[] = FCPATH . ltrim($kop['logo_path'], '/');
+            $candidates[] = WRITEPATH . ltrim($kop['logo_path'], '/');
+        }
+        $candidates[] = FCPATH . 'assets/logo-utd.png';
+        foreach ($candidates as $p) {
+            if (is_file($p) && is_readable($p)) {
+                $ext = strtolower(pathinfo($p, PATHINFO_EXTENSION)) ?: 'png';
+                return 'data:image/' . ($ext === 'jpg' ? 'jpeg' : $ext) . ';base64,' . base64_encode((string) file_get_contents($p));
+            }
+        }
+        return null;
+    }
+
+    private function suratKaprodiSigner(int $prodiId): array
+    {
+        $db  = Database::connect();
+        $kid = (int) ($db->table('prodi')->select('kaprodi_dosen_id')->where('id', $prodiId)->get()->getRowArray()['kaprodi_dosen_id'] ?? 0);
+        $row = $kid ? (new DosenModel())->find($kid) : null;
+
+        if (!$row || empty($row['nama'])) {
+            $row = $db->table('user_prodi up')
+                ->select('d.nama, d.nidn, d.nip, d.gelar_depan, d.gelar_belakang')
+                ->join('dosen d', 'd.user_id = up.user_id')
+                ->where(['up.prodi_id' => $prodiId, 'up.peran' => 'kaprodi'])
+                ->get()->getRowArray();
+        }
+
+        if (!$row || empty($row['nama'])) return ['nama' => '', 'nip' => ''];
+        return [
+            'nama' => trim(($row['gelar_depan'] ? $row['gelar_depan'] . ' ' : '') . $row['nama'] . ($row['gelar_belakang'] ? ', ' . $row['gelar_belakang'] : '')),
+            'nip'  => $row['nip'] ?: ($row['nidn'] ?: ''),
+        ];
+    }
+
     // ───────────────────────── PENGEMBANGAN DIRI (3.A.3) ─────────────────────────
 
     public function pengembangan()

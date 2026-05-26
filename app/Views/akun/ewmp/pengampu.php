@@ -3,7 +3,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-easel"></i> Mata Kuliah Diampu</h4>
-    <a href="<?= site_url('akun/ewmp?ta_id=' . $taId) ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-table"></i> Ke EWMP</a>
+    <div class="d-flex gap-2">
+        <a href="<?= site_url('akun/ewmp/surat?ta_id=' . $taId) ?>" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-pdf"></i> Surat Tugas</a>
+        <a href="<?= site_url('akun/ewmp?ta_id=' . $taId) ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-table"></i> Ke EWMP</a>
+    </div>
 </div>
 
 <?php if (session('success')): ?>
