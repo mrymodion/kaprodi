@@ -67,6 +67,9 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('ewmp/pengampu',              'Akun\DtprController::pengampu');
         $routes->post('ewmp/pengampu',             'Akun\DtprController::pengampuStore');
         $routes->post('ewmp/pengampu/(:num)/delete','Akun\DtprController::pengampuDelete/$1');
+        // Surat Tugas Mengajar (download mandiri oleh dosen)
+        $routes->get('ewmp/surat',                 'Akun\DtprController::suratTugas');
+        $routes->post('ewmp/surat',                'Akun\DtprController::suratTugasGenerate');
 
         // Pengembangan diri (LKPS 3.A.3)
         $routes->get('pengembangan',               'Akun\DtprController::pengembangan');
