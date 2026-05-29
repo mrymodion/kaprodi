@@ -211,7 +211,8 @@ class DtprController extends BaseController
             'signer'    => $this->suratKaprodiSigner($prodiId),
             'kop'       => $this->suratLetterhead($prodiId),
             'kategori'  => PengampuMkModel::KATEGORI_LABELS,
-            'meta'      => $taId ? (new \App\Models\SuratTugasMetaModel())->get((int) $d['id'], $taId) : null,
+            'meta'      => ($meta = $taId ? (new \App\Models\SuratTugasMetaModel())->get((int) $d['id'], $taId) : null),
+            'evidenUrl' => ($meta && !empty($meta['nomor'])) ? (new \App\Services\SuratValidator())->url((int) $d['id'], $taId) : null,
         ]);
     }
 

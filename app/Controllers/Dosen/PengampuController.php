@@ -256,7 +256,74 @@ class PengampuController extends BaseController
             'kop'       => $this->letterhead(),
             'kategori'  => PengampuMkModel::KATEGORI_LABELS,
             'meta'      => $meta,
+            'evidenUrl' => ($meta && !empty($meta['nomor'])) ? (new \App\Services\SuratValidator())->url($dosenId, (int) $taId) : null,
         ]);
+    }
+
+    // ───────────────────────── Daftar Eviden Surat Tugas ─────────────────────────
+
+    /** Kumpulan baris surat_tugas_meta + rekap MK + URL validasi, prodi-scoped. */
+    private function evidenRows(int $taId = 0): array
+    {
+        $db = Database::connect();
+        $q = $db->table('surat_tugas_meta stm')
+            ->select('stm.id, stm.nomor, stm.tanggal, stm.signer_nama,
+                      stm.dosen_id, stm.tahun_akademik_id,
+                      d.nama, d.gelar_depan, d.gelar_belakang, d.nidn,
+                      ta.kode AS ta_kode, ta.is_ts, ta.tahun_mulai')
+            ->join('dosen d', 'd.id = stm.dosen_id')
+            ->join('tahun_akademik ta', 'ta.id = stm.tahun_akademik_id')
+            ->where('d.prodi_id', $this->prodiId())
+            ->where("(stm.nomor IS NOT NULL AND stm.nomor <> '')", null, false);
+        if ($taId) $q->where('stm.tahun_akademik_id', $taId);
+        $rows = $q->orderBy('ta.tahun_mulai DESC, d.nama ASC')->get()->getResultArray();
+
+        $validator = new \App\Services\SuratValidator();
+        foreach ($rows as &$r) {
+            $stat = $db->table('pengampu_mk')
+                ->selectSum('sks * jumlah_kelas', 'total_sks')
+                ->selectCount('id', 'jml_mk')
+                ->where(['dosen_id' => (int) $r['dosen_id'], 'tahun_akademik_id' => (int) $r['tahun_akademik_id']])
+                ->get()->getRowArray() ?: ['jml_mk' => 0, 'total_sks' => 0];
+            $r['jml_mk']      = (int) $stat['jml_mk'];
+            $r['total_sks']   = (float) $stat['total_sks'];
+            $r['nama_lengkap']= self::namaLengkap($r);
+            $r['eviden_url']  = $validator->url((int) $r['dosen_id'], (int) $r['tahun_akademik_id']);
+        }
+        return $rows;
+    }
+
+    public function eviden()
+    {
+        $taId = (int) ($this->request->getGet('ta_id') ?: 0);
+        return view('dosen/pengampu/eviden', [
+            'taId'   => $taId,
+            'taList' => $this->taList(),
+            'rows'   => $this->evidenRows($taId),
+        ]);
+    }
+
+    public function evidenEkspor()
+    {
+        $taId = (int) ($this->request->getGet('ta_id') ?: 0);
+        $rows = $this->evidenRows($taId);
+        $fname = 'Eviden_Surat_Tugas' . ($taId ? '_TA' . $taId : '_SemuaTA') . '_' . date('Ymd_His') . '.csv';
+
+        $this->response->setHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $this->response->setHeader('Content-Disposition', 'attachment; filename="' . $fname . '"');
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF"); // BOM agar Excel baca UTF-8
+        fputcsv($out, ['No', 'Nama Dosen', 'NIDN', 'Tahun Akademik', 'Nomor Surat', 'Tanggal', 'Penandatangan', 'Jml MK', 'Total SKS', 'URL Eviden']);
+        foreach ($rows as $i => $r) {
+            fputcsv($out, [
+                $i + 1, $r['nama_lengkap'], $r['nidn'] ?? '',
+                $r['ta_kode'] . ($r['is_ts'] ? ' (TS)' : ''),
+                $r['nomor'], $r['tanggal'] ?? '', $r['signer_nama'] ?? '',
+                $r['jml_mk'], $r['total_sks'], $r['eviden_url'],
+            ]);
+        }
+        fclose($out);
+        exit;
     }
 
     /** Simpan saja (tanpa generate PDF). Berguna ketika kaprodi hanya ingin
