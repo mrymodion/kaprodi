@@ -48,10 +48,19 @@
 </div>
 
 <?php if (!empty($list)): ?>
+<?php $issued = !empty($meta['nomor']); ?>
+<?php if ($issued): ?>
+<div class="alert alert-success small py-2 mb-2">
+    <i class="bi bi-patch-check"></i> Surat tugas TA ini sudah diterbitkan oleh Kaprodi &mdash; Nomor <strong><?= esc($meta['nomor']) ?></strong><?= !empty($meta['tanggal']) ? ' &middot; tanggal ' . esc($meta['tanggal']) : '' ?>.
+</div>
 <a href="<?= site_url('akun/ewmp/surat/unduh?ta_id=' . $taId) ?>" class="btn btn-success" target="_blank">
     <i class="bi bi-download"></i> Unduh Surat Tugas PDF
 </a>
-<div class="form-text mt-1"><i class="bi bi-info-circle"></i> Nomor surat dan penandatangan diisi oleh kaprodi pada dokumen resmi.</div>
+<?php else: ?>
+<div class="alert alert-warning small mb-0">
+    <i class="bi bi-hourglass-split"></i> Surat tugas TA ini <strong>belum diterbitkan</strong> oleh Kaprodi. Mohon menunggu Kaprodi menerbitkan surat tugas (mengisi nomor surat). Setelah diterbitkan, tombol unduh akan tersedia di sini.
+</div>
+<?php endif ?>
 <?php endif ?>
 <?php endif ?>
 
