@@ -32,27 +32,56 @@ $FASE_LABEL = [
     </div>
 </div>
 
-<?php $sources = (new \App\Services\EvidenAutoTarik())->sources(); ?>
+<?php
+$svc = new \App\Services\EvidenAutoTarik();
+$sources = $svc->sources();
+$relevantKeys = $svc->relevantFor($butir);
+$lainnyaKeys = array_diff(array_keys($sources), $relevantKeys);
+?>
 <div class="card mb-3">
     <div class="card-header bg-light fw-semibold d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-magic"></i> Tarik Eviden Otomatis dari Data Sistem</span>
-        <form method="post" action="<?= site_url("eviden/ppepp/{$butir['id']}/tarik-semua") ?>" class="d-inline" onsubmit="return confirm('Tarik bukti dari semua sumber sekaligus?')">
+        <span><i class="bi bi-magic"></i> Tarik Eviden Otomatis &mdash; <small class="text-muted">disaring per butir</small></span>
+        <?php if (!empty($relevantKeys)): ?>
+        <form method="post" action="<?= site_url("eviden/ppepp/{$butir['id']}/tarik-semua") ?>" class="d-inline" onsubmit="return confirm('Tarik bukti dari semua sumber yang relevan untuk butir ini?')">
             <?= csrf_field() ?>
-            <button class="btn btn-sm btn-primary"><i class="bi bi-lightning-charge"></i> Tarik Semua</button>
+            <button class="btn btn-sm btn-primary"><i class="bi bi-lightning-charge"></i> Tarik Semua yang Relevan</button>
         </form>
+        <?php endif ?>
     </div>
     <div class="card-body py-2">
-        <div class="d-flex flex-wrap gap-1">
-            <?php foreach ($sources as $key => $info): ?>
-            <form method="post" action="<?= site_url("eviden/ppepp/{$butir['id']}/tarik/{$key}") ?>" class="d-inline">
-                <?= csrf_field() ?>
-                <button class="btn btn-sm btn-outline-primary" title="Tarik ke <?= esc(ucfirst($info['fase'])) ?>">
-                    <i class="bi <?= esc($info['icon']) ?>"></i> <?= esc($info['label']) ?>
-                </button>
-            </form>
-            <?php endforeach ?>
-        </div>
-        <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Hanya data yang memiliki URL bukti (link_bukti / url) yang ditarik. Duplikat di-skip otomatis. Surat Tugas pakai URL validasi publik.</div>
+        <?php if (!empty($relevantKeys)): ?>
+            <div class="small fw-semibold text-success mb-1"><i class="bi bi-check2-circle"></i> Sumber relevan untuk butir ini:</div>
+            <div class="d-flex flex-wrap gap-1 mb-2">
+                <?php foreach ($relevantKeys as $key): $info = $sources[$key]; ?>
+                <form method="post" action="<?= site_url("eviden/ppepp/{$butir['id']}/tarik/{$key}") ?>" class="d-inline">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-sm btn-success" title="Tarik ke <?= esc(ucfirst($info['fase'])) ?>">
+                        <i class="bi <?= esc($info['icon']) ?>"></i> <?= esc($info['label']) ?>
+                    </button>
+                </form>
+                <?php endforeach ?>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-warning small py-2 mb-2"><i class="bi bi-info-circle"></i> Tidak ada sumber sistem yang otomatis terdeteksi relevan dengan butir ini (berdasarkan kode butir/kriteria/judul). Bila Anda yakin ada yang cocok, gunakan tombol di bawah secara manual.</div>
+        <?php endif ?>
+
+        <?php if (!empty($lainnyaKeys)): ?>
+        <details>
+            <summary class="small text-muted" style="cursor:pointer"><i class="bi bi-three-dots"></i> Sumber lain (mungkin tidak relevan)</summary>
+            <div class="d-flex flex-wrap gap-1 mt-2">
+                <?php foreach ($lainnyaKeys as $key): $info = $sources[$key]; ?>
+                <form method="post" action="<?= site_url("eviden/ppepp/{$butir['id']}/tarik/{$key}") ?>" class="d-inline">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-sm btn-outline-secondary" title="Tarik ke <?= esc(ucfirst($info['fase'])) ?>">
+                        <i class="bi <?= esc($info['icon']) ?>"></i> <?= esc($info['label']) ?>
+                    </button>
+                </form>
+                <?php endforeach ?>
+            </div>
+        </details>
+        <?php endif ?>
+
+        <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Sumber relevan dideteksi dari <code>tabel_lkps_ref</code>, kode kriteria, dan kata kunci di judul/deskripsi butir. Hanya data dengan URL bukti yang ditarik; duplikat di-skip.</div>
     </div>
 </div>
 
