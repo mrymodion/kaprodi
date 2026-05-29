@@ -212,6 +212,7 @@ $hasInstrumen  = $activeProdiId
                     <?php if ($can('lkps.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'lkps') ? 'active' : '' ?>" href="<?= site_url('lkps') ?>"><i class="bi bi-file-earmark-spreadsheet"></i> LKPS</a><?php endif ?>
                     <?php if ($can('led.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'led') ? 'active' : '' ?>" href="<?= site_url('led') ?>"><i class="bi bi-file-earmark-word"></i> LED</a><?php endif ?>
                     <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'eviden/ppepp') ? 'active' : '' ?>" href="<?= site_url('eviden/ppepp') ?>"><i class="bi bi-clipboard2-check"></i> Eviden PPEPP</a><?php endif ?>
+                    <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'eviden/audit') ? 'active' : '' ?>" href="<?= site_url('eviden/audit/kondisi-eksternal') ?>"><i class="bi bi-clipboard-data"></i> Audit Kriteria A</a><?php endif ?>
                 </nav>
             <?php elseif (!$hasInstrumen && ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate'))): ?>
                 <div class="nav-section">Akreditasi</div>

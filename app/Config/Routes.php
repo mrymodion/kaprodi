@@ -419,5 +419,8 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('ppepp/bukti/(:num)/delete',  'Eviden\PpeppController::buktiDelete/$1');
         $routes->post('ppepp/(:num)/tarik-semua',       'Eviden\PpeppController::autoTarikSemua/$1');
         $routes->post('ppepp/(:num)/tarik/(:segment)',  'Eviden\PpeppController::autoTarik/$1/$2');
+
+        // Sprint 1 Otomatisasi Kriteria A: halaman audit (read-only)
+        $routes->get('audit/kondisi-eksternal',         'Eviden\AuditController::kondisiEksternal');
     });
 });
