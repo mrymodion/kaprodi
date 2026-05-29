@@ -32,19 +32,38 @@ $FASE_LABEL = [
     </div>
 </div>
 
+<?php $sources = (new \App\Services\EvidenAutoTarik())->sources(); ?>
+<div class="card mb-3">
+    <div class="card-header bg-light fw-semibold d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-magic"></i> Tarik Eviden Otomatis dari Data Sistem</span>
+        <form method="post" action="<?= site_url("eviden/ppepp/{$butir['id']}/tarik-semua") ?>" class="d-inline" onsubmit="return confirm('Tarik bukti dari semua sumber sekaligus?')">
+            <?= csrf_field() ?>
+            <button class="btn btn-sm btn-primary"><i class="bi bi-lightning-charge"></i> Tarik Semua</button>
+        </form>
+    </div>
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-1">
+            <?php foreach ($sources as $key => $info): ?>
+            <form method="post" action="<?= site_url("eviden/ppepp/{$butir['id']}/tarik/{$key}") ?>" class="d-inline">
+                <?= csrf_field() ?>
+                <button class="btn btn-sm btn-outline-primary" title="Tarik ke <?= esc(ucfirst($info['fase'])) ?>">
+                    <i class="bi <?= esc($info['icon']) ?>"></i> <?= esc($info['label']) ?>
+                </button>
+            </form>
+            <?php endforeach ?>
+        </div>
+        <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Hanya data yang memiliki URL bukti (link_bukti / url) yang ditarik. Duplikat di-skip otomatis. Surat Tugas pakai URL validasi publik.</div>
+    </div>
+</div>
+
 <form method="post" action="<?= site_url("eviden/ppepp/{$butir['id']}/save") ?>" class="mb-3">
     <?= csrf_field() ?>
     <div class="row g-3">
     <?php foreach ($FASE_LABEL as $f => [$lbl, $icon, $col]): ?>
         <div class="col-md-12" id="fase-<?= $f ?>">
             <div class="card border-<?= $col ?>">
-                <div class="card-header bg-<?= $col ?> text-white d-flex align-items-center justify-content-between">
+                <div class="card-header bg-<?= $col ?> text-white">
                     <span><i class="bi <?= $icon ?>"></i> <strong><?= $lbl ?></strong></span>
-                    <?php if ($f === 'pelaksanaan'): ?>
-                    <button type="button" class="btn btn-sm btn-light" formaction="" onclick="document.getElementById('tarik-surat').submit(); return false;">
-                        <i class="bi bi-magic"></i> Tarik Surat Tugas
-                    </button>
-                    <?php endif ?>
                 </div>
                 <div class="card-body">
                     <label class="form-label small fw-semibold mb-1">Narasi</label>
@@ -90,10 +109,6 @@ $FASE_LABEL = [
     </div>
 
     <div class="mt-3"><button class="btn btn-success"><i class="bi bi-check"></i> Simpan Narasi PPEPP</button></div>
-</form>
-
-<form id="tarik-surat" method="post" action="<?= site_url("eviden/ppepp/{$butir['id']}/tarik/surat") ?>" class="d-none">
-    <?= csrf_field() ?>
 </form>
 
 <?= $this->endSection() ?>

@@ -172,42 +172,62 @@ class PpeppController extends BaseController
         return redirect()->to(site_url("eviden/ppepp/{$row['lam_butir_id']}/edit"))->with('success', 'Bukti dihapus.');
     }
 
-    /** Tarik otomatis semua URL validasi Surat Tugas Mengajar prodi sebagai
-     *  bukti Pelaksanaan. Cocok untuk butir terkait dosen/SDM/pendidikan. */
-    public function autoTarikSurat(int $butirId)
+    /** Tarik otomatis bukti dari sumber sistem (surat_tugas, publikasi, dll). */
+    public function autoTarik(int $butirId, string $source)
     {
         $butir = $this->butirInScope($butirId);
         if (!$butir) return redirect()->to(site_url('eviden/ppepp'))->with('error', 'Butir tidak ditemukan.');
 
-        $prodiId = $this->prodiId();
-        $db = Database::connect();
-
-        $rows = $db->table('surat_tugas_meta stm')
-            ->select('stm.dosen_id, stm.tahun_akademik_id, stm.nomor, d.nama, ta.kode AS ta_kode')
-            ->join('dosen d', 'd.id = stm.dosen_id')
-            ->join('tahun_akademik ta', 'ta.id = stm.tahun_akademik_id')
-            ->where('d.prodi_id', $prodiId)
-            ->where("(stm.nomor IS NOT NULL AND stm.nomor <> '')", null, false)
-            ->orderBy('ta.tahun_mulai DESC, d.nama ASC')->get()->getResultArray();
-
-        if (empty($rows)) {
-            return redirect()->back()->with('error', 'Belum ada Surat Tugas yang diterbitkan untuk ditarik.');
+        $svc = new \App\Services\EvidenAutoTarik();
+        if (!isset($svc->sources()[$source])) {
+            return redirect()->back()->with('error', 'Sumber eviden tidak dikenali.');
+        }
+        $items = $svc->collect($source, $this->prodiId());
+        if (empty($items)) {
+            $sourceLabel = $svc->sources()[$source]['label'];
+            return redirect()->back()->with('error', "Tidak ada data {$sourceLabel} dengan URL bukti yang dapat ditarik.");
         }
 
-        $eviden = (new EvidenPpeppModel())->getOrCreate($prodiId, $butirId, (int) (auth()->id() ?? 0));
+        $eviden = (new EvidenPpeppModel())->getOrCreate($this->prodiId(), $butirId, (int) (auth()->id() ?? 0));
         $bModel = new EvidenPpeppBuktiModel();
-        $sv = new SuratValidator();
         $added = 0;
-        foreach ($rows as $r) {
-            $url = $sv->url((int) $r['dosen_id'], (int) $r['tahun_akademik_id']);
-            if ($bModel->exists((int) $eviden['id'], 'pelaksanaan', $url)) continue;
-            $label = 'Surat Tugas ' . $r['nama'] . ' TA ' . $r['ta_kode'] . ' (No. ' . $r['nomor'] . ')';
-            $bModel->tambah((int) $eviden['id'], 'pelaksanaan', $label, $url, 'surat_tugas');
+        $faseUtama = $items[0]['fase'] ?? 'pelaksanaan';
+        foreach ($items as $it) {
+            if ($bModel->exists((int) $eviden['id'], $it['fase'], $it['url'])) continue;
+            $bModel->tambah((int) $eviden['id'], $it['fase'], $it['label'], $it['url'], $it['sumber']);
             $added++;
         }
         $msg = $added > 0
-            ? "$added bukti Surat Tugas ditambahkan ke kolom Pelaksanaan."
-            : 'Semua Surat Tugas yang tersedia sudah ada di kolom Pelaksanaan.';
-        return redirect()->to(site_url("eviden/ppepp/{$butirId}/edit#fase-pelaksanaan"))->with('success', $msg);
+            ? "$added bukti dari {$svc->sources()[$source]['label']} ditambahkan."
+            : 'Semua bukti dari sumber tersebut sudah ada.';
+        return redirect()->to(site_url("eviden/ppepp/{$butirId}/edit#fase-{$faseUtama}"))->with('success', $msg);
+    }
+
+    /** Tarik dari SEMUA sumber yang punya data — sekali klik. */
+    public function autoTarikSemua(int $butirId)
+    {
+        $butir = $this->butirInScope($butirId);
+        if (!$butir) return redirect()->to(site_url('eviden/ppepp'))->with('error', 'Butir tidak ditemukan.');
+
+        $svc = new \App\Services\EvidenAutoTarik();
+        $eviden = (new EvidenPpeppModel())->getOrCreate($this->prodiId(), $butirId, (int) (auth()->id() ?? 0));
+        $bModel = new EvidenPpeppBuktiModel();
+
+        $totalAdded = 0;
+        $sourcesUsed = [];
+        foreach (array_keys($svc->sources()) as $source) {
+            $items = $svc->collect($source, $this->prodiId());
+            $sAdded = 0;
+            foreach ($items as $it) {
+                if ($bModel->exists((int) $eviden['id'], $it['fase'], $it['url'])) continue;
+                $bModel->tambah((int) $eviden['id'], $it['fase'], $it['label'], $it['url'], $it['sumber']);
+                $sAdded++;
+            }
+            if ($sAdded > 0) { $totalAdded += $sAdded; $sourcesUsed[] = $svc->sources()[$source]['label'] . " ($sAdded)"; }
+        }
+        $msg = $totalAdded > 0
+            ? "Total $totalAdded bukti ditambahkan dari: " . implode(', ', $sourcesUsed) . '.'
+            : 'Tidak ada bukti baru untuk ditarik — semua sudah ada atau belum ada data dengan URL.';
+        return redirect()->to(site_url("eviden/ppepp/{$butirId}/edit"))->with('success', $msg);
     }
 }
