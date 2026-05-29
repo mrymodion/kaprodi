@@ -411,12 +411,14 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
 
     // Sprint 2 Kriteria A: input Kondisi Eksternal terstruktur
     $routes->group('akreditasi/kondisi-eksternal', function ($routes) {
-        $routes->get('/',               'Akreditasi\KondisiEksternal::index');
-        $routes->get('narasi',          'Akreditasi\KondisiEksternal::narasi');
-        $routes->get('baru',            'Akreditasi\KondisiEksternal::form');
-        $routes->get('(:num)/edit',     'Akreditasi\KondisiEksternal::form/$1');
-        $routes->post('/',              'Akreditasi\KondisiEksternal::store');
-        $routes->post('(:num)/delete',  'Akreditasi\KondisiEksternal::delete/$1');
+        $routes->get('/',                          'Akreditasi\KondisiEksternal::index');
+        $routes->get('narasi',                     'Akreditasi\KondisiEksternal::narasi');
+        $routes->post('narasi/(:segment)/draft',   'Akreditasi\KondisiEksternal::narasiAiDraft/$1');
+        $routes->post('narasi/(:segment)/save',    'Akreditasi\KondisiEksternal::narasiSave/$1');
+        $routes->get('baru',                       'Akreditasi\KondisiEksternal::form');
+        $routes->get('(:num)/edit',                'Akreditasi\KondisiEksternal::form/$1');
+        $routes->post('/',                         'Akreditasi\KondisiEksternal::store');
+        $routes->post('(:num)/delete',             'Akreditasi\KondisiEksternal::delete/$1');
     });
 
     // Eviden PPEPP per butir LAM (persiapan visitasi asesor)

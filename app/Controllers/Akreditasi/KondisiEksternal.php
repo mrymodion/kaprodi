@@ -87,7 +87,56 @@ class KondisiEksternal extends BaseController
         if (!$prodiId) return redirect()->to('/')->with('error', 'Prodi aktif belum dipilih.');
 
         $grouped = (new KondisiEksternalModel())->byProdiGrouped($prodiId);
-        return view('akreditasi/kondisi_eksternal/narasi', ['grouped' => $grouped]);
+        $narasiSaved = (new \App\Models\KondisiEksternalNarasiModel())->byProdi($prodiId);
+        $gen = new \App\Services\KondisiEksternalNarasiGenerator();
+
+        return view('akreditasi/kondisi_eksternal/narasi', [
+            'grouped'      => $grouped,
+            'narasiSaved'  => $narasiSaved,
+            'subBagian'    => \App\Services\KondisiEksternalNarasiGenerator::SUB_BAGIAN,
+            'aiReady'      => $gen->isAiReady(),
+        ]);
+    }
+
+    /** AJAX: generate draft narasi via AI untuk satu sub-bagian. */
+    public function narasiAiDraft(string $sub)
+    {
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return $this->response->setJSON(['ok' => false, 'error' => 'Prodi aktif belum dipilih.']);
+
+        try {
+            $out = (new \App\Services\KondisiEksternalNarasiGenerator())->draft($prodiId, $sub);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(200)->setJSON(['ok' => false, 'error' => $e->getMessage()]);
+        }
+        return $this->response->setJSON([
+            'ok'           => true,
+            'sub'          => $sub,
+            'narasi'       => $out['narasi'],
+            'source_count' => $out['source_count'],
+        ]);
+    }
+
+    /** Simpan narasi (hasil edit manual atau hasil AI yang sudah di-review). */
+    public function narasiSave(string $sub)
+    {
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return redirect()->to('/')->with('error', 'Prodi aktif belum dipilih.');
+        if (!isset(\App\Services\KondisiEksternalNarasiGenerator::SUB_BAGIAN[$sub])) {
+            return redirect()->back()->with('error', 'Sub-bagian tidak dikenali.');
+        }
+        $narasi = trim((string) $this->request->getPost('narasi'));
+        if ($narasi === '') return redirect()->back()->with('error', 'Narasi kosong.');
+
+        $generated = (bool) $this->request->getPost('generated');
+        (new \App\Models\KondisiEksternalNarasiModel())->upsert(
+            $prodiId, $sub, $narasi,
+            (int) $this->request->getPost('source_count'),
+            $generated,
+            (int) (auth()->id() ?? 0)
+        );
+        return redirect()->to(site_url('akreditasi/kondisi-eksternal/narasi') . '#sub-' . $sub)
+            ->with('success', "Narasi {$sub} tersimpan.");
     }
 
     private function collectInput(int $prodiId): ?array
