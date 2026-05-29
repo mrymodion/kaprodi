@@ -412,6 +412,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     // Eviden PPEPP per butir LAM (persiapan visitasi asesor)
     $routes->group('eviden', function ($routes) {
         $routes->get('ppepp',                       'Eviden\PpeppController::index');
+        $routes->post('ppepp/tarik-seluruh',         'Eviden\PpeppController::autoTarikSeluruh');
         $routes->get('ppepp/(:num)/edit',           'Eviden\PpeppController::edit/$1');
         $routes->post('ppepp/(:num)/save',          'Eviden\PpeppController::save/$1');
         $routes->post('ppepp/(:num)/bukti',         'Eviden\PpeppController::buktiAdd/$1');

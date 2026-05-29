@@ -3,7 +3,13 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h4 class="mb-0"><i class="bi bi-clipboard2-check"></i> Eviden PPEPP &mdash; Persiapan Visitasi</h4>
-    <a href="<?= esc($visitasiUrl, 'attr') ?>" target="_blank" class="btn btn-sm btn-outline-success"><i class="bi bi-box-arrow-up-right"></i> Pratinjau Halaman Visitasi</a>
+    <div class="d-flex gap-2">
+        <form method="post" action="<?= site_url('eviden/ppepp/tarik-seluruh') ?>" class="d-inline" onsubmit="return confirm('Tarik bukti otomatis untuk SEMUA butir sekaligus?\n\nUntuk tiap butir, sistem hanya menarik dari sumber yang relevan (Surat Tugas, Publikasi, Penelitian, PkM, HKI, Rekognisi, Pengembangan Diri, Kerjasama). Duplikat di-skip. Proses ini bisa memakan beberapa detik.')">
+            <?= csrf_field() ?>
+            <button class="btn btn-sm btn-primary"><i class="bi bi-lightning-charge-fill"></i> Tarik Eviden Seluruh Butir</button>
+        </form>
+        <a href="<?= esc($visitasiUrl, 'attr') ?>" target="_blank" class="btn btn-sm btn-outline-success"><i class="bi bi-box-arrow-up-right"></i> Pratinjau Halaman Visitasi</a>
+    </div>
 </div>
 
 <?php if (session('success')): ?>
