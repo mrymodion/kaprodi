@@ -81,6 +81,58 @@ class KondisiEksternal extends BaseController
         return redirect()->to(site_url('akreditasi/kondisi-eksternal'))->with('success', 'Entri dihapus.');
     }
 
+    /** AJAX: AI sarankan N entri untuk kategori tertentu (tidak otomatis simpan). */
+    public function saranAi(string $kategori)
+    {
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return $this->response->setJSON(['ok' => false, 'error' => 'Prodi aktif belum dipilih.']);
+        try {
+            $items = (new \App\Services\KondisiEksternalSuggester())->suggest($prodiId, $kategori, 5);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON(['ok' => false, 'error' => $e->getMessage()]);
+        }
+        return $this->response->setJSON([
+            'ok'        => true,
+            'kategori'  => $kategori,
+            'items'     => $items,
+            'csrfName'  => csrf_token(),
+            'csrfHash'  => csrf_hash(),
+        ]);
+    }
+
+    /** Bulk insert dari saran AI yang sudah di-review prodi. */
+    public function saranAiSimpan()
+    {
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return redirect()->to('/')->with('error', 'Prodi aktif belum dipilih.');
+
+        $kategori = (string) $this->request->getPost('kategori');
+        if (!array_key_exists($kategori, KondisiEksternalModel::KATEGORI)) {
+            return redirect()->back()->with('error', 'Kategori tidak dikenali.');
+        }
+        $items = (array) $this->request->getPost('items');
+        if (empty($items)) return redirect()->back()->with('error', 'Tidak ada entri terpilih.');
+
+        $m = new KondisiEksternalModel();
+        $count = 0;
+        foreach ($items as $it) {
+            if (empty($it['selected']) || empty($it['judul']) || empty($it['deskripsi'])) continue;
+            $dampak = in_array($it['dampak'] ?? '', ['rendah','sedang','tinggi'], true) ? $it['dampak'] : 'sedang';
+            $m->insert([
+                'prodi_id'         => $prodiId,
+                'kategori'         => $kategori,
+                'judul'            => mb_substr(trim((string) $it['judul']), 0, 250),
+                'deskripsi'        => trim((string) $it['deskripsi']),
+                'dampak'           => $dampak,
+                'respons_prodi'    => trim((string) ($it['respons_prodi'] ?? '')) ?: null,
+                'sumber_referensi' => trim((string) ($it['sumber_referensi'] ?? '')) ?: null,
+            ]);
+            $count++;
+        }
+        return redirect()->to(site_url('akreditasi/kondisi-eksternal') . '?kategori=' . $kategori)
+            ->with('success', "$count entri ditambahkan dari saran AI. Mohon periksa dan lengkapi bila perlu.");
+    }
+
     public function narasi()
     {
         $prodiId = $this->prodiId();

@@ -49,7 +49,10 @@ $active = $_GET['kategori'] ?? array_key_first($KAT);
                     <strong><i class="bi <?= $info['ikon'] ?>"></i> <?= esc($info['label']) ?></strong>
                     <span class="badge bg-secondary ms-1"><?= esc($info['grup']) ?></span>
                 </div>
-                <a href="<?= site_url('akreditasi/kondisi-eksternal/baru') . '?kategori=' . $key ?>" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i> Tambah Entri</a>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-info" onclick="openSaranAi('<?= $key ?>', '<?= esc($info['label'], 'js') ?>')"><i class="bi bi-robot"></i> Saran AI</button>
+                    <a href="<?= site_url('akreditasi/kondisi-eksternal/baru') . '?kategori=' . $key ?>" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i> Tambah Entri</a>
+                </div>
             </div>
             <div class="card-body py-2 small text-muted"><?= esc($info['desc']) ?></div>
             <?php if (empty($entries)): ?>
@@ -88,5 +91,105 @@ $active = $_GET['kategori'] ?? array_key_first($KAT);
     </div>
 <?php endforeach ?>
 </div>
+
+<div class="modal fade" id="modalSaranAi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-robot"></i> Saran AI &mdash; <span id="modalKatLabel"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2 mb-0 small text-muted">AI sedang menyiapkan saran berdasarkan konteks prodi Anda... (5-15 detik)</p>
+                </div>
+                <div id="modalError" class="alert alert-danger small" style="display:none"></div>
+                <form id="modalForm" method="post" action="<?= site_url('akreditasi/kondisi-eksternal/saran-ai-simpan') ?>" style="display:none">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="kategori" id="modalKatKey">
+                    <div class="alert alert-warning small py-2"><i class="bi bi-exclamation-triangle"></i> <strong>Wajib diverifikasi:</strong> AI dapat menyarankan nomor peraturan/sumber yang perlu Anda periksa kebenarannya. Centang yang relevan saja, edit bila perlu, lalu simpan.</div>
+                    <div id="modalSuggestions"></div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAll()">Centang/Lepas Semua</button>
+                        <button class="btn btn-primary"><i class="bi bi-plus-circle"></i> Tambahkan Entri Terpilih</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let modalSaranAi;
+document.addEventListener('DOMContentLoaded', () => {
+    modalSaranAi = new bootstrap.Modal(document.getElementById('modalSaranAi'));
+});
+
+async function openSaranAi(kat, label) {
+    document.getElementById('modalKatLabel').textContent = label;
+    document.getElementById('modalKatKey').value = kat;
+    document.getElementById('modalLoading').style.display = 'block';
+    document.getElementById('modalError').style.display = 'none';
+    document.getElementById('modalForm').style.display = 'none';
+    document.getElementById('modalSuggestions').innerHTML = '';
+    modalSaranAi.show();
+
+    try {
+        const fd = new FormData();
+        fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+        const res = await fetch(`<?= site_url('akreditasi/kondisi-eksternal/saran-ai') ?>/${kat}`, { method: 'POST', body: fd });
+        const data = await res.json();
+        document.getElementById('modalLoading').style.display = 'none';
+        if (!data.ok) {
+            document.getElementById('modalError').textContent = data.error || 'Gagal mendapatkan saran AI.';
+            document.getElementById('modalError').style.display = 'block';
+            return;
+        }
+        if (!data.items || data.items.length === 0) {
+            document.getElementById('modalError').textContent = 'AI tidak menghasilkan saran. Coba lagi.';
+            document.getElementById('modalError').style.display = 'block';
+            return;
+        }
+        renderSaranSuggestions(data.items);
+        document.getElementById('modalForm').style.display = 'block';
+    } catch (e) {
+        document.getElementById('modalLoading').style.display = 'none';
+        document.getElementById('modalError').textContent = 'Error: ' + e.message;
+        document.getElementById('modalError').style.display = 'block';
+    }
+}
+
+function renderSaranSuggestions(items) {
+    const dmpColor = d => d === 'tinggi' ? 'danger' : (d === 'sedang' ? 'warning text-dark' : 'secondary');
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+    const escAttr = s => esc(s);
+
+    document.getElementById('modalSuggestions').innerHTML = items.map((s, i) => `
+        <div class="card mb-2">
+            <div class="card-body py-2">
+                <div class="form-check mb-1">
+                    <input class="form-check-input sel-cb" type="checkbox" name="items[${i}][selected]" value="1" id="sel-${i}" checked>
+                    <label class="form-check-label fw-bold" for="sel-${i}">${esc(s.judul)}</label>
+                    <span class="badge bg-${dmpColor(s.dampak)} ms-2">${esc(s.dampak)}</span>
+                </div>
+                <input type="hidden" name="items[${i}][judul]" value="${escAttr(s.judul)}">
+                <input type="hidden" name="items[${i}][dampak]" value="${escAttr(s.dampak)}">
+                <textarea name="items[${i}][deskripsi]" class="form-control form-control-sm mb-1" rows="2">${esc(s.deskripsi)}</textarea>
+                <div class="row g-1">
+                    <div class="col-md-6"><input type="text" name="items[${i}][respons_prodi]" class="form-control form-control-sm" placeholder="Respons prodi (opsional)" value="${escAttr(s.respons_prodi)}"></div>
+                    <div class="col-md-6"><input type="text" name="items[${i}][sumber_referensi]" class="form-control form-control-sm" placeholder="Sumber (perlu verifikasi)" value="${escAttr(s.sumber_referensi)}"></div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleAll() {
+    const cbs = document.querySelectorAll('.sel-cb');
+    const allChecked = Array.from(cbs).every(c => c.checked);
+    cbs.forEach(c => c.checked = !allChecked);
+}
+</script>
 
 <?= $this->endSection() ?>
