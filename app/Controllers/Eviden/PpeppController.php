@@ -236,4 +236,83 @@ class PpeppController extends BaseController
             : 'Tidak ada bukti baru untuk ditarik — semua sudah ada atau belum ada data dengan URL.';
         return redirect()->to(site_url("eviden/ppepp/{$butirId}/edit"))->with('success', $msg);
     }
+
+    /** Tarik bukti otomatis untuk SELURUH butir aktif prodi sekaligus.
+     *  Optimasi: koleksi sumber & set bukti existing di-cache di memori
+     *  sehingga tidak ada N×M query. */
+    public function autoTarikSeluruh()
+    {
+        $prodiId = $this->prodiId();
+        $instrumenIds = $this->activeInstrumenIds($prodiId);
+        if (empty($instrumenIds)) {
+            return redirect()->to(site_url('eviden/ppepp'))->with('error', 'Belum ada instrumen LAM aktif untuk prodi.');
+        }
+
+        $db = Database::connect();
+        $butirRows = $db->table('lam_butir b')
+            ->select('b.id, b.kode AS butir_kode, b.judul, b.deskripsi, b.tabel_lkps_ref,
+                      k.kode AS kriteria_kode, k.nama AS kriteria_nama')
+            ->join('lam_kriteria k', 'k.id = b.lam_kriteria_id')
+            ->whereIn('k.lam_instrumen_id', $instrumenIds)
+            ->get()->getResultArray();
+        if (empty($butirRows)) {
+            return redirect()->to(site_url('eviden/ppepp'))->with('error', 'Tidak ada butir penilaian pada instrumen aktif.');
+        }
+
+        $svc = new \App\Services\EvidenAutoTarik();
+
+        // 1) Pra-koleksi data semua sumber sekali jalan (per prodi).
+        $sourceCache = [];
+        foreach (array_keys($svc->sources()) as $src) {
+            $sourceCache[$src] = $svc->collect($src, $prodiId);
+        }
+
+        // 2) Pra-fetch index bukti existing prodi → cek duplikat tanpa DB hit.
+        $existing = []; // [eviden_id][fase][url] = true
+        $existingRows = $db->table('eviden_ppepp_bukti b')
+            ->select('b.eviden_id, b.fase, b.url')
+            ->join('eviden_ppepp e', 'e.id = b.eviden_id')
+            ->where('e.prodi_id', $prodiId)->get()->getResultArray();
+        foreach ($existingRows as $er) {
+            $existing[(int) $er['eviden_id']][$er['fase']][$er['url']] = true;
+        }
+
+        $eModel = new \App\Models\EvidenPpeppModel();
+        $bModel = new \App\Models\EvidenPpeppBuktiModel();
+        $uid = (int) (auth()->id() ?? 0);
+
+        $totalAdded     = 0;
+        $butirTouched   = 0;
+        $sumberRingkasan = []; // sumber => jumlah
+        foreach ($butirRows as $b) {
+            $relevant = $svc->relevantFor($b);
+            if (empty($relevant)) continue;
+
+            $eviden = $eModel->getOrCreate($prodiId, (int) $b['id'], $uid);
+            $evId = (int) $eviden['id'];
+            $perButirAdded = 0;
+
+            foreach ($relevant as $src) {
+                foreach ($sourceCache[$src] ?? [] as $it) {
+                    if (isset($existing[$evId][$it['fase']][$it['url']])) continue;
+                    $bModel->tambah($evId, $it['fase'], $it['label'], $it['url'], $it['sumber']);
+                    $existing[$evId][$it['fase']][$it['url']] = true;
+                    $totalAdded++;
+                    $perButirAdded++;
+                    $sumberRingkasan[$src] = ($sumberRingkasan[$src] ?? 0) + 1;
+                }
+            }
+            if ($perButirAdded > 0) $butirTouched++;
+        }
+
+        if ($totalAdded === 0) {
+            return redirect()->to(site_url('eviden/ppepp'))->with('success', 'Tidak ada bukti baru — semua sumber relevan sudah tertaut atau belum ada data dengan URL.');
+        }
+
+        $labels = $svc->sources();
+        $parts = [];
+        foreach ($sumberRingkasan as $src => $n) $parts[] = $labels[$src]['label'] . " ($n)";
+        $msg = "Selesai: $totalAdded bukti baru ditambahkan ke $butirTouched butir &mdash; dari " . implode(', ', $parts) . '.';
+        return redirect()->to(site_url('eviden/ppepp'))->with('success', $msg);
+    }
 }
