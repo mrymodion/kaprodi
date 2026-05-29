@@ -56,6 +56,20 @@
 <a href="<?= site_url('akun/ewmp/surat/unduh?ta_id=' . $taId) ?>" class="btn btn-success" target="_blank">
     <i class="bi bi-download"></i> Unduh Surat Tugas PDF
 </a>
+<?php if (!empty($evidenUrl)): ?>
+<div class="border rounded p-2 mt-3 bg-light" style="max-width:640px">
+    <div class="small fw-semibold mb-1"><i class="bi bi-link-45deg"></i> URL Eviden Akreditasi (validasi publik)</div>
+    <div class="input-group input-group-sm">
+        <input type="text" id="evdLink" class="form-control" readonly value="<?= esc($evidenUrl, 'attr') ?>" onclick="this.select()">
+        <button class="btn btn-outline-secondary" type="button" onclick="salinLink('evdLink', this)"><i class="bi bi-clipboard"></i> Salin</button>
+    </div>
+    <div class="form-text mt-1">Tempel link ini di kolom bukti pada borang/LKPS bila diperlukan.</div>
+</div>
+<script>
+function salinLink(id, btn){var inp=document.getElementById(id);if(!inp)return;inp.select();if(navigator.clipboard){navigator.clipboard.writeText(inp.value).then(()=>flash(btn));}else{document.execCommand('copy');flash(btn);}}
+function flash(btn){var o=btn.innerHTML;btn.innerHTML='<i class="bi bi-check"></i> Tersalin';btn.classList.add('btn-success');btn.classList.remove('btn-outline-secondary');setTimeout(()=>{btn.innerHTML=o;btn.classList.remove('btn-success');btn.classList.add('btn-outline-secondary');},1500);}
+</script>
+<?php endif ?>
 <?php else: ?>
 <div class="alert alert-warning small mb-0">
     <i class="bi bi-hourglass-split"></i> Surat tugas TA ini <strong>belum diterbitkan</strong> oleh Kaprodi. Mohon menunggu Kaprodi menerbitkan surat tugas (mengisi nomor surat). Setelah diterbitkan, tombol unduh akan tersedia di sini.

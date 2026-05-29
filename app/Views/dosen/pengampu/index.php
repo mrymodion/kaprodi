@@ -3,7 +3,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-easel2"></i> Penugasan Mengajar</h4>
-    <a href="<?= site_url('dosen') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-people"></i> Data Dosen</a>
+    <div class="d-flex gap-2">
+        <a href="<?= site_url('dosen/pengampu/eviden') ?>" class="btn btn-sm btn-outline-success"><i class="bi bi-shield-check"></i> Eviden Surat Tugas</a>
+        <a href="<?= site_url('dosen') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-people"></i> Data Dosen</a>
+    </div>
 </div>
 
 <?php if (session('success')): ?>

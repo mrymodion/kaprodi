@@ -63,6 +63,16 @@
                     <?php if (!empty($meta)): ?>
                     <div class="alert alert-info small py-1 mb-2"><i class="bi bi-info-circle"></i> Surat untuk TA ini sudah pernah diterbitkan. Field di atas otomatis terisi dari penerbitan terakhir; ubah jika perlu.</div>
                     <?php endif ?>
+                    <?php if (!empty($evidenUrl)): ?>
+                    <div class="border rounded p-2 mb-2 bg-light">
+                        <div class="small fw-semibold mb-1"><i class="bi bi-link-45deg"></i> URL Eviden Akreditasi (validasi publik)</div>
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="evdLink" class="form-control" readonly value="<?= esc($evidenUrl, 'attr') ?>" onclick="this.select()">
+                            <button class="btn btn-outline-secondary" type="button" onclick="salinLink('evdLink', this)"><i class="bi bi-clipboard"></i> Salin</button>
+                        </div>
+                        <div class="form-text mt-1">Tempel link ini di kolom bukti pada borang/LKPS. Asesor dapat scan QR atau klik link untuk verifikasi.</div>
+                    </div>
+                    <?php endif ?>
                     <div class="d-flex gap-2">
                         <button type="submit" formaction="<?= site_url("dosen/pengampu/{$dosen['id']}/surat/simpan") ?>" formtarget="_self" class="btn btn-primary">
                             <i class="bi bi-check"></i> Simpan
@@ -97,5 +107,24 @@
         </div>
     </div>
 </div>
+
+<script>
+function salinLink(id, btn) {
+    var inp = document.getElementById(id);
+    if (!inp) return;
+    inp.select();
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(inp.value).then(function(){ flashSalin(btn); });
+    } else {
+        document.execCommand('copy'); flashSalin(btn);
+    }
+}
+function flashSalin(btn){
+    var old = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check"></i> Tersalin';
+    btn.classList.add('btn-success'); btn.classList.remove('btn-outline-secondary');
+    setTimeout(function(){ btn.innerHTML = old; btn.classList.remove('btn-success'); btn.classList.add('btn-outline-secondary'); }, 1500);
+}
+</script>
 
 <?= $this->endSection() ?>
