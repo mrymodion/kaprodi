@@ -99,7 +99,9 @@ class PpeppController extends BaseController
 
         $db = Database::connect();
         $row = $db->table('lam_butir b')
-            ->select('b.*, k.kode AS kriteria_kode, k.nama AS kriteria_nama, k.lam_instrumen_id, i.nama AS instrumen_nama')
+            ->select('b.id, b.kode AS butir_kode, b.judul, b.deskripsi, b.jenis_ipo, b.lam_kriteria_id,
+                      k.kode AS kriteria_kode, k.nama AS kriteria_nama, k.lam_instrumen_id,
+                      i.nama AS instrumen_nama')
             ->join('lam_kriteria k', 'k.id = b.lam_kriteria_id')
             ->join('lam_instrumen i', 'i.id = k.lam_instrumen_id')
             ->where('b.id', $butirId)
