@@ -415,6 +415,8 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('narasi',                     'Akreditasi\KondisiEksternal::narasi');
         $routes->post('narasi/(:segment)/draft',   'Akreditasi\KondisiEksternal::narasiAiDraft/$1');
         $routes->post('narasi/(:segment)/save',    'Akreditasi\KondisiEksternal::narasiSave/$1');
+        $routes->get('mutu',                       'Akreditasi\KondisiEksternal::mutu');
+        $routes->post('mutu/ai',                   'Akreditasi\KondisiEksternal::mutuAi');
         $routes->post('saran-ai/(:segment)',        'Akreditasi\KondisiEksternal::saranAi/$1');
         $routes->post('saran-ai-simpan',            'Akreditasi\KondisiEksternal::saranAiSimpan');
         $routes->get('baru',                       'Akreditasi\KondisiEksternal::form');

@@ -191,6 +191,36 @@ class KondisiEksternal extends BaseController
             ->with('success', "Narasi {$sub} tersimpan.");
     }
 
+    /** Sprint 4: halaman evaluasi mutu (heuristik). AI Judge dipicu via tombol/AJAX. */
+    public function mutu()
+    {
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return redirect()->to('/')->with('error', 'Prodi aktif belum dipilih.');
+
+        $eval = new \App\Services\KondisiEksternalEvaluator();
+        return view('akreditasi/kondisi_eksternal/mutu', [
+            'hasil'    => $eval->evaluate($prodiId, false),
+            'meta'     => \App\Services\KondisiEksternalEvaluator::META,
+            'bobot'    => \App\Services\KondisiEksternalEvaluator::BOBOT,
+            'aiDimensi'=> \App\Services\KondisiEksternalEvaluator::AI_DIMENSI,
+            'aiReady'  => $eval->isAiReady(),
+        ]);
+    }
+
+    /** AJAX: re-evaluasi dengan AI Judge mengaktifkan 3 dimensi kualitatif. */
+    public function mutuAi()
+    {
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return $this->response->setJSON(['ok' => false, 'error' => 'Prodi aktif belum dipilih.']);
+
+        try {
+            $hasil = (new \App\Services\KondisiEksternalEvaluator())->evaluate($prodiId, true);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON(['ok' => false, 'error' => $e->getMessage()]);
+        }
+        return $this->response->setJSON(['ok' => true, 'hasil' => $hasil]);
+    }
+
     private function collectInput(int $prodiId): ?array
     {
         $kategori = (string) $this->request->getPost('kategori');
