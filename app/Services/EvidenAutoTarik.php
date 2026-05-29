@@ -15,19 +15,52 @@ use Config\Database;
  */
 class EvidenAutoTarik
 {
-    /** Definisi sumber yang tersedia: label tampil, ikon, deskripsi singkat. */
+    /** Definisi sumber yang tersedia: label, ikon, fase default, dan
+     *  kata kunci pemicu (matcher) ke butir yang relevan. */
     public function sources(): array
     {
         return [
-            'surat_tugas'  => ['label' => 'Surat Tugas Mengajar', 'icon' => 'bi-file-earmark-pdf', 'fase' => 'pelaksanaan'],
-            'publikasi'    => ['label' => 'Publikasi Dosen',      'icon' => 'bi-journal-text',    'fase' => 'pelaksanaan'],
-            'penelitian'   => ['label' => 'Penelitian Dosen',     'icon' => 'bi-search',          'fase' => 'pelaksanaan'],
-            'pkm'          => ['label' => 'PkM Dosen',            'icon' => 'bi-megaphone',       'fase' => 'pelaksanaan'],
-            'hki'          => ['label' => 'HKI',                  'icon' => 'bi-shield-check',    'fase' => 'pelaksanaan'],
-            'rekognisi'    => ['label' => 'Rekognisi Dosen',      'icon' => 'bi-award',           'fase' => 'pelaksanaan'],
-            'pengembangan' => ['label' => 'Pengembangan Diri',    'icon' => 'bi-mortarboard',     'fase' => 'peningkatan'],
-            'kerjasama'    => ['label' => 'Kerjasama',            'icon' => 'bi-people-fill',     'fase' => 'pelaksanaan'],
+            'surat_tugas'  => ['label' => 'Surat Tugas Mengajar', 'icon' => 'bi-file-earmark-pdf', 'fase' => 'pelaksanaan',
+                'match' => ['surat tugas','pengampu','beban dosen','beban kerja','ewmp','dosen pengampu','3.a.1','3.a.4','3.b.1']],
+            'publikasi'    => ['label' => 'Publikasi Dosen', 'icon' => 'bi-journal-text', 'fase' => 'pelaksanaan',
+                'match' => ['publikasi','jurnal','prosiding','luaran','karya tulis','sitasi','3.c.2','4.c.2']],
+            'penelitian'   => ['label' => 'Penelitian Dosen', 'icon' => 'bi-search', 'fase' => 'pelaksanaan',
+                'match' => ['penelitian','riset','road map','dana penelitian','3.b.2','4.b.2']],
+            'pkm'          => ['label' => 'PkM Dosen', 'icon' => 'bi-megaphone', 'fase' => 'pelaksanaan',
+                'match' => ['pkm','pengabdian','dana pkm','3.b.3','4.b.3']],
+            'hki'          => ['label' => 'HKI', 'icon' => 'bi-shield-check', 'fase' => 'pelaksanaan',
+                'match' => ['hki','paten','hak cipta','kekayaan intelektual','3.c.3','4.c.3']],
+            'rekognisi'    => ['label' => 'Rekognisi Dosen', 'icon' => 'bi-award', 'fase' => 'pelaksanaan',
+                'match' => ['rekognisi','prestasi dosen','keynote','reviewer','visiting','3.a.4']],
+            'pengembangan' => ['label' => 'Pengembangan Diri', 'icon' => 'bi-mortarboard', 'fase' => 'peningkatan',
+                'match' => ['pengembangan diri','pengembangan dosen','pelatihan','workshop','sertifikasi','peningkatan kompetensi','3.a.3']],
+            'kerjasama'    => ['label' => 'Kerjasama', 'icon' => 'bi-people-fill', 'fase' => 'pelaksanaan',
+                'match' => ['kerjasama','mou','moa','mitra','3.c.1','4.c.1']],
         ];
+    }
+
+    /** Tentukan sumber yang RELEVAN untuk sebuah butir berdasarkan
+     *  butir_kode + kriteria_kode + judul + deskripsi + tabel_lkps_ref.
+     *  Mengembalikan daftar key sumber yang cocok. Empty array = tidak ada
+     *  pencocokan kuat → UI akan menampilkan semua sumber sebagai fallback. */
+    public function relevantFor(array $butir): array
+    {
+        $hay = strtolower(implode(' ', array_filter([
+            $butir['butir_kode']     ?? '',
+            $butir['kriteria_kode']  ?? '',
+            $butir['judul']          ?? '',
+            $butir['deskripsi']      ?? '',
+            $butir['tabel_lkps_ref'] ?? '',
+        ])));
+        if ($hay === '') return [];
+
+        $matched = [];
+        foreach ($this->sources() as $key => $info) {
+            foreach ($info['match'] ?? [] as $needle) {
+                if (str_contains($hay, strtolower($needle))) { $matched[] = $key; break; }
+            }
+        }
+        return array_values(array_unique($matched));
     }
 
     public function collect(string $source, int $prodiId): array

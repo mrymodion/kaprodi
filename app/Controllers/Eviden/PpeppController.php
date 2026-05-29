@@ -99,7 +99,7 @@ class PpeppController extends BaseController
 
         $db = Database::connect();
         $row = $db->table('lam_butir b')
-            ->select('b.id, b.kode AS butir_kode, b.judul, b.deskripsi, b.jenis_ipo, b.lam_kriteria_id,
+            ->select('b.id, b.kode AS butir_kode, b.judul, b.deskripsi, b.jenis_ipo, b.tabel_lkps_ref, b.lam_kriteria_id,
                       k.kode AS kriteria_kode, k.nama AS kriteria_nama, k.lam_instrumen_id,
                       i.nama AS instrumen_nama')
             ->join('lam_kriteria k', 'k.id = b.lam_kriteria_id')
@@ -203,19 +203,25 @@ class PpeppController extends BaseController
         return redirect()->to(site_url("eviden/ppepp/{$butirId}/edit#fase-{$faseUtama}"))->with('success', $msg);
     }
 
-    /** Tarik dari SEMUA sumber yang punya data — sekali klik. */
+    /** Tarik dari semua sumber yang RELEVAN dengan butir (berdasarkan
+     *  pencocokan tabel_lkps_ref/kriteria/keyword) — sekali klik. */
     public function autoTarikSemua(int $butirId)
     {
         $butir = $this->butirInScope($butirId);
         if (!$butir) return redirect()->to(site_url('eviden/ppepp'))->with('error', 'Butir tidak ditemukan.');
 
         $svc = new \App\Services\EvidenAutoTarik();
+        $relevant = $svc->relevantFor($butir);
+        if (empty($relevant)) {
+            return redirect()->back()->with('error', 'Tidak ada sumber sistem yang relevan dengan butir ini. Tambahkan bukti secara manual atau pilih sumber spesifik bila perlu.');
+        }
+
         $eviden = (new EvidenPpeppModel())->getOrCreate($this->prodiId(), $butirId, (int) (auth()->id() ?? 0));
         $bModel = new EvidenPpeppBuktiModel();
 
         $totalAdded = 0;
         $sourcesUsed = [];
-        foreach (array_keys($svc->sources()) as $source) {
+        foreach ($relevant as $source) {
             $items = $svc->collect($source, $this->prodiId());
             $sAdded = 0;
             foreach ($items as $it) {
