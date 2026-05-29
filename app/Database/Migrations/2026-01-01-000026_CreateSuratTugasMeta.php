@@ -24,7 +24,7 @@ class CreateSuratTugasMeta extends Migration
         $this->forge->addUniqueKey(['dosen_id', 'tahun_akademik_id']);
         $this->forge->addForeignKey('dosen_id', 'dosen', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('tahun_akademik_id', 'tahun_akademik', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('surat_tugas_meta');
+        $this->forge->createTable('surat_tugas_meta', true);
     }
 
     public function down()
