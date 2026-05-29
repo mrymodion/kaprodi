@@ -11,7 +11,8 @@ $active = $_GET['kategori'] ?? array_key_first($KAT);
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h4 class="mb-0"><i class="bi bi-globe2"></i> Kondisi Eksternal &mdash; <span class="badge bg-primary">A</span> Input Terstruktur</h4>
     <div class="d-flex gap-2">
-        <a href="<?= site_url('akreditasi/kondisi-eksternal/narasi') ?>" class="btn btn-sm btn-outline-success"><i class="bi bi-file-text"></i> Lihat Narasi LED</a>
+        <a href="<?= site_url('akreditasi/kondisi-eksternal/narasi') ?>" class="btn btn-sm btn-outline-success"><i class="bi bi-file-text"></i> Narasi LED</a>
+        <a href="<?= site_url('akreditasi/kondisi-eksternal/mutu') ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-speedometer2"></i> Evaluasi Mutu</a>
         <a href="<?= site_url('eviden/audit/kondisi-eksternal') ?>" class="btn btn-sm btn-outline-info"><i class="bi bi-clipboard-data"></i> Audit Kesiapan</a>
     </div>
 </div>
