@@ -171,7 +171,16 @@ class AuditController extends BaseController
             if ($tanpaPpepp > 0) {
                 $rekomendasiGlobal[] = ['info', "$tanpaPpepp butir belum punya narasi PPEPP — gunakan tombol `Tarik Eviden Seluruh Butir` lalu lengkapi narasi manual atau via AI draft (Sprint 3)."];
             }
-            $rekomendasiGlobal[] = ['ok', 'Prioritas Sprint 2: bangun modul "Input Kondisi Eksternal" terstruktur sebagai pengganti narasi LED bebas — output berupa data terstruktur yang dapat dirujuk oleh `tabel_lkps_ref` dan dirangkum AI di Sprint 3.'];
+            $db = Database::connect();
+            if ($db->tableExists('kondisi_eksternal')) {
+                $cnt = $db->table('kondisi_eksternal')->where('prodi_id', $this->prodiId())->countAllResults();
+                $rekomendasiGlobal[] = ['ok', '<strong>Sprint 2 sudah aktif:</strong> modul Input Kondisi Eksternal terstruktur tersedia ('.$cnt.' entri terinput). <a href="'.site_url('akreditasi/kondisi-eksternal').'">Buka modul</a> &middot; <a href="'.site_url('akreditasi/kondisi-eksternal/narasi').'">Lihat narasi LED</a>.'];
+                if ($cnt === 0) {
+                    $rekomendasiGlobal[] = ['warn', 'Mulai isi entri di 10 kategori (PESTEL + Pasar + SWOT-Eksternal). Tiap entri yang punya link_bukti otomatis muncul sebagai bukti Penetapan pada butir VMTS/SWOT.'];
+                }
+            } else {
+                $rekomendasiGlobal[] = ['warn', 'Sprint 2 belum terdeploy — migration `kondisi_eksternal` belum dijalankan (`php spark migrate`).'];
+            }
         }
 
         return [

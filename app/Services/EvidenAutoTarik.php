@@ -36,6 +36,8 @@ class EvidenAutoTarik
                 'match' => ['pengembangan diri','pengembangan dosen','pelatihan','workshop','sertifikasi','peningkatan kompetensi','3.a.3']],
             'kerjasama'    => ['label' => 'Kerjasama', 'icon' => 'bi-people-fill', 'fase' => 'pelaksanaan',
                 'match' => ['kerjasama','mou','moa','mitra','3.c.1','4.c.1']],
+            'kondisi_eksternal' => ['label' => 'Kondisi Eksternal', 'icon' => 'bi-globe2', 'fase' => 'penetapan',
+                'match' => ['kondisi eksternal','vmts','visi','misi','strategi','swot','pestel','peluang','ancaman','analisis lingkungan']],
         ];
     }
 
@@ -74,6 +76,7 @@ class EvidenAutoTarik
             'rekognisi'    => $this->fromRekognisi($prodiId),
             'pengembangan' => $this->fromPengembangan($prodiId),
             'kerjasama'    => $this->fromKerjasama($prodiId),
+            'kondisi_eksternal' => $this->fromKondisiEksternal($prodiId),
             default        => [],
         };
     }
@@ -223,6 +226,25 @@ class EvidenAutoTarik
             ];
         }
         return $out;
+    }
+
+    // ───── Sumber: Kondisi Eksternal (Sprint 2 Kriteria A) ─────
+    private function fromKondisiEksternal(int $prodiId): array
+    {
+        $db = Database::connect();
+        if (!$db->tableExists('kondisi_eksternal')) return [];
+        $rows = $db->table('kondisi_eksternal')
+            ->select('kategori, judul, dampak, sumber_referensi, link_bukti, tahun_relevansi')
+            ->where('prodi_id', $prodiId)
+            ->where("(link_bukti IS NOT NULL AND link_bukti <> '')", null, false)
+            ->orderBy('kategori, urutan, id')->get()->getResultArray();
+        $K = \App\Models\KondisiEksternalModel::KATEGORI;
+        return array_map(fn($r) => [
+            'label'  => 'Kondisi Eksternal — ' . ($K[$r['kategori']]['label'] ?? $r['kategori']) . ': ' . $this->potong((string) $r['judul'], 100) . ($r['tahun_relevansi'] ? ' (' . $r['tahun_relevansi'] . ')' : ''),
+            'url'    => (string) $r['link_bukti'],
+            'fase'   => 'penetapan',
+            'sumber' => 'kondisi_eksternal',
+        ], $rows);
     }
 
     private function potong(string $s, int $n): string
