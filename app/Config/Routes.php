@@ -392,8 +392,9 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('pengampu/store',          'Dosen\PengampuController::store');
         $routes->post('pengampu/(:num)/delete',  'Dosen\PengampuController::delete/$1');
         $routes->get('pengampu/(:num)/kelola',   'Dosen\PengampuController::kelola/$1');
-        $routes->get('pengampu/(:num)/surat',    'Dosen\PengampuController::suratForm/$1');
-        $routes->post('pengampu/(:num)/surat',   'Dosen\PengampuController::suratGenerate/$1');
+        $routes->get('pengampu/(:num)/surat',         'Dosen\PengampuController::suratForm/$1');
+        $routes->post('pengampu/(:num)/surat',        'Dosen\PengampuController::suratGenerate/$1');
+        $routes->post('pengampu/(:num)/surat/simpan', 'Dosen\PengampuController::suratSimpan/$1');
         $routes->get('(:num)',                   'Dosen\DosenController::show/$1');
         $routes->get('(:num)/edit',              'Dosen\DosenController::edit/$1');
         $routes->post('(:num)/update',           'Dosen\DosenController::update/$1');
