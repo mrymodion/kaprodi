@@ -416,6 +416,7 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->post('ppepp/(:num)/save',          'Eviden\PpeppController::save/$1');
         $routes->post('ppepp/(:num)/bukti',         'Eviden\PpeppController::buktiAdd/$1');
         $routes->post('ppepp/bukti/(:num)/delete',  'Eviden\PpeppController::buktiDelete/$1');
-        $routes->post('ppepp/(:num)/tarik/surat',   'Eviden\PpeppController::autoTarikSurat/$1');
+        $routes->post('ppepp/(:num)/tarik-semua',       'Eviden\PpeppController::autoTarikSemua/$1');
+        $routes->post('ppepp/(:num)/tarik/(:segment)',  'Eviden\PpeppController::autoTarik/$1/$2');
     });
 });
