@@ -6,6 +6,10 @@
     <a href="<?= site_url('dosen/pengampu?ta_id=' . $taId) ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Daftar</a>
 </div>
 
+<?php if (session('success')): ?>
+<div class="alert alert-success alert-dismissible fade show"><i class="bi bi-check-circle"></i> <?= esc(session('success')) ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+<?php endif ?>
 <?php if (session('error')): ?>
 <div class="alert alert-danger alert-dismissible fade show"><?= esc(session('error')) ?>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
@@ -59,7 +63,15 @@
                     <?php if (!empty($meta)): ?>
                     <div class="alert alert-info small py-1 mb-2"><i class="bi bi-info-circle"></i> Surat untuk TA ini sudah pernah diterbitkan. Field di atas otomatis terisi dari penerbitan terakhir; ubah jika perlu.</div>
                     <?php endif ?>
-                    <button class="btn btn-success"><i class="bi bi-download"></i> Generate & Unduh PDF</button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" formaction="<?= site_url("dosen/pengampu/{$dosen['id']}/surat/simpan") ?>" formtarget="_self" class="btn btn-primary">
+                            <i class="bi bi-check"></i> Simpan
+                        </button>
+                        <button class="btn btn-success">
+                            <i class="bi bi-download"></i> Simpan &amp; Unduh PDF
+                        </button>
+                    </div>
+                    <div class="form-text mt-1"><i class="bi bi-info-circle"></i> <strong>Simpan</strong>: hanya menyimpan nomor & data surat (dosen bisa langsung unduh sendiri). <strong>Simpan &amp; Unduh</strong>: sekaligus mengunduh PDF.</div>
                 </form>
                 <?php endif ?>
             </div>

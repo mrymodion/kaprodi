@@ -259,6 +259,34 @@ class PengampuController extends BaseController
         ]);
     }
 
+    /** Simpan saja (tanpa generate PDF). Berguna ketika kaprodi hanya ingin
+     *  menerbitkan nomor surat dulu agar dosen bisa unduh sendiri. */
+    public function suratSimpan(int $dosenId)
+    {
+        $d = $this->dosenInProdi($dosenId);
+        if (!$d) return redirect()->to(site_url('dosen/pengampu'))->with('error', 'Dosen tidak ditemukan di prodi Anda.');
+
+        $taId = (int) $this->request->getPost('tahun_akademik_id');
+        if (!$taId) return redirect()->back()->with('error', 'Pilih tahun akademik.');
+
+        $this->saveSuratMeta($dosenId, $taId);
+        return redirect()->to(site_url("dosen/pengampu/{$dosenId}/surat?ta_id={$taId}"))->with('success', 'Surat tugas tersimpan.');
+    }
+
+    private function saveSuratMeta(int $dosenId, int $taId): array
+    {
+        $fields = [
+            'nomor'       => trim((string) $this->request->getPost('nomor')),
+            'tanggal'     => trim((string) $this->request->getPost('tanggal')),
+            'kota'        => trim((string) $this->request->getPost('kota')),
+            'dasar'       => trim((string) $this->request->getPost('dasar')),
+            'signer_nama' => trim((string) $this->request->getPost('signer_nama')),
+            'signer_nip'  => trim((string) $this->request->getPost('signer_nip')),
+        ];
+        (new \App\Models\SuratTugasMetaModel())->upsert($dosenId, $taId, $fields);
+        return $fields;
+    }
+
     public function suratGenerate(int $dosenId)
     {
         $d = $this->dosenInProdi($dosenId);
@@ -273,21 +301,13 @@ class PengampuController extends BaseController
         $db = Database::connect();
         $ta = $db->table('tahun_akademik')->where('id', $taId)->get()->getRowArray() ?: ['kode' => '-'];
 
-        $nomor      = trim((string) $this->request->getPost('nomor'));
-        $tanggal    = trim((string) $this->request->getPost('tanggal'));
-        $kota       = trim((string) $this->request->getPost('kota'));
-        $dasar      = trim((string) $this->request->getPost('dasar'));
-        $signerNama = trim((string) $this->request->getPost('signer_nama'));
-        $signerNip  = trim((string) $this->request->getPost('signer_nip'));
-
-        (new \App\Models\SuratTugasMetaModel())->upsert($dosenId, $taId, [
-            'nomor'       => $nomor,
-            'tanggal'     => $tanggal,
-            'kota'        => $kota,
-            'dasar'       => $dasar,
-            'signer_nama' => $signerNama,
-            'signer_nip'  => $signerNip,
-        ]);
+        $m = $this->saveSuratMeta($dosenId, $taId);
+        $nomor      = $m['nomor'];
+        $tanggal    = $m['tanggal'];
+        $kota       = $m['kota'];
+        $dasar      = $m['dasar'];
+        $signerNama = $m['signer_nama'];
+        $signerNip  = $m['signer_nip'];
 
         $data = [
             'kop'        => $this->letterhead(),
