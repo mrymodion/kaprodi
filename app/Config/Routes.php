@@ -22,6 +22,9 @@ $routes->post('kepuasan/isi/(:segment)', 'Tracer\PublicKepuasanController::submi
 // Validasi publik Surat Tugas Mengajar via QR code (tanpa login)
 $routes->get('validasi/surat', 'Validasi::surat');
 
+// Halaman publik visitasi asesor (tanpa login, akses via URL bertanda token)
+$routes->get('visitasi/eviden', 'Visitasi::eviden');
+
 // Routes yang butuh autentikasi (filter 'session' & 'prodiScope' diaktifkan di Config/Filters.php)
 $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
     $routes->get('/', 'Dashboard::index');
@@ -404,5 +407,15 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('ewmp',                     'Dosen\DosenController::ewmpIndex');
         $routes->get('ewmp/(:num)',              'Dosen\DosenController::ewmpForm/$1');
         $routes->post('ewmp/(:num)/store',       'Dosen\DosenController::ewmpStore/$1');
+    });
+
+    // Eviden PPEPP per butir LAM (persiapan visitasi asesor)
+    $routes->group('eviden', function ($routes) {
+        $routes->get('ppepp',                       'Eviden\PpeppController::index');
+        $routes->get('ppepp/(:num)/edit',           'Eviden\PpeppController::edit/$1');
+        $routes->post('ppepp/(:num)/save',          'Eviden\PpeppController::save/$1');
+        $routes->post('ppepp/(:num)/bukti',         'Eviden\PpeppController::buktiAdd/$1');
+        $routes->post('ppepp/bukti/(:num)/delete',  'Eviden\PpeppController::buktiDelete/$1');
+        $routes->post('ppepp/(:num)/tarik/surat',   'Eviden\PpeppController::autoTarikSurat/$1');
     });
 });
