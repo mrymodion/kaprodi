@@ -205,15 +205,17 @@ $hasInstrumen  = $activeProdiId
                 </nav>
             <?php endif ?>
             <?php if ($hasInstrumen && ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate'))): ?>
-                <div class="nav-section">Akreditasi</div>
+                <div class="nav-section">Akreditasi &mdash; Dokumen</div>
                 <nav class="nav flex-column">
-                    <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'kesiapan') ? 'active' : '' ?>" href="<?= site_url('kesiapan') ?>"><i class="bi bi-clipboard-data"></i> Kesiapan Akreditasi</a><?php endif ?>
-                    <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'penilaian') ? 'active' : '' ?>" href="<?= site_url('penilaian') ?>"><i class="bi bi-clipboard-check"></i> Penilaian LAM</a><?php endif ?>
-                    <?php if ($can('lkps.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'lkps') ? 'active' : '' ?>" href="<?= site_url('lkps') ?>"><i class="bi bi-file-earmark-spreadsheet"></i> LKPS</a><?php endif ?>
                     <?php if ($can('led.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'led') ? 'active' : '' ?>" href="<?= site_url('led') ?>"><i class="bi bi-file-earmark-word"></i> LED</a><?php endif ?>
+                    <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'akreditasi/kondisi-eksternal') ? 'active' : '' ?>" href="<?= site_url('akreditasi/kondisi-eksternal') ?>"><i class="bi bi-globe2"></i> &nbsp;&nbsp;&middot; Kondisi Eksternal</a><?php endif ?>
+                    <?php if ($can('lkps.generate')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'lkps') ? 'active' : '' ?>" href="<?= site_url('lkps') ?>"><i class="bi bi-file-earmark-spreadsheet"></i> LKPS</a><?php endif ?>
+                </nav>
+                <div class="nav-section">Akreditasi &mdash; Visitasi</div>
+                <nav class="nav flex-column">
                     <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'eviden/ppepp') ? 'active' : '' ?>" href="<?= site_url('eviden/ppepp') ?>"><i class="bi bi-clipboard2-check"></i> Eviden PPEPP</a><?php endif ?>
-                    <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'eviden/audit') ? 'active' : '' ?>" href="<?= site_url('eviden/audit/kondisi-eksternal') ?>"><i class="bi bi-clipboard-data"></i> Audit Kriteria A</a><?php endif ?>
-                    <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'akreditasi/kondisi-eksternal') ? 'active' : '' ?>" href="<?= site_url('akreditasi/kondisi-eksternal') ?>"><i class="bi bi-globe2"></i> Kondisi Eksternal (LED)</a><?php endif ?>
+                    <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'penilaian') ? 'active' : '' ?>" href="<?= site_url('penilaian') ?>"><i class="bi bi-clipboard-check"></i> Penilaian LAM</a><?php endif ?>
+                    <?php if ($can('penilaian.input')): ?><a class="nav-link <?= str_starts_with(uri_string(), 'kesiapan') ? 'active' : '' ?>" href="<?= site_url('kesiapan') ?>"><i class="bi bi-clipboard-data"></i> Kesiapan Akreditasi</a><?php endif ?>
                 </nav>
             <?php elseif (!$hasInstrumen && ($can('penilaian.input') || $can('lkps.generate') || $can('led.generate'))): ?>
                 <div class="nav-section">Akreditasi</div>

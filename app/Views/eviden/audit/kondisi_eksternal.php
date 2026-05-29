@@ -8,7 +8,10 @@ $alert = fn($k) => $k === 'ok' ? 'success' : ($k === 'warn' ? 'warning' : ($k ==
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h4 class="mb-0"><i class="bi bi-clipboard-data"></i> Audit Otomatisasi &mdash; <span class="badge bg-primary">A</span> Kondisi Eksternal</h4>
-    <a href="<?= site_url('eviden/ppepp') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Eviden PPEPP</a>
+    <div class="d-flex gap-2">
+        <a href="<?= site_url('akreditasi/kondisi-eksternal') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Kondisi Eksternal</a>
+        <a href="<?= site_url('eviden/ppepp') ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clipboard2-check"></i> Eviden PPEPP</a>
+    </div>
 </div>
 
 <div class="alert alert-light border small">
