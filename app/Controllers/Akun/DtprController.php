@@ -211,6 +211,7 @@ class DtprController extends BaseController
             'signer'    => $this->suratKaprodiSigner($prodiId),
             'kop'       => $this->suratLetterhead($prodiId),
             'kategori'  => PengampuMkModel::KATEGORI_LABELS,
+            'meta'      => $taId ? (new \App\Models\SuratTugasMetaModel())->get((int) $d['id'], $taId) : null,
         ]);
     }
 
@@ -230,6 +231,12 @@ class DtprController extends BaseController
         $ta     = $db->table('tahun_akademik')->where('id', $taId)->get()->getRowArray() ?: ['kode' => '-'];
         $kop    = $this->suratLetterhead($prodiId);
         $signer = $this->suratKaprodiSigner($prodiId);
+        $meta   = (new \App\Models\SuratTugasMetaModel())->get((int) $d['id'], $taId);
+
+        if (empty($meta) || empty($meta['nomor'])) {
+            return redirect()->to(site_url('akun/ewmp/surat?ta_id=' . $taId))
+                ->with('error', 'Surat tugas belum diterbitkan oleh Kaprodi (belum ada nomor surat). Mohon hubungi Kaprodi prodi untuk menerbitkan surat tugas terlebih dahulu.');
+        }
 
         $data = [
             'kop'        => $kop,
@@ -241,12 +248,12 @@ class DtprController extends BaseController
             'ta'         => $ta,
             'list'       => $list,
             'kategori'   => PengampuMkModel::KATEGORI_LABELS,
-            'nomor'      => '...../...../...../' . date('Y'),
-            'kota'       => $kop['pt_kota'] ?? '',
-            'tanggal'    => date('d-m-Y'),
-            'dasar'      => '',
-            'signerNama' => $signer['nama'],
-            'signerNip'  => $signer['nip'],
+            'nomor'      => $meta['nomor'],
+            'kota'       => $meta['kota'] ?: ($kop['pt_kota'] ?? ''),
+            'tanggal'    => $meta['tanggal'] ?: date('d-m-Y'),
+            'dasar'      => (string) ($meta['dasar'] ?? ''),
+            'signerNama' => $meta['signer_nama'] ?: $signer['nama'],
+            'signerNip'  => $meta['signer_nip'] ?: $signer['nip'],
             'qr'         => (new \App\Services\SuratValidator())->qrDataUri((int) $d['id'], $taId),
         ];
 

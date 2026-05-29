@@ -244,6 +244,7 @@ class PengampuController extends BaseController
         $taId = $this->currentTaId();
         $list = $taId ? (new PengampuMkModel())->listByDosenTa($dosenId, $taId) : [];
         $signer = $this->kaprodiSigner();
+        $meta = $taId ? (new \App\Models\SuratTugasMetaModel())->get($dosenId, $taId) : null;
 
         return view('dosen/pengampu/surat_form', [
             'dosen'     => $d,
@@ -254,6 +255,7 @@ class PengampuController extends BaseController
             'signer'    => $signer,
             'kop'       => $this->letterhead(),
             'kategori'  => PengampuMkModel::KATEGORI_LABELS,
+            'meta'      => $meta,
         ]);
     }
 
@@ -271,6 +273,22 @@ class PengampuController extends BaseController
         $db = Database::connect();
         $ta = $db->table('tahun_akademik')->where('id', $taId)->get()->getRowArray() ?: ['kode' => '-'];
 
+        $nomor      = trim((string) $this->request->getPost('nomor'));
+        $tanggal    = trim((string) $this->request->getPost('tanggal'));
+        $kota       = trim((string) $this->request->getPost('kota'));
+        $dasar      = trim((string) $this->request->getPost('dasar'));
+        $signerNama = trim((string) $this->request->getPost('signer_nama'));
+        $signerNip  = trim((string) $this->request->getPost('signer_nip'));
+
+        (new \App\Models\SuratTugasMetaModel())->upsert($dosenId, $taId, [
+            'nomor'       => $nomor,
+            'tanggal'     => $tanggal,
+            'kota'        => $kota,
+            'dasar'       => $dasar,
+            'signer_nama' => $signerNama,
+            'signer_nip'  => $signerNip,
+        ]);
+
         $data = [
             'kop'        => $this->letterhead(),
             'logo'       => $this->logoDataUri(),
@@ -281,12 +299,12 @@ class PengampuController extends BaseController
             'ta'         => $ta,
             'list'       => $list,
             'kategori'   => PengampuMkModel::KATEGORI_LABELS,
-            'nomor'      => trim((string) $this->request->getPost('nomor')) ?: '...../...../...../' . date('Y'),
-            'kota'       => trim((string) $this->request->getPost('kota')) ?: '-',
-            'tanggal'    => trim((string) $this->request->getPost('tanggal')) ?: date('d-m-Y'),
-            'dasar'      => trim((string) $this->request->getPost('dasar')),
-            'signerNama' => trim((string) $this->request->getPost('signer_nama')),
-            'signerNip'  => trim((string) $this->request->getPost('signer_nip')),
+            'nomor'      => $nomor !== '' ? $nomor : '...../...../...../' . date('Y'),
+            'kota'       => $kota !== '' ? $kota : '-',
+            'tanggal'    => $tanggal !== '' ? $tanggal : date('d-m-Y'),
+            'dasar'      => $dasar,
+            'signerNama' => $signerNama,
+            'signerNip'  => $signerNip,
             'qr'         => (new \App\Services\SuratValidator())->qrDataUri($dosenId, $taId),
         ];
 

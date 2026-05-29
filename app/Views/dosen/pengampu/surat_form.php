@@ -31,31 +31,34 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small mb-0">Nomor Surat</label>
-                        <input type="text" name="nomor" class="form-control form-control-sm" placeholder="mis. 123/ST/PRODI/<?= date('Y') ?>">
+                        <input type="text" name="nomor" class="form-control form-control-sm" value="<?= esc($meta['nomor'] ?? '', 'attr') ?>" placeholder="mis. 123/ST/PRODI/<?= date('Y') ?>">
                     </div>
                     <div class="mb-2">
                         <label class="form-label small mb-0">Dasar / Pertimbangan (opsional)</label>
-                        <textarea name="dasar" class="form-control form-control-sm" rows="2" placeholder="mis. Kalender akademik & beban kerja dosen semester berjalan"></textarea>
+                        <textarea name="dasar" class="form-control form-control-sm" rows="2" placeholder="mis. Kalender akademik & beban kerja dosen semester berjalan"><?= esc($meta['dasar'] ?? '') ?></textarea>
                     </div>
                     <div class="row g-2">
                         <div class="col-7">
                             <label class="form-label small mb-0">Kota</label>
-                            <input type="text" name="kota" class="form-control form-control-sm" value="<?= esc($kop['pt_kota'] ?? '', 'attr') ?>">
+                            <input type="text" name="kota" class="form-control form-control-sm" value="<?= esc($meta['kota'] ?? ($kop['pt_kota'] ?? ''), 'attr') ?>">
                         </div>
                         <div class="col-5">
                             <label class="form-label small mb-0">Tanggal</label>
-                            <input type="text" name="tanggal" class="form-control form-control-sm" value="<?= date('d-m-Y') ?>">
+                            <input type="text" name="tanggal" class="form-control form-control-sm" value="<?= esc($meta['tanggal'] ?? date('d-m-Y'), 'attr') ?>">
                         </div>
                     </div>
                     <hr>
                     <div class="mb-2">
                         <label class="form-label small mb-0">Penandatangan (Kaprodi)</label>
-                        <input type="text" name="signer_nama" class="form-control form-control-sm" value="<?= esc($signer['nama'] ?? '', 'attr') ?>" placeholder="Nama kaprodi">
+                        <input type="text" name="signer_nama" class="form-control form-control-sm" value="<?= esc($meta['signer_nama'] ?? ($signer['nama'] ?? ''), 'attr') ?>" placeholder="Nama kaprodi">
                     </div>
                     <div class="mb-3">
                         <label class="form-label small mb-0">NIP / NIDN Penandatangan</label>
-                        <input type="text" name="signer_nip" class="form-control form-control-sm" value="<?= esc($signer['nip'] ?? '', 'attr') ?>">
+                        <input type="text" name="signer_nip" class="form-control form-control-sm" value="<?= esc($meta['signer_nip'] ?? ($signer['nip'] ?? ''), 'attr') ?>">
                     </div>
+                    <?php if (!empty($meta)): ?>
+                    <div class="alert alert-info small py-1 mb-2"><i class="bi bi-info-circle"></i> Surat untuk TA ini sudah pernah diterbitkan. Field di atas otomatis terisi dari penerbitan terakhir; ubah jika perlu.</div>
+                    <?php endif ?>
                     <button class="btn btn-success"><i class="bi bi-download"></i> Generate & Unduh PDF</button>
                 </form>
                 <?php endif ?>
