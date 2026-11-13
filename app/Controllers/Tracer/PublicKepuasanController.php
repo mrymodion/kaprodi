@@ -3,13 +3,12 @@
 namespace App\Controllers\Tracer;
 
 use App\Controllers\BaseController;
-use App\Models\KepuasanModel;
 use App\Services\TracerToken;
 use Config\Database;
 
 /**
- * Form publik Survei Kepuasan Pengguna Lulusan (LKPS 2.B.6),
- * diisi oleh atasan/pengguna lulusan via link bertoken. Tanpa login.
+ * Form publik Survei Kepuasan Pengguna Lulusan (Kriteria C2 - LKPS 2.B.6).
+ * Diisi oleh Atasan/Pimpinan Perusahaan via tautan bertoken dari WhatsApp.
  */
 class PublicKepuasanController extends BaseController
 {
@@ -19,14 +18,34 @@ class PublicKepuasanController extends BaseController
     {
         $mhs = $this->resolve($token);
         if (!$mhs) {
-            return view('tracer_public/message', ['error' => 'Link tidak valid atau sudah kedaluwarsa. Hubungi program studi terkait.']);
+            return view('tracer_public/message', ['error' => 'Tautan tidak valid atau sudah kedaluwarsa. Silakan hubungi Program Studi.']);
         }
-        $data = (new KepuasanModel())->getByMahasiswa((int) $mhs['id']) ?? [];
+
+        $db = Database::connect();
+        $data = $db->table('kepuasan_pengguna_lulusan')->where('mahasiswa_id', $mhs['id'])->get()->getRowArray() ?: [];
+
+        // Ambil data atasan dari tracer_study sebagai default jika belum diisi
+        if (empty($data['nama_atasan'])) {
+            $ts = $db->table('tracer_study')->where('mahasiswa_id', $mhs['id'])->get()->getRowArray();
+            $data['nama_atasan']     = $ts['nama_atasan'] ?? '';
+            $data['nama_perusahaan'] = $ts['nama_perusahaan'] ?? '';
+        }
+
+        $aspek = [
+            'etika'             => 'Etika',
+            'keahlian'          => 'Keahlian pada bidang ilmu (Kompetensi Utama)',
+            'bahasa_asing'      => 'Kemampuan Berbahasa Asing',
+            'teknologi_info'    => 'Penggunaan Teknologi Informasi',
+            'komunikasi'        => 'Kemampuan Berkomunikasi',
+            'kerjasama_tim'     => 'Kerjasama Tim',
+            'pengembangan_diri' => 'Pengembangan Diri'
+        ];
+
         return view('tracer_public/kepuasan_form', [
             'token' => $token,
             'mhs'   => $mhs,
             'data'  => $data,
-            'aspek' => KepuasanModel::ASPEK,
+            'aspek' => $aspek,
         ]);
     }
 
@@ -34,33 +53,37 @@ class PublicKepuasanController extends BaseController
     {
         $mhs = $this->resolve($token);
         if (!$mhs) {
-            return view('tracer_public/message', ['error' => 'Link tidak valid atau sudah kedaluwarsa.']);
+            return view('tracer_public/message', ['error' => 'Tautan tidak valid atau sudah kedaluwarsa.']);
         }
 
         $req  = $this->request;
+        $db   = Database::connect();
+        
         $data = [
-            'mahasiswa_id'    => (int) $mhs['id'],
-            'tgl_isi'         => date('Y-m-d'),
-            'nama_atasan'     => trim((string) $req->getPost('nama_atasan')) ?: null,
-            'jabatan_atasan'  => trim((string) $req->getPost('jabatan_atasan')) ?: null,
-            'nama_perusahaan' => trim((string) $req->getPost('nama_perusahaan')) ?: null,
-            'saran'           => trim((string) $req->getPost('saran')) ?: null,
+            'mahasiswa_id'      => (int) $mhs['id'],
+            'nama_atasan'       => trim((string) $req->getPost('nama_atasan')) ?: null,
+            'jabatan_atasan'    => trim((string) $req->getPost('jabatan_atasan')) ?: null,
+            'nama_perusahaan'   => trim((string) $req->getPost('nama_perusahaan')) ?: null,
+            'etika'             => (int) $req->getPost('etika') ?: null,
+            'keahlian'          => (int) $req->getPost('keahlian') ?: null,
+            'bahasa_asing'      => (int) $req->getPost('bahasa_asing') ?: null,
+            'teknologi_info'    => (int) $req->getPost('teknologi_info') ?: null,
+            'komunikasi'        => (int) $req->getPost('komunikasi') ?: null,
+            'kerjasama_tim'     => (int) $req->getPost('kerjasama_tim') ?: null,
+            'pengembangan_diri' => (int) $req->getPost('pengembangan_diri') ?: null,
+            'saran'             => trim((string) $req->getPost('saran')) ?: null,
+            'tgl_isi'           => date('Y-m-d'),
         ];
-        foreach (array_keys(KepuasanModel::ASPEK) as $a) {
-            $v = (int) $req->getPost($a);
-            $data[$a] = ($v >= 1 && $v <= 4) ? $v : null;
-        }
 
-        $model    = new KepuasanModel();
-        $existing = $model->getByMahasiswa((int) $mhs['id']);
+        $existing = $db->table('kepuasan_pengguna_lulusan')->where('mahasiswa_id', $mhs['id'])->get()->getRowArray();
         if ($existing) {
-            $model->update($existing['id'], $data);
+            $db->table('kepuasan_pengguna_lulusan')->where('id', $existing['id'])->update($data);
         } else {
-            $model->insert($data);
+            $db->table('kepuasan_pengguna_lulusan')->insert($data);
         }
 
         return view('tracer_public/message', [
-            'success' => 'Terima kasih atas penilaian Anda terhadap ' . esc($mhs['nama']) . '. Masukan ini sangat berarti bagi peningkatan mutu lulusan.',
+            'success' => 'Terima kasih atas partisipasi Bapak/Ibu. Penilaian Anda sangat berharga bagi peningkatan mutu lulusan ' . esc($mhs['prodi_nama']) . '.',
         ]);
     }
 
@@ -68,11 +91,13 @@ class PublicKepuasanController extends BaseController
     {
         $id = TracerToken::verify($token, self::PURPOSE);
         if (!$id) return null;
+        
         $row = Database::connect()->table('mahasiswa m')
             ->select('m.id, m.nim, m.nama, p.nama AS prodi_nama')
             ->join('prodi p', 'p.id = m.prodi_id', 'left')
             ->where('m.id', $id)
             ->get()->getRowArray();
+            
         return $row ?: null;
     }
 }

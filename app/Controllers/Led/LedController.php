@@ -3,123 +3,135 @@
 namespace App\Controllers\Led;
 
 use App\Controllers\BaseController;
-use App\Models\LedNarasiModel;
-use App\Models\ProdiModel;
-use App\Models\TahunAkademikModel;
 use App\Services\LedGenerator;
-use Modules\Akreditasi\Engine\AkreditasiEngine;
+use Config\Database;
 
+/**
+ * Controller Laporan Evaluasi Diri (LED) terintegrasi Groq AI.
+ */
 class LedController extends BaseController
 {
-    protected LedGenerator $generator;
-    protected AkreditasiEngine $engine;
-
-    public function __construct()
+    private function prodiId(): int
     {
-        $this->generator = new LedGenerator();
-        $this->engine    = new AkreditasiEngine();
+        return (int) (session('active_prodi_id') ?: 0);
     }
 
-    private function getProdiId(): ?int
+    public function index()
     {
-        $user = auth()->user();
-        if ($user->inGroup('superadmin')) {
-            $pid = session('active_prodi_id');
-            if (!$pid) {
-                $first = (new ProdiModel())->first();
-                $pid = $first ? $first['id'] : null;
-            }
-            return $pid ? (int)$pid : null;
-        }
-        return session('active_prodi_id') ? (int)session('active_prodi_id') : null;
-    }
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return redirect()->to('/')->with('error', 'Prodi aktif belum dipilih.');
 
-    public function index(): string
-    {
-        $prodiId   = $this->getProdiId();
-        $taList    = (new TahunAkademikModel())->findAll();
-        $instrumen = $prodiId ? $this->engine->getInstrumen($prodiId) : null;
-        $templates = $prodiId ? $this->generator->getTemplatesWithNarasi($prodiId) : [];
-        $files     = $this->generator->listFiles();
-        $groqEnabled = !empty(env('groq.apiKey', ''));
+        $generator = new LedGenerator();
+        $templates = $generator->getTemplatesWithNarasi($prodiId);
+        $files     = $generator->listFiles();
 
-        // Kelompokkan templates by bagian/kriteria
-        $byBagian = [];
+        // Kelompokkan template berdasarkan Kriteria (atau Umum untuk Pendahuluan/Penutup)
+        $grouped = [];
         foreach ($templates as $t) {
-            $key = $t['kriteria_kode'] ?: $t['bagian'];
-            $byBagian[$key][] = $t;
+            $k = $t['kriteria_kode'] ? "Kriteria {$t['kriteria_kode']} ({$t['kriteria_nama']})" : 'Bagian Umum';
+            $grouped[$k][] = $t;
         }
 
-        return view('led/index', compact('prodiId', 'instrumen', 'templates', 'byBagian', 'taList', 'files', 'groqEnabled'));
+        return view('led/index', [
+            'grouped' => $grouped,
+            'files'   => $files
+        ]);
     }
 
-    /** POST — generate full LED .docx dan download. */
-    public function generate()
-    {
-        if (!auth()->user()->can('led.generate')) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
-        }
-        $prodiId = $this->getProdiId();
-        if (!$prodiId) return redirect()->back()->with('error', 'Prodi tidak ditemukan.');
-
-        $taId = $this->request->getPost('tahun_akademik_id') ?: null;
-
-        try {
-            $path = $this->generator->generate($prodiId, $taId ? (int)$taId : null);
-            return $this->response->download($path, null)->setFileName(basename($path));
-        } catch (\Throwable $e) {
-            log_message('error', 'LED gen error: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal generate LED: ' . $e->getMessage());
-        }
-    }
-
-    /** POST — simpan narasi manual satu bagian. */
+    /**
+     * Simpan narasi yang diketik/diedit manual oleh user.
+     */
     public function saveNarasi(int $templateId)
     {
-        if (!auth()->user()->can('led.generate')) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
+        $prodiId = $this->prodiId();
+        $isi = $this->request->getPost('isi');
+
+        $db = Database::connect();
+        $existing = $db->table('led_narasi')
+            ->where(['prodi_id' => $prodiId, 'lam_template_led_id' => $templateId])
+            ->get()->getRowArray();
+
+        $data = [
+            'prodi_id'            => $prodiId,
+            'lam_template_led_id' => $templateId,
+            'isi'                 => $isi,
+            'generated_by_ai'     => 0, // Reset flag AI jika diedit manual
+            'updated_by'          => auth()->id(),
+            'updated_at'          => date('Y-m-d H:i:s'),
+        ];
+
+        if ($existing) {
+            $db->table('led_narasi')->where('id', $existing['id'])->update($data);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $db->table('led_narasi')->insert($data);
         }
-        $prodiId = $this->getProdiId();
-        if (!$prodiId) return redirect()->back()->with('error', 'Prodi tidak ditemukan.');
 
-        $isi = $this->request->getPost('isi') ?? '';
-        (new LedNarasiModel())->upsert($prodiId, $templateId, $isi, false, auth()->id());
-
-        return redirect()->back()->with('success', 'Narasi berhasil disimpan.');
+        return redirect()->back()->with('success', 'Narasi LED berhasil disimpan secara manual.');
     }
 
-    /** POST — generate narasi via Groq AI untuk satu bagian. */
+    /**
+     * Minta Groq AI untuk menyusun draf narasi secara otomatis.
+     */
     public function groqGenerate(int $templateId)
     {
-        if (!auth()->user()->can('led.generate')) {
-            return $this->response->setJSON(['error' => 'Akses ditolak.'])->setStatusCode(403);
-        }
-        $prodiId = $this->getProdiId();
-        if (!$prodiId) {
-            return $this->response->setJSON(['error' => 'Prodi tidak ditemukan.'])->setStatusCode(400);
-        }
+        $prodiId = $this->prodiId();
+        $generator = new LedGenerator();
 
         try {
-            $narasi = $this->generator->generateNarasiGroq($prodiId, $templateId);
-            (new LedNarasiModel())->upsert($prodiId, $templateId, $narasi, true, auth()->id());
-            return $this->response->setJSON(['success' => true, 'narasi' => $narasi]);
+            $narasi = $generator->generateNarasiGroq($prodiId, $templateId);
+
+            // Auto-save hasil dari AI
+            $db = Database::connect();
+            $existing = $db->table('led_narasi')
+                ->where(['prodi_id' => $prodiId, 'lam_template_led_id' => $templateId])
+                ->get()->getRowArray();
+
+            $data = [
+                'prodi_id'            => $prodiId,
+                'lam_template_led_id' => $templateId,
+                'isi'                 => $narasi,
+                'generated_by_ai'     => 1, // Tandai ini hasil AI
+                'updated_by'          => auth()->id(),
+                'updated_at'          => date('Y-m-d H:i:s'),
+            ];
+
+            if ($existing) {
+                $db->table('led_narasi')->where('id', $existing['id'])->update($data);
+            } else {
+                $data['created_at'] = date('Y-m-d H:i:s');
+                $db->table('led_narasi')->insert($data);
+            }
+
+            return redirect()->back()->with('success', 'Narasi LED berhasil di-generate secara menakjubkan oleh AI Groq!');
         } catch (\Throwable $e) {
-            log_message('error', 'Groq error: ' . $e->getMessage());
-            return $this->response->setJSON(['error' => $e->getMessage()])->setStatusCode(500);
+            log_message('error', '[Groq AI LED] ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses AI: ' . $e->getMessage());
         }
     }
 
-    /** GET — download file LED yang sudah ada. */
+    /**
+     * Menghasilkan dokumen lengkap (Word) dengan cover & daftar isi.
+     */
+    public function generate()
+    {
+        $prodiId = $this->prodiId();
+        
+        try {
+            $generator = new LedGenerator();
+            $path = $generator->generate($prodiId);
+            return redirect()->back()->with('success', 'Dokumen Word LED berhasil dirender. Silakan unduh di panel kanan.');
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Gagal render dokumen Word: ' . $e->getMessage());
+        }
+    }
+
     public function download(string $filename)
     {
-        if (!auth()->user()->can('led.generate')) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
-        }
-        $filename = basename($filename);
-        $path = WRITEPATH . 'led/' . $filename;
+        $path = WRITEPATH . 'led/' . basename($filename);
         if (!is_file($path)) {
-            return redirect()->back()->with('error', 'File tidak ditemukan.');
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
-        return $this->response->download($path, null)->setFileName($filename);
+        return $this->response->download($path, null)->setFileName(basename($path));
     }
 }

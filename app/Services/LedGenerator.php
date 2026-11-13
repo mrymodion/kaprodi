@@ -7,6 +7,7 @@ use Modules\Akreditasi\Engine\AkreditasiEngine;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Style\Font;
+use PhpOffice\PhpWord\Shared\Converter;
 
 /**
  * Generator dokumen Word LED (Laporan Evaluasi Diri).
@@ -135,6 +136,13 @@ class LedGenerator
 
             foreach ($byBagian[$key] as $t) {
                 $this->addNarasiBlock($section, $t);
+            }
+
+            // --- TAMBAHAN GRAFIK OTOMATIS ---
+            if ($kode === 'C2') {
+                $this->addChartMahasiswa($section, $prodiId);
+            } elseif ($kode === 'C3') {
+                $this->addChartPublikasi($section, $prodiId);
             }
         }
 
@@ -310,5 +318,49 @@ class LedGenerator
         if (!is_dir($dir)) {
             mkdir($dir, 0775, true);
         }
+    }
+
+    // ── Generator Grafik ────────────────────────────────────────────────────
+
+    private function addChartMahasiswa(\PhpOffice\PhpWord\Element\Section $section, int $prodiId): void
+    {
+        $rows = $this->db->query("SELECT status, COUNT(id) as n FROM mahasiswa WHERE prodi_id = ? GROUP BY status", [$prodiId])->getResultArray();
+        if (empty($rows)) return;
+
+        $categories = [];
+        $series = [];
+        foreach ($rows as $r) {
+            $categories[] = ucfirst($r['status']);
+            $series[] = (int) $r['n'];
+        }
+
+        $section->addTextBreak(1);
+        $section->addText('Grafik Visual: Distribusi Status Mahasiswa', ['bold' => true, 'italic' => true, 'color' => '0D3B8C'], 'centered');
+
+        $chart = $section->addChart('pie', $categories, $series);
+        $chart->getStyle()->setWidth(Converter::cmToEmu(14));
+        $chart->getStyle()->setHeight(Converter::cmToEmu(10));
+        $chart->getStyle()->setShowLegend(true);
+        $chart->getStyle()->setLegendPosition('r');
+    }
+
+    private function addChartPublikasi(\PhpOffice\PhpWord\Element\Section $section, int $prodiId): void
+    {
+        $rows = $this->db->query("SELECT tahun, COUNT(id) as n FROM publikasi WHERE prodi_id = ? AND tahun > 0 GROUP BY tahun ORDER BY tahun ASC", [$prodiId])->getResultArray();
+        if (empty($rows)) return;
+
+        $categories = [];
+        $series = [];
+        foreach ($rows as $r) {
+            $categories[] = (string) $r['tahun'];
+            $series[] = (int) $r['n'];
+        }
+
+        $section->addTextBreak(1);
+        $section->addText('Grafik Visual: Tren Jumlah Publikasi per Tahun', ['bold' => true, 'italic' => true, 'color' => '0D3B8C'], 'centered');
+
+        $chart = $section->addChart('column', $categories, $series);
+        $chart->getStyle()->setWidth(Converter::cmToEmu(15));
+        $chart->getStyle()->setHeight(Converter::cmToEmu(10));
     }
 }

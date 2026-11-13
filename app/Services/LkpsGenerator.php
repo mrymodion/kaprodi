@@ -134,6 +134,65 @@ class LkpsGenerator
         return $path;
     }
 
+    /** Generate workbook LKPS khusus untuk satu kriteria (misal 'C2'), return path file. */
+    public function generateByKriteria(int $prodiId, string $kriteriaKode, ?int $taId = null): string
+    {
+        $instrumen = $this->engine->getInstrumen($prodiId);
+        if (!$instrumen) {
+            throw new \RuntimeException('Prodi belum memiliki instrumen LAM aktif.');
+        }
+        $driver = $this->engine->getDriver($prodiId);
+        if (!$driver) {
+            throw new \RuntimeException('Driver akreditasi tidak ditemukan.');
+        }
+
+        $prodi = $this->db->table('prodi p')->select('p.*, p.kode_pddikti AS kode, u.nama AS upps')->join('upps u', 'u.id = p.upps_id', 'left')->where('p.id', $prodiId)->get()->getRowArray();
+        
+        // Filter tabel (C1 -> 1.%, C2 -> 2.%)
+        $prefix = substr($kriteriaKode, 1) . '.';
+        $tabelList = $this->db->query("
+            SELECT * FROM lam_tabel_lkps 
+            WHERE lam_instrumen_id = ? AND (kode LIKE ? OR kode = ?)
+            ORDER BY urutan
+        ", [$instrumen['id'], $prefix . '%', substr($kriteriaKode, 1)])->getResultArray();
+
+        if (empty($tabelList)) {
+            throw new \RuntimeException("Tidak ada tabel LKPS yang ditemukan untuk kriteria {$kriteriaKode}.");
+        }
+
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->getProperties()
+            ->setCreator(env('app.namaAplikasi', 'KAPRODI'))
+            ->setTitle("LKPS Kriteria {$kriteriaKode} — " . ($prodi['nama'] ?? ''))
+            ->setSubject($instrumen['nama']);
+
+        // Sheet pertama: Cover
+        $this->buildCoverSheet($spreadsheet->getActiveSheet(), $prodi, $instrumen, $kriteriaKode);
+
+        // Satu sheet per tabel LKPS (C2 memiliki Tabel 2.A.1 hingga 2.D)
+        foreach ($tabelList as $t) {
+            $rows = $driver->buildLkpsTable($t['kode'], $prodiId, $taId);
+            $sheet = $spreadsheet->createSheet();
+            $this->buildTabelSheet($sheet, $t, $rows);
+        }
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = sprintf(
+            'LKPS_%s_%s_%s_%s.xlsx',
+            $kriteriaKode,
+            preg_replace('/[^a-zA-Z0-9]/', '_', $prodi['kode'] ?? $prodi['nama']),
+            date('Ymd_His'),
+            $taId ? "TA{$taId}" : 'all'
+        );
+        $path = WRITEPATH . 'lkps/' . $filename;
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($path);
+
+        return $path;
+    }
+
     /** Generate satu sheet untuk tabel tertentu, return path. */
     public function generateSingle(int $prodiId, string $kodeTabel, ?int $taId = null): string
     {
@@ -168,7 +227,7 @@ class LkpsGenerator
 
     // ── helpers ───────────────────────────────────────────────────────────
 
-    private function buildCoverSheet(Worksheet $sheet, array $prodi, array $instrumen): void
+    private function buildCoverSheet(Worksheet $sheet, array $prodi, array $instrumen, ?string $kriteria = null): void
     {
         $sheet->setTitle('Cover');
         $sheet->setCellValue('A1', 'LAPORAN KINERJA PROGRAM STUDI (LKPS)');
@@ -186,6 +245,9 @@ class LkpsGenerator
             ['Tanggal Generate', date('d-m-Y H:i:s')],
             ['Aplikasi',       env('app.namaAplikasi', 'KAPRODI')],
         ];
+        if ($kriteria) {
+            array_splice($info, 5, 0, [['Fokus Kriteria', 'Kriteria ' . $kriteria]]);
+        }
         $row = 3;
         foreach ($info as [$k, $v]) {
             $sheet->setCellValue("A{$row}", $k);
@@ -390,9 +452,9 @@ class LkpsGenerator
             '2.B.2' => [$r['kode'] ?? '-', str_replace('_', ' ', ucfirst($r['aspek'] ?? '-')), $r['deskripsi'] ?? '-'],
             '2.B.3' => [$r['cpl_kode'] ?? '-', $r['jml_mk'] ?? 0, $r['mk_list'] ?: '(belum dipetakan)'],
             '2.B.4' => [$r['nim'] ?? '-', $r['nama'] ?? '-',
-                $r['masa_tunggu_bulan'] ?? '-', $r['kesesuaian_bidang_kerja'] ?? '-',
+                $r['masa_tunggu_bulan'] ?? '-', str_replace('_', ' ', ucfirst($r['kesesuaian_bidang_kerja'] ?? '-')),
                 $r['nama_perusahaan'] ?? '-', $r['jabatan'] ?? '-'],
-            '2.B.5' => [$r['nim'] ?? '-', $r['nama'] ?? '-', $r['tgl_lulus'] ?? '-',
+            '2.B.5' => [$r['nim'] ?? '-', $r['nama'] ?? '-', !empty($r['tgl_lulus']) ? date('Y', strtotime($r['tgl_lulus'])) : '-',
                 str_replace('_', ' ', ucfirst($r['kesesuaian_bidang_kerja'] ?? '-')),
                 ucfirst($r['tingkat_pekerjaan'] ?? '-'), $r['nama_perusahaan'] ?? '-', $r['jabatan'] ?? '-'],
             '2.B.6' => [$r['aspek'] ?? '-', $r['sangat_baik'] ?? 0, $r['baik'] ?? 0,
@@ -411,12 +473,16 @@ class LkpsGenerator
             '3.C.1', '4.C.1' => [$r['nama_mitra'] ?? '-', $r['tingkat'] ?? '-', $r['jenis_dokumen'] ?? '-',
                 $r['no_dokumen'] ?? '-', $r['tgl_mulai'] ?? '-', $r['tgl_berakhir'] ?? '-',
                 $r['manfaat'] ?? '-', $r['bukti_implementasi'] ?? '-'],
-            '3.C.2', '4.C.2' => [$r['jenis'] ?? '-', $r['judul'] ?? '-', $r['penulis'] ?? '-',
+            '3.C.2', '4.C.2' => [
+                str_replace('_', ' ', ucfirst($r['jenis'] ?? '-')), 
+                $r['judul'] ?? '-', $r['penulis'] ?? '-',
                 $r['dtpr_penulis'] ?? '-',
                 $r['nama_media'] ?? '-', $r['tahun'] ?? '-', $r['volume'] ?? '-',
                 $r['doi'] ?? '-', $r['sitasi'] ?? 0, $r['sinta_score'] ?? '-', $r['url'] ?? '-'],
-            '3.C.3', '4.C.3' => [$r['jenis'] ?? '-', $r['judul'] ?? '-', $r['no_hki'] ?? '-',
-                $r['tahun'] ?? '-', $r['pemilik'] ?? '-', $r['dtpr_pemilik'] ?? '-', $r['status'] ?? '-', $r['link_bukti'] ?? '-'],
+            '3.C.3', '4.C.3' => [
+                str_replace(['dtlst', 'prl_varietas', '_'], ['DTLST', 'PRL Varietas', ' '], ucfirst($r['jenis'] ?? '-')), 
+                $r['judul'] ?? '-', $r['no_hki'] ?? '-',
+                $r['tahun'] ?? '-', $r['pemilik'] ?? '-', $r['dtpr_pemilik'] ?? '-', ucfirst($r['status'] ?? '-'), $r['link_bukti'] ?? '-'],
             '3.A.1', '4.A.1', '5.2' => [$r['nama'] ?? '-', str_replace('_', ' ', ucfirst($r['kategori'] ?? '-')),
                 $r['jumlah'] ?? 0, $r['luas_m2'] ?? '-', $r['kapasitas'] ?? '-',
                 str_replace('_', ' ', ucfirst($r['kondisi'] ?? '-')), ucfirst($r['kepemilikan'] ?? '-')],

@@ -38,6 +38,14 @@ class EvidenAutoTarik
                 'match' => ['kerjasama','mou','moa','mitra','3.c.1','4.c.1']],
             'kondisi_eksternal' => ['label' => 'Kondisi Eksternal', 'icon' => 'bi-globe2', 'fase' => 'penetapan',
                 'match' => ['kondisi eksternal','vmts','visi','misi','strategi','swot','pestel','peluang','ancaman','analisis lingkungan']],
+            'dokumen_mutu' => ['label' => 'Dokumen Mutu (SPMI)', 'icon' => 'bi-journal-bookmark', 'fase' => 'penetapan',
+                'match' => ['spmi','kebijakan mutu','manual mutu','standar mutu','formulir mutu','c1','sop','pedoman']],
+            'ami'          => ['label' => 'Audit Mutu Internal', 'icon' => 'bi-clipboard-check', 'fase' => 'evaluasi',
+                'match' => ['ami','audit mutu','temuan','rtm','tinjauan manajemen','c1','evaluasi internal']],
+            'kurikulum'    => ['label' => 'Dokumen Kurikulum (C2)', 'icon' => 'bi-book', 'fase' => 'penetapan',
+                'match' => ['kurikulum','cpl','cpmk','mata kuliah','rps','c2','relevansi pendidikan']],
+            'tracer_study' => ['label' => 'Laporan Tracer Study (C2)', 'icon' => 'bi-pie-chart', 'fase' => 'evaluasi',
+                'match' => ['tracer study','masa tunggu','kesesuaian bidang','lulusan','alumni','c2','kepuasan pengguna']],
         ];
     }
 
@@ -77,6 +85,10 @@ class EvidenAutoTarik
             'pengembangan' => $this->fromPengembangan($prodiId),
             'kerjasama'    => $this->fromKerjasama($prodiId),
             'kondisi_eksternal' => $this->fromKondisiEksternal($prodiId),
+            'dokumen_mutu' => $this->fromDokumenMutu($prodiId),
+            'ami'          => $this->fromAmi($prodiId),
+            'kurikulum'    => $this->fromKurikulum($prodiId),
+            'tracer_study' => $this->fromTracerStudy($prodiId),
             default        => [],
         };
     }
@@ -244,6 +256,79 @@ class EvidenAutoTarik
             'url'    => (string) $r['link_bukti'],
             'fase'   => 'penetapan',
             'sumber' => 'kondisi_eksternal',
+        ], $rows);
+    }
+
+    // ───── Sumber: Dokumen Mutu SPMI (Sprint Kriteria C1) ─────
+    private function fromDokumenMutu(int $prodiId): array
+    {
+        $db = Database::connect();
+        if (!$db->tableExists('dokumen_mutu')) return [];
+        $rows = $db->table('dokumen_mutu')
+            ->select('nama_dokumen, jenis, link_dokumen')
+            ->where('prodi_id', $prodiId)
+            ->where("(link_dokumen IS NOT NULL AND link_dokumen <> '')", null, false)
+            ->orderBy('jenis, id DESC')->get()->getResultArray();
+        return array_map(fn($r) => [
+            'label'  => 'Dokumen Mutu (' . strtoupper((string) $r['jenis']) . '): ' . $this->potong((string) $r['nama_dokumen'], 120),
+            'url'    => (string) $r['link_dokumen'],
+            'fase'   => 'penetapan',
+            'sumber' => 'dokumen_mutu',
+        ], $rows);
+    }
+
+    // ───── Sumber: Audit Mutu Internal (Sprint Kriteria C1) ─────
+    private function fromAmi(int $prodiId): array
+    {
+        $db = Database::connect();
+        if (!$db->tableExists('ami_temuan')) return [];
+        $rows = $db->table('ami_temuan')
+            ->select('deskripsi_temuan, tahun_akademik, link_bukti')
+            ->where('prodi_id', $prodiId)
+            ->where("(link_bukti IS NOT NULL AND link_bukti <> '')", null, false)
+            ->orderBy('id DESC')->get()->getResultArray();
+        return array_map(fn($r) => [
+            'label'  => 'Temuan AMI ' . ($r['tahun_akademik'] ?? '') . ': ' . $this->potong((string) $r['deskripsi_temuan'], 100),
+            'url'    => (string) $r['link_bukti'],
+            'fase'   => 'evaluasi',
+            'sumber' => 'ami',
+        ], $rows);
+    }
+
+    // ───── Sumber: Kurikulum (Sprint Kriteria C2) ─────
+    private function fromKurikulum(int $prodiId): array
+    {
+        $db = Database::connect();
+        if (!$db->tableExists('kurikulum')) return [];
+        $rows = $db->table('kurikulum')
+            ->select('kode, tahun_berlaku, link_dokumen')
+            ->where('prodi_id', $prodiId)
+            ->where("(link_dokumen IS NOT NULL AND link_dokumen <> '')", null, false)
+            ->orderBy('tahun_berlaku DESC')->get()->getResultArray();
+        return array_map(fn($r) => [
+            'label'  => 'Dokumen Kurikulum ' . $r['kode'] . ' (Tahun ' . $r['tahun_berlaku'] . ')',
+            'url'    => (string) $r['link_dokumen'],
+            'fase'   => 'penetapan',
+            'sumber' => 'kurikulum',
+        ], $rows);
+    }
+
+    // ───── Sumber: Laporan Tracer Study (Sprint Kriteria C2) ─────
+    private function fromTracerStudy(int $prodiId): array
+    {
+        $db = Database::connect();
+        // Asumsi tabel tracer_laporan atau laporan sejenis
+        if (!$db->tableExists('tracer_laporan')) return []; 
+        $rows = $db->table('tracer_laporan')
+            ->select('judul, tahun_lulusan, link_laporan')
+            ->where('prodi_id', $prodiId)
+            ->where("(link_laporan IS NOT NULL AND link_laporan <> '')", null, false)
+            ->orderBy('tahun_lulusan DESC')->get()->getResultArray();
+        return array_map(fn($r) => [
+            'label'  => 'Laporan Tracer Study ' . $r['tahun_lulusan'] . ': ' . $this->potong((string) $r['judul'], 100),
+            'url'    => (string) $r['link_laporan'],
+            'fase'   => 'evaluasi',
+            'sumber' => 'tracer_study',
         ], $rows);
     }
 

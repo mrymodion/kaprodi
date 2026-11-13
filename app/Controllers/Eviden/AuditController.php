@@ -17,6 +17,13 @@ use Config\Database;
  */
 class AuditController extends BaseController
 {
+    // Konstanta Skor Readiness
+    private const SCORE_FULL_RUBRIK = 25;
+    private const SCORE_PARTIAL_RUBRIK = 10;
+    private const SCORE_HAS_SOURCE = 15;
+    private const SCORE_HAS_NILAI = 20;
+    private const SCORE_PPEPP_PER_FASE = 8; // Maks 40 (5 fase)
+
     private function prodiId(): int
     {
         return (int) (session('active_prodi_id') ?: 0);
@@ -33,6 +40,37 @@ class AuditController extends BaseController
 
     public function kondisiEksternal()
     {
+        return $this->prosesAuditKriteriaByJenis('kondisi_eksternal', 'eviden/audit/kondisi_eksternal');
+    }
+
+    /**
+     * Endpoint dinamis untuk meng-audit Kriteria apa pun (B, C1, C2, dst.)
+     * URL: /eviden/audit/kriteria/C1
+     */
+    public function kriteria(string $kode)
+    {
+        return $this->prosesAuditKriteriaByKode($kode, 'eviden/audit/kriteria_umum');
+    }
+
+    private function prosesAuditKriteriaByJenis(string $jenis, string $view)
+    {
+        return $this->jalankanAuditEngine(
+            ['jenis' => $jenis], $view
+        );
+    }
+
+    private function prosesAuditKriteriaByKode(string $kode, string $view)
+    {
+        return $this->jalankanAuditEngine(
+            ['kode' => $kode], $view
+        );
+    }
+
+    /**
+     * Core Engine Eager Loading untuk semua jenis audit kriteria.
+     */
+    private function jalankanAuditEngine(array $whereKriteria, string $view)
+    {
         $prodiId = $this->prodiId();
         if (!$prodiId) return redirect()->to('/')->with('error', 'Prodi aktif belum dipilih.');
 
@@ -42,11 +80,13 @@ class AuditController extends BaseController
         $kriteria = [];
         $butirRows = [];
         if (!empty($instrumenIds)) {
-            $kriteria = $db->table('lam_kriteria')
-                ->select('id, kode, nama, lam_instrumen_id, urutan')
-                ->whereIn('lam_instrumen_id', $instrumenIds)
-                ->where('jenis', 'kondisi_eksternal')
-                ->orderBy('urutan')->get()->getResultArray();
+            $q = $db->table('lam_kriteria')
+                ->select('id, kode, nama, jenis, lam_instrumen_id, urutan')
+                ->whereIn('lam_instrumen_id', $instrumenIds);
+            
+            foreach ($whereKriteria as $k => $v) $q->where($k, $v);
+            
+            $kriteria = $q->orderBy('urutan')->get()->getResultArray();
 
             if (!empty($kriteria)) {
                 $kIds = array_column($kriteria, 'id');
@@ -57,40 +97,70 @@ class AuditController extends BaseController
         }
 
         $svc = new EvidenAutoTarik();
+        
+        // --- EAGER LOADING (Solusi N+1 Query) ---
         $audit = [];
-        foreach ($butirRows as $b) {
-            $audit[(int) $b['id']] = $this->auditButir($db, $prodiId, $b, $svc);
+        $mappedData = ['rubrik' => [], 'skor' => [], 'eviden' => [], 'bukti' => []];
+
+        if (!empty($butirRows)) {
+            $bIds = array_column($butirRows, 'id');
+
+            // 1. Tarik semua count rubrik
+            $rs = $db->table('lam_butir_rubrik')->select('lam_butir_id, COUNT(id) as n')->whereIn('lam_butir_id', $bIds)->groupBy('lam_butir_id')->get()->getResultArray();
+            foreach ($rs as $r) $mappedData['rubrik'][$r['lam_butir_id']] = (int) $r['n'];
+
+            // 2. Tarik semua count butir skor
+            $ss = $db->table('butir_skor')->select('lam_butir_id, COUNT(id) as n')->where('prodi_id', $prodiId)->whereIn('lam_butir_id', $bIds)->groupBy('lam_butir_id')->get()->getResultArray();
+            foreach ($ss as $s) $mappedData['skor'][$s['lam_butir_id']] = (int) $s['n'];
+
+            // 3. Tarik semua eviden ppepp
+            $es = $db->table('eviden_ppepp')->where('prodi_id', $prodiId)->whereIn('lam_butir_id', $bIds)->get()->getResultArray();
+            $evidenIds = [];
+            foreach ($es as $e) {
+                $mappedData['eviden'][$e['lam_butir_id']] = $e;
+                $evidenIds[] = $e['id'];
+            }
+
+            // 4. Tarik semua eviden_ppepp_bukti
+            if (!empty($evidenIds)) {
+                $bs = $db->table('eviden_ppepp_bukti')->select('eviden_id, fase, COUNT(id) as n')->whereIn('eviden_id', $evidenIds)->groupBy('eviden_id, fase')->get()->getResultArray();
+                foreach ($bs as $bf) $mappedData['bukti'][$bf['eviden_id']][$bf['fase']] = (int) $bf['n'];
+            }
         }
 
-        $summary = $this->ringkasan($audit);
+        foreach ($butirRows as $b) {
+            $audit[(int) $b['id']] = $this->auditButir($b, $mappedData, $svc);
+        }
 
-        return view('eviden/audit/kondisi_eksternal', [
+        // Gunakan ringkasan spesifik jika Kriteria A, jika tidak gunakan ringkasan umum
+        $isKondisiEksternal = isset($whereKriteria['jenis']) && $whereKriteria['jenis'] === 'kondisi_eksternal';
+        $summary = $isKondisiEksternal ? $this->ringkasanKondisiEksternal($audit) : $this->ringkasanUmum($audit, $kriteria);
+
+        return view($view, [
             'instrumenIds' => $instrumenIds,
             'kriteria'     => $kriteria,
+            'kode_kriteria'=> $whereKriteria['kode'] ?? '',
             'butirRows'    => $butirRows,
             'audit'        => $audit,
             'summary'      => $summary,
         ]);
     }
 
-    private function auditButir($db, int $prodiId, array $b, EvidenAutoTarik $svc): array
+    private function auditButir(array $b, array $mappedData, EvidenAutoTarik $svc): array
     {
         $bid = (int) $b['id'];
 
-        $rubrikN = $db->table('lam_butir_rubrik')->where('lam_butir_id', $bid)->countAllResults();
-        $butirSkorN = $db->table('butir_skor')
-            ->where(['prodi_id' => $prodiId, 'lam_butir_id' => $bid])->countAllResults();
+        $rubrikN = $mappedData['rubrik'][$bid] ?? 0;
+        $butirSkorN = $mappedData['skor'][$bid] ?? 0;
 
         // Eviden PPEPP (narasi & bukti)
-        $ev = $db->table('eviden_ppepp')
-            ->where(['prodi_id' => $prodiId, 'lam_butir_id' => $bid])->get()->getRowArray();
+        $ev = $mappedData['eviden'][$bid] ?? null;
         $ppeppFase = 0;
         $ppeppBukti = 0;
         if ($ev) {
-            $byFase = $db->table('eviden_ppepp_bukti')->select('fase, COUNT(id) AS n')
-                ->where('eviden_id', $ev['id'])->groupBy('fase')->get()->getResultArray();
+            $byFase = $mappedData['bukti'][$ev['id']] ?? [];
             $faseDone = [];
-            foreach ($byFase as $bf) { $faseDone[$bf['fase']] = [1]; $ppeppBukti += (int) $bf['n']; }
+            foreach ($byFase as $fase => $n) { $faseDone[$fase] = [1]; $ppeppBukti += $n; }
             $ppeppFase = EvidenPpeppModel::progress($ev, $faseDone);
         }
 
@@ -99,10 +169,10 @@ class AuditController extends BaseController
 
         // Skor readiness 0..100
         $score = 0;
-        if ($rubrikN >= 4) $score += 25; elseif ($rubrikN > 0) $score += 10;
-        if (!empty($b['tabel_lkps_ref']) || !empty($b['formula'])) $score += 15;
-        if ($butirSkorN > 0) $score += 20;
-        $score += min(40, $ppeppFase * 8);
+        if ($rubrikN >= 4) $score += self::SCORE_FULL_RUBRIK; elseif ($rubrikN > 0) $score += self::SCORE_PARTIAL_RUBRIK;
+        if (!empty($b['tabel_lkps_ref']) || !empty($b['formula'])) $score += self::SCORE_HAS_SOURCE;
+        if ($butirSkorN > 0) $score += self::SCORE_HAS_NILAI;
+        $score += min(40, $ppeppFase * self::SCORE_PPEPP_PER_FASE);
 
         $status = $score >= 75 ? 'siap' : ($score >= 35 ? 'sebagian' : 'kosong');
 
@@ -141,7 +211,7 @@ class AuditController extends BaseController
         ];
     }
 
-    private function ringkasan(array $audit): array
+    private function ringkasanKondisiEksternal(array $audit): array
     {
         $n = count($audit);
         $sumScore = 0;
@@ -190,6 +260,38 @@ class AuditController extends BaseController
             'tanpa_rubrik'   => $tanpaRubrik,
             'tanpa_input'    => $tanpaInputData,
             'tanpa_ppepp'    => $tanpaPpepp,
+            'rekomendasi'    => $rekomendasiGlobal,
+        ];
+    }
+
+    private function ringkasanUmum(array $audit, array $kriteria): array
+    {
+        $n = count($audit);
+        $sumScore = 0;
+        $bucket   = ['siap' => 0, 'sebagian' => 0, 'kosong' => 0];
+        
+        foreach ($audit as $a) {
+            $sumScore += $a['readiness_pct'];
+            $bucket[$a['status']]++;
+        }
+        $avgScore = $n > 0 ? round($sumScore / $n) : 0;
+
+        $rekomendasiGlobal = [];
+        if ($n === 0) {
+            $rekomendasiGlobal[] = ['danger', 'Kriteria ini belum memiliki butir penilaian di instrumen master.'];
+        } else {
+            if ($avgScore < 50) {
+                $rekomendasiGlobal[] = ['warn', 'Kesiapan dokumen dan penilaian masih di bawah 50%. Prioritaskan pengisian nilai skor mandiri terlebih dahulu untuk memetakan kekurangan.'];
+            }
+            if ($bucket['kosong'] > 0) {
+                $rekomendasiGlobal[] = ['info', "Terdapat {$bucket['kosong']} butir yang sama sekali belum memiliki narasi/bukti. Gunakan fitur Tarik Otomatis Eviden untuk mempercepat pengisian."];
+            }
+        }
+
+        return [
+            'n_butir'        => $n,
+            'avg_readiness'  => $avgScore,
+            'bucket'         => $bucket,
             'rekomendasi'    => $rekomendasiGlobal,
         ];
     }

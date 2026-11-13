@@ -3,82 +3,88 @@
 namespace App\Controllers\Tracer;
 
 use App\Controllers\BaseController;
-use App\Models\MahasiswaModel;
-use App\Models\TracerStudyModel;
 use App\Services\TracerToken;
 use Config\Database;
 
 /**
- * Form publik tracer study yang diisi alumni via link berisi token.
- * Tidak memerlukan login (route di luar grup session).
+ * Form publik Tracer Study (Kriteria C2 - LKPS 2.B.4 & 2.B.5),
+ * diisi oleh alumni via tautan bertoken dari WhatsApp (tanpa login).
  */
 class PublicTracerController extends BaseController
 {
-    private const KESESUAIAN = ['sangat_sesuai', 'sesuai', 'kurang_sesuai', 'tidak_sesuai'];
-    private const TINGKAT     = ['lokal', 'nasional', 'multinasional', 'internasional', 'wirausaha'];
+    private const PURPOSE = 'tracer';
 
+    /**
+     * Menampilkan formulir Tracer Study kepada alumni.
+     */
     public function form(string $token)
     {
         $mhs = $this->resolve($token);
         if (!$mhs) {
-            return view('tracer_public/message', ['error' => 'Link tidak valid atau sudah kedaluwarsa. Hubungi program studi Anda.']);
+            return view('tracer_public/message', ['error' => 'Tautan tidak valid atau sudah kedaluwarsa. Silakan hubungi Program Studi.']);
         }
-        $tracer = (new TracerStudyModel())->getByMahasiswa((int) $mhs['id']) ?? [];
-        return view('tracer_public/form', [
-            'token'  => $token,
-            'mhs'    => $mhs,
-            'tracer' => $tracer,
+
+        $db = Database::connect();
+        $data = $db->table('tracer_study')->where('mahasiswa_id', $mhs['id'])->get()->getRowArray() ?: [];
+
+        return view('tracer_public/tracer_form', [
+            'token' => $token,
+            'mhs'   => $mhs,
+            'data'  => $data,
         ]);
     }
 
+    /**
+     * Memproses pengiriman data Tracer Study dari alumni.
+     */
     public function submit(string $token)
     {
         $mhs = $this->resolve($token);
         if (!$mhs) {
-            return view('tracer_public/message', ['error' => 'Link tidak valid atau sudah kedaluwarsa.']);
+            return view('tracer_public/message', ['error' => 'Tautan tidak valid atau sudah kedaluwarsa.']);
         }
 
-        $req = $this->request;
-        $kes = $req->getPost('kesesuaian_bidang_kerja');
-        $tkt = $req->getPost('tingkat_pekerjaan');
-        $gaji = preg_replace('/[^0-9]/', '', (string) $req->getPost('gaji_pertama'));
-        $masa = $req->getPost('masa_tunggu_bulan');
-
+        $req  = $this->request;
+        $db   = Database::connect();
+        
         $data = [
             'mahasiswa_id'            => (int) $mhs['id'],
             'tgl_isi'                 => date('Y-m-d'),
-            'masa_tunggu_bulan'       => ($masa !== '' && is_numeric($masa)) ? (int) $masa : null,
-            'kesesuaian_bidang_kerja' => in_array($kes, self::KESESUAIAN, true) ? $kes : null,
-            'tingkat_pekerjaan'       => in_array($tkt, self::TINGKAT, true) ? $tkt : null,
+            'masa_tunggu_bulan'       => (int) $req->getPost('masa_tunggu_bulan'),
+            'kesesuaian_bidang_kerja' => $req->getPost('kesesuaian_bidang_kerja') ?: null,
+            'tingkat_pekerjaan'       => $req->getPost('tingkat_pekerjaan') ?: null,
             'nama_perusahaan'         => trim((string) $req->getPost('nama_perusahaan')) ?: null,
             'jabatan'                 => trim((string) $req->getPost('jabatan')) ?: null,
-            'gaji_pertama'            => $gaji !== '' ? (int) $gaji : null,
-            'lanjut_studi'            => $req->getPost('lanjut_studi') ? 1 : 0,
+            'nama_atasan'             => trim((string) $req->getPost('nama_atasan')) ?: null,
+            'no_hp_atasan'            => trim((string) $req->getPost('no_hp_atasan')) ?: null,
         ];
 
-        $model    = new TracerStudyModel();
-        $existing = $model->getByMahasiswa((int) $mhs['id']);
+        $existing = $db->table('tracer_study')->where('mahasiswa_id', $mhs['id'])->get()->getRowArray();
         if ($existing) {
-            $model->update($existing['id'], $data);
+            $db->table('tracer_study')->where('id', $existing['id'])->update($data);
         } else {
-            $model->insert($data);
+            $db->table('tracer_study')->insert($data);
         }
 
         return view('tracer_public/message', [
-            'success' => 'Terima kasih, ' . esc($mhs['nama']) . '. Jawaban Anda sudah kami terima dan sangat berarti bagi pengembangan program studi.',
+            'success' => 'Terima kasih, ' . esc($mhs['nama']) . '. Data Tracer Study Anda berhasil disimpan dan sangat berguna bagi pengembangan mutu ' . esc($mhs['prodi_nama']) . '.',
         ]);
     }
 
-    /** Verifikasi token -> data mahasiswa (+ nama prodi) atau null. */
+    /**
+     * Memverifikasi token dan mengambil data mahasiswa yang bersangkutan.
+     */
     private function resolve(string $token): ?array
     {
-        $id = TracerToken::verify($token);
+        $id = TracerToken::verify($token, self::PURPOSE);
         if (!$id) return null;
+        
         $row = Database::connect()->table('mahasiswa m')
-            ->select('m.id, m.nim, m.nama, p.nama AS prodi_nama')
+            ->select('m.id, m.nim, m.nama, m.tgl_lulus, p.nama AS prodi_nama')
             ->join('prodi p', 'p.id = m.prodi_id', 'left')
             ->where('m.id', $id)
             ->get()->getRowArray();
+            
         return $row ?: null;
     }
 }

@@ -89,7 +89,8 @@ class KondisiEksternalSuggester
 
         $arr = json_decode($s, true);
         if (!is_array($arr)) {
-            throw new RuntimeException('AI mengembalikan format tidak valid (gagal parse JSON).');
+            log_message('error', '[Groq AI] Gagal parse JSON. Raw AI response: ' . $raw);
+            throw new RuntimeException('AI mengembalikan format tidak valid. Silakan coba lagi.');
         }
 
         $out = [];

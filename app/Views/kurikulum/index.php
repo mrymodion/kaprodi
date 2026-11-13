@@ -43,13 +43,13 @@
                 <div class="row text-center g-2">
                     <div class="col-6">
                         <div class="border rounded p-2">
-                            <div class="fs-4 fw-bold text-success"><?= $k['jml_cpl'] ?></div>
+                            <div class="fs-4 fw-bold text-success"><?= $k['jml_cpl'] ?? 0 ?></div>
                             <div class="small text-muted">CPL</div>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-2">
-                            <div class="fs-4 fw-bold text-primary"><?= $k['jml_mk'] ?></div>
+                            <div class="fs-4 fw-bold text-primary"><?= $k['jml_mk'] ?? 0 ?></div>
                             <div class="small text-muted">Mata Kuliah</div>
                         </div>
                     </div>

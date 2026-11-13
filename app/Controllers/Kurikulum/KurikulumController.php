@@ -4,501 +4,634 @@ namespace App\Controllers\Kurikulum;
 
 use App\Controllers\BaseController;
 use App\Controllers\Concerns\ExcelImport;
-use App\Models\{KurikulumModel, CplModel, MataKuliahModel, MkCplModel, CplKetercapaianModel};
 use Config\Database;
 
+/**
+ * Controller Manajemen Kurikulum OBE.
+ * Mensuplai data untuk LKPS Kriteria C2 (Tabel 2.B.1, 2.B.2, 2.B.3).
+ */
 class KurikulumController extends BaseController
 {
+    // Menggunakan trait pembantu untuk import Excel
     use ExcelImport;
 
-    protected KurikulumModel       $kuriModel;
-    protected CplModel             $cplModel;
-    protected MataKuliahModel      $mkModel;
-    protected MkCplModel           $mkCplModel;
-    protected CplKetercapaianModel $ketModel;
-
-    public function __construct()
+    private function prodiId(): int
     {
-        $this->kuriModel = new KurikulumModel();
-        $this->cplModel  = new CplModel();
-        $this->mkModel   = new MataKuliahModel();
-        $this->mkCplModel= new MkCplModel();
-        $this->ketModel  = new CplKetercapaianModel();
+        return (int) (session('active_prodi_id') ?: 0);
     }
 
-    // ══════════════════════════════════════════════════════
-    // KURIKULUM
-    // ══════════════════════════════════════════════════════
-
-    public function index(): string
+    public function index()
     {
-        $isSuperadmin = (bool) session('is_superadmin');
-        $prodiId      = (int) session('active_prodi_id');
+        $prodiId = $this->prodiId();
+        if (!$prodiId) return redirect()->to('/')->with('error', 'Prodi aktif belum dipilih.');
 
-        if ($isSuperadmin) {
-            // Superadmin: tampilkan semua kurikulum dari semua prodi
-            $db        = Database::connect();
-            $kurikulum = $db->query("
-                SELECT k.*,
-                    p.nama AS nama_prodi,
-                    (SELECT COUNT(*) FROM cpl WHERE kurikulum_id = k.id) AS jml_cpl,
-                    (SELECT COUNT(*) FROM mata_kuliah WHERE kurikulum_id = k.id) AS jml_mk
-                FROM kurikulum k
-                JOIN prodi p ON p.id = k.prodi_id
-                ORDER BY p.nama, k.tahun_berlaku DESC
-            ")->getResultArray();
-        } else {
-            $kurikulum = $prodiId ? $this->kuriModel->listByProdi($prodiId) : [];
-        }
+        $db = Database::connect();
+        $kurikulum = $db->table('kurikulum k')
+            ->select('k.*, 
+                (SELECT COUNT(id) FROM cpl WHERE kurikulum_id = k.id) as jml_cpl,
+                (SELECT COUNT(id) FROM mata_kuliah WHERE kurikulum_id = k.id) as jml_mk
+            ')
+            ->where('k.prodi_id', $prodiId)
+            ->orderBy('k.tahun_berlaku', 'DESC')
+            ->get()->getResultArray();
 
-        return view('kurikulum/index', compact('kurikulum', 'prodiId', 'isSuperadmin'));
+        return view('kurikulum/index', [
+            'kurikulum' => $kurikulum
+        ]);
     }
 
-    public function create(): string
+    public function create()
     {
-        $prodiList = $this->getProdiList();
+        $db = Database::connect();
         return view('kurikulum/form', [
-            'kuri'     => null,
-            'prodiList'=> $prodiList,
-            'action'   => site_url('kurikulum/store'),
+            'kuri'      => null,
+            'prodiList' => $db->table('prodi')->orderBy('jenjang')->orderBy('nama')->get()->getResultArray(),
+            'action'    => site_url('kurikulum/store')
         ]);
     }
 
     public function store()
     {
-        if (!$this->validate($this->kuriModel->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-        $data = $this->request->getPost(['prodi_id','kode','nama','tahun_berlaku','aktif']);
-        $data['aktif'] = $data['aktif'] ?? 1;
-        $data['created_at'] = date('Y-m-d H:i:s');
-        $id = $this->kuriModel->insert($data, true);
-        return redirect()->to(site_url("kurikulum/{$id}"))->with('success', 'Kurikulum berhasil ditambahkan. Mulai tambahkan CPL dan Mata Kuliah.');
+        $db = Database::connect();
+        $post = $this->request->getPost();
+        
+        $db->table('kurikulum')->insert([
+            'prodi_id'      => $post['prodi_id'],
+            'kode'          => $post['kode'],
+            'nama'          => $post['nama'],
+            'tahun_berlaku' => $post['tahun_berlaku'],
+            'aktif'         => $post['aktif'] ?? 1,
+        ]);
+
+        return redirect()->to('kurikulum')->with('success', 'Kurikulum berhasil ditambahkan.');
     }
 
-    public function show(int $id): string
+    public function edit(int $id)
     {
-        $kuri   = $this->kuriModel->findOrFail($id);
-        $cpl    = $this->cplModel->byKurikulum($id);
-        $mk     = $this->mkModel->withCplCount($id);
-        $totSks = $this->mkModel->totalSksKurikulum($id);
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $id, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        
+        if (!$kuri) return redirect()->to('kurikulum')->with('error', 'Kurikulum tidak ditemukan atau akses ditolak.');
 
-        // peta matrix: mkId => [cplId => true]
-        $petaRaw = $this->mkCplModel->petaByKurikulum($id);
-        $peta    = [];
-        foreach ($petaRaw as $p) {
-            $peta[$p['mata_kuliah_id']][$p['cpl_id']] = true;
-        }
-
-        // Ketercapaian per TA
-        $db     = Database::connect();
-        $taList = $db->table('tahun_akademik')->orderBy('tahun_mulai DESC')->get()->getResultArray();
-        $taId   = (int)($this->request->getGet('ta_id') ?: ($db->table('tahun_akademik')->where('is_ts',1)->get()->getRowArray()['id'] ?? 0));
-        $avgCpl = $taId ? $this->ketModel->avgKetercapaianPerCpl($id, $taId) : [];
-
-        return view('kurikulum/show', compact('kuri','cpl','mk','totSks','peta','taList','taId','avgCpl'));
-    }
-
-    public function edit(int $id): string
-    {
-        $kuri      = $this->kuriModel->findOrFail($id);
-        $prodiList = $this->getProdiList();
         return view('kurikulum/form', [
-            'kuri'     => $kuri,
-            'prodiList'=> $prodiList,
-            'action'   => site_url("kurikulum/{$id}/update"),
+            'kuri'      => $kuri,
+            'prodiList' => $db->table('prodi')->orderBy('jenjang')->orderBy('nama')->get()->getResultArray(),
+            'action'    => site_url("kurikulum/{$id}/update")
         ]);
     }
 
     public function update(int $id)
     {
-        $this->kuriModel->findOrFail($id);
-        if (!$this->validate($this->kuriModel->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-        $data = $this->request->getPost(['prodi_id','kode','nama','tahun_berlaku','aktif']);
-        $data['aktif'] = $data['aktif'] ?? 0;
-        $this->kuriModel->update($id, $data);
-        return redirect()->to(site_url("kurikulum/{$id}"))->with('success', 'Kurikulum diperbarui.');
+        $db = Database::connect();
+        $post = $this->request->getPost();
+        
+        $db->table('kurikulum')->where(['id' => $id, 'prodi_id' => $this->prodiId()])->update([
+            'prodi_id'      => $post['prodi_id'],
+            'kode'          => $post['kode'],
+            'nama'          => $post['nama'],
+            'tahun_berlaku' => $post['tahun_berlaku'],
+            'aktif'         => $post['aktif'] ?? 1,
+        ]);
+
+        return redirect()->to('kurikulum')->with('success', 'Kurikulum berhasil diperbarui.');
     }
 
     public function delete(int $id)
     {
-        $this->kuriModel->findOrFail($id);
-        $this->kuriModel->update($id, ['aktif' => 0]);
-        return redirect()->to(site_url('kurikulum'))->with('success', 'Kurikulum dinonaktifkan.');
+        Database::connect()->table('kurikulum')->where(['id' => $id, 'prodi_id' => $this->prodiId()])->delete();
+        return redirect()->to('kurikulum')->with('success', 'Kurikulum berhasil dihapus.');
     }
 
-    // ══════════════════════════════════════════════════════
-    // CPL
-    // ══════════════════════════════════════════════════════
-
-    public function cplCreate(int $kuriId): string
+    /**
+     * Menampilkan Detail Kurikulum beserta Matriks Peta CPL - MK.
+     */
+    public function show(int $id)
     {
-        $kuri = $this->kuriModel->findOrFail($kuriId);
+        $prodiId = $this->prodiId();
+        $db = Database::connect();
+
+        $kurikulum = $db->table('kurikulum')->where(['id' => $id, 'prodi_id' => $prodiId])->get()->getRowArray();
+        if (!$kurikulum) return redirect()->to('kurikulum')->with('error', 'Data kurikulum tidak ditemukan.');
+
+        $cpl = $db->table('cpl')->where('kurikulum_id', $id)->orderBy('kode', 'ASC')->get()->getResultArray();
+        $mk  = $db->table('mata_kuliah')
+            ->select('mata_kuliah.*, (sks_teori + sks_praktek + sks_lapangan) AS sks')
+            ->where('kurikulum_id', $id)->orderBy('semester', 'ASC')->orderBy('kode', 'ASC')->get()->getResultArray();
+
+        // Mengambil pemetaan CPL - MK saat ini
+        $peta = [];
+        if (!empty($mk)) {
+            $mkIds = array_column($mk, 'id');
+            $petaRows = $db->table('mk_cpl')->whereIn('mata_kuliah_id', $mkIds)->get()->getResultArray();
+            foreach ($petaRows as $p) {
+                $peta[$p['mata_kuliah_id']][$p['cpl_id']] = true;
+            }
+        }
+
+        return view('kurikulum/show', [
+            'kurikulum' => $kurikulum,
+            'cpl'       => $cpl,
+            'mk'        => $mk,
+            'peta'      => $peta
+        ]);
+    }
+
+    /**
+     * Menyimpan hasil pemetaan (Matriks) CPL - Mata Kuliah secara massal.
+     */
+    public function petaSave(int $kurikulumId)
+    {
+        $db = Database::connect();
+        $prodiId = $this->prodiId();
+
+        $kurikulum = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $prodiId])->get()->getRowArray();
+        if (!$kurikulum) return redirect()->back()->with('error', 'Akses ditolak.');
+
+        $petaInput = $this->request->getPost('peta') ?? []; // Format struktur form: peta[mk_id][cpl_id] = 1
+
+        $mkRows = $db->table('mata_kuliah')->where('kurikulum_id', $kurikulumId)->get()->getResultArray();
+        $mkIds  = array_column($mkRows, 'id');
+
+        if (!empty($mkIds)) {
+            $db->transStart();
+            $db->table('mk_cpl')->whereIn('mata_kuliah_id', $mkIds)->delete(); // Bersihkan pemetaan lama
+            $insertData = [];
+            foreach ($petaInput as $mkId => $cplData) foreach ($cplData as $cplId => $val) if ($val == 1) $insertData[] = ['mata_kuliah_id' => $mkId, 'cpl_id' => $cplId];
+            if (!empty($insertData)) $db->table('mk_cpl')->insertBatch($insertData);
+            $db->transComplete();
+        }
+
+        return redirect()->to(site_url("kurikulum/{$kurikulumId}"))->with('success', 'Peta CPL - Mata Kuliah berhasil diperbarui.');
+    }
+
+    /**
+     * Handle AJAX request untuk Auto-Save pemetaan CPL ke Mata Kuliah
+     * Dipanggil dari UI Matriks CPL-MK
+     */
+    public function togglePeta()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(400)->setJSON(['ok' => false, 'message' => 'Invalid request']);
+        }
+
+        $mkId   = $this->request->getPost('mata_kuliah_id');
+        $cplId  = $this->request->getPost('cpl_id');
+        $status = $this->request->getPost('status'); // 1 = dicentang, 0 = di-uncheck
+
+        if (!$mkId || !$cplId) {
+            return $this->response->setStatusCode(400)->setJSON(['ok' => false, 'message' => 'Data tidak lengkap']);
+        }
+
+        $db = Database::connect();
+
+        try {
+            if ($status == 1) {
+                // Cek eksistensi untuk mencegah duplikasi
+                $exists = $db->table('mk_cpl')->where(['mata_kuliah_id' => $mkId, 'cpl_id' => $cplId])->countAllResults();
+                if ($exists === 0) $db->table('mk_cpl')->insert(['mata_kuliah_id' => $mkId, 'cpl_id' => $cplId]);
+            } else {
+                $db->table('mk_cpl')->where(['mata_kuliah_id' => $mkId, 'cpl_id' => $cplId])->delete();
+            }
+
+            return $this->response->setJSON(['ok' => true, 'message' => 'Pemetaan berhasil disimpan']);
+        } catch (\Exception $e) {
+            log_message('error', '[KurikulumController::togglePeta] ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON(['ok' => false, 'message' => 'Gagal menyimpan ke database']);
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Fitur Import CPL dari Excel
+    // ────────────────────────────────────────────────────────────────────────
+
+    public function cplImportForm(int $kurikulumId)
+    {
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        if (!$kuri) return redirect()->to('kurikulum')->with('error', 'Akses ditolak.');
+
+        return view('kurikulum/cpl_import', ['kuri' => $kuri]);
+    }
+
+    public function cplImportTemplate(int $kurikulumId)
+    {
+        $this->excelTemplate(
+            "Template_Import_CPL.xlsx",
+            ['Kode CPL', 'Aspek', 'Deskripsi'],
+            ['CPL-01', 'sikap', 'Menunjukkan sikap bertanggungjawab atas pekerjaan di bidang keahliannya secara mandiri.'],
+            [
+                ['Kolom Kode CPL', 'Wajib, mis. CPL-01, S-01, P-01.'],
+                ['Kolom Aspek', 'Wajib, pilih salah satu: sikap, pengetahuan, keterampilan_umum, keterampilan_khusus.'],
+                ['Kolom Deskripsi', 'Wajib diisi dengan narasi utuh CPL.']
+            ]
+        );
+    }
+
+    public function cplImportStore(int $kurikulumId)
+    {
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        if (!$kuri) return redirect()->to('kurikulum')->with('error', 'Akses ditolak.');
+
+        $upload = $this->readUpload(['kode_cpl' => 'kode']);
+        if (is_string($upload)) return redirect()->back()->with('error', $upload);
+        [$sheet, $colOf, $highestRow] = $upload;
+
+        if (empty($colOf['kode']) || empty($colOf['aspek']) || empty($colOf['deskripsi'])) {
+            return redirect()->back()->with('error', 'Format kolom tidak sesuai. Gunakan template yang disediakan.');
+        }
+
+        $inserted = 0; $updated = 0; $errors = [];
+        $db->transStart();
+
+        for ($r = 2; $r <= $highestRow; $r++) {
+            $kode  = trim((string) $sheet->getCell([$colOf['kode'], $r])->getValue());
+            $aspek = strtolower(trim((string) $sheet->getCell([$colOf['aspek'], $r])->getValue()));
+            $desk  = trim((string) $sheet->getCell([$colOf['deskripsi'], $r])->getValue());
+
+            if ($kode === '') continue; // Skip baris kosong
+
+            if (!in_array($aspek, ['sikap', 'pengetahuan', 'keterampilan_umum', 'keterampilan_khusus'])) {
+                $errors[] = "Baris $r: Aspek '$aspek' tidak valid untuk CPL $kode.";
+                continue;
+            }
+
+            if ($desk === '') {
+                $errors[] = "Baris $r: Deskripsi CPL $kode tidak boleh kosong.";
+                continue;
+            }
+
+            $existing = $db->table('cpl')->where(['kurikulum_id' => $kurikulumId, 'kode' => $kode])->get()->getRowArray();
+            $data = ['kurikulum_id' => $kurikulumId, 'kode' => $kode, 'aspek' => $aspek, 'deskripsi' => $desk];
+
+            if ($existing) {
+                $db->table('cpl')->where('id', $existing['id'])->update($data);
+                $updated++;
+            } else {
+                $db->table('cpl')->insert($data);
+                $inserted++;
+            }
+        }
+
+        $db->transComplete();
+        session()->setFlashdata('importResult', ['inserted' => $inserted, 'updated' => $updated, 'errors' => $errors]);
+        return redirect()->to(site_url("kurikulum/{$kurikulumId}/cpl/import"));
+    }
+
+    public function cplCreate(int $kurikulumId)
+    {
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        if (!$kuri) return redirect()->to('kurikulum')->with('error', 'Akses ditolak.');
+
         return view('kurikulum/cpl_form', [
             'kuri'   => $kuri,
             'cpl'    => null,
-            'action' => site_url("kurikulum/{$kuriId}/cpl/store"),
+            'action' => site_url("kurikulum/{$kurikulumId}/cpl/store")
         ]);
     }
 
-    public function cplStore(int $kuriId)
+    public function cplStore(int $kurikulumId)
     {
-        $this->kuriModel->findOrFail($kuriId);
-        if (!$this->validate($this->cplModel->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-        $data = $this->request->getPost(['kode','aspek','deskripsi']);
-        $data['kurikulum_id'] = $kuriId;
-        $this->cplModel->insert($data);
-        return redirect()->to(site_url("kurikulum/{$kuriId}#tab-cpl"))->with('success', 'CPL berhasil ditambahkan.');
+        $post = $this->request->getPost();
+        Database::connect()->table('cpl')->insert([
+            'kurikulum_id' => $kurikulumId,
+            'kode'         => $post['kode'],
+            'aspek'        => $post['aspek'],
+            'deskripsi'    => $post['deskripsi'],
+        ]);
+        return redirect()->to("kurikulum/{$kurikulumId}#tab-cpl")->with('success', 'CPL berhasil ditambahkan.');
     }
 
-    public function cplEdit(int $kuriId, int $cplId): string
+    public function cplEdit(int $kurikulumId, int $cplId)
     {
-        $kuri = $this->kuriModel->findOrFail($kuriId);
-        $cpl  = $this->cplModel->findOrFail($cplId);
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        $cpl  = $db->table('cpl')->where('id', $cplId)->get()->getRowArray();
+
+        if (!$kuri || !$cpl) return redirect()->to("kurikulum/{$kurikulumId}")->with('error', 'Data tidak ditemukan.');
+
         return view('kurikulum/cpl_form', [
             'kuri'   => $kuri,
             'cpl'    => $cpl,
-            'action' => site_url("kurikulum/{$kuriId}/cpl/{$cplId}/update"),
+            'action' => site_url("kurikulum/{$kurikulumId}/cpl/{$cplId}/update")
         ]);
     }
 
-    public function cplUpdate(int $kuriId, int $cplId)
+    public function cplUpdate(int $kurikulumId, int $cplId)
     {
-        $this->cplModel->findOrFail($cplId);
-        if (!$this->validate($this->cplModel->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-        $data = $this->request->getPost(['kode','aspek','deskripsi']);
-        $data['kurikulum_id'] = $kuriId;
-        $this->cplModel->update($cplId, $data);
-        return redirect()->to(site_url("kurikulum/{$kuriId}#tab-cpl"))->with('success', 'CPL diperbarui.');
-    }
-
-    public function cplDelete(int $kuriId, int $cplId)
-    {
-        $this->cplModel->findOrFail($cplId);
-        $this->cplModel->delete($cplId);
-        return redirect()->to(site_url("kurikulum/{$kuriId}#tab-cpl"))->with('success', 'CPL dihapus.');
-    }
-
-    // ══════════════════════════════════════════════════════
-    // MATA KULIAH
-    // ══════════════════════════════════════════════════════
-
-    public function mkCreate(int $kuriId): string
-    {
-        $kuri = $this->kuriModel->findOrFail($kuriId);
-        $cpl  = $this->cplModel->byKurikulum($kuriId);
-        return view('kurikulum/mk_form', [
-            'kuri'  => $kuri,
-            'mk'    => null,
-            'cpl'   => $cpl,
-            'checked'=>[],
-            'action'=> site_url("kurikulum/{$kuriId}/mk/store"),
+        $post = $this->request->getPost();
+        Database::connect()->table('cpl')->where('id', $cplId)->update([
+            'kode'      => $post['kode'],
+            'aspek'     => $post['aspek'],
+            'deskripsi' => $post['deskripsi'],
         ]);
+        return redirect()->to("kurikulum/{$kurikulumId}#tab-cpl")->with('success', 'CPL berhasil diperbarui.');
     }
 
-    public function mkStore(int $kuriId)
+    public function cplDelete(int $kurikulumId, int $cplId)
     {
-        $this->kuriModel->findOrFail($kuriId);
-        if (!$this->validate($this->mkModel->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-        $data = $this->collectMkPost($kuriId);
-        $mkId = $this->mkModel->insert($data, true);
-
-        // Simpan peta CPL
-        $cplIds = $this->request->getPost('cpl_ids') ?? [];
-        foreach ($cplIds as $cplId) {
-            $this->mkCplModel->insert(['mata_kuliah_id'=>$mkId,'cpl_id'=>(int)$cplId,'bobot'=>1.00]);
-        }
-
-        return redirect()->to(site_url("kurikulum/{$kuriId}#tab-mk"))->with('success', 'Mata Kuliah ditambahkan.');
+        Database::connect()->table('cpl')->where('id', $cplId)->delete();
+        return redirect()->to("kurikulum/{$kurikulumId}#tab-cpl")->with('success', 'CPL berhasil dihapus.');
     }
 
-    public function mkEdit(int $kuriId, int $mkId): string
-    {
-        $kuri    = $this->kuriModel->findOrFail($kuriId);
-        $mk      = $this->mkModel->findOrFail($mkId);
-        $cpl     = $this->cplModel->byKurikulum($kuriId);
-        $checked = array_column($this->mkCplModel->cplByMk($mkId), 'id');
+    // ────────────────────────────────────────────────────────────────────────
+    // Fitur Import Mata Kuliah (MK) dari Excel
+    // ────────────────────────────────────────────────────────────────────────
 
-        return view('kurikulum/mk_form', [
-            'kuri'   => $kuri,
-            'mk'     => $mk,
-            'cpl'    => $cpl,
-            'checked'=> $checked,
-            'action' => site_url("kurikulum/{$kuriId}/mk/{$mkId}/update"),
-        ]);
+    public function mkImportForm(int $kurikulumId)
+    {
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        if (!$kuri) return redirect()->to('kurikulum')->with('error', 'Akses ditolak.');
+
+        return view('kurikulum/mk_import', ['kuri' => $kuri]);
     }
 
-    public function mkUpdate(int $kuriId, int $mkId)
+    public function mkImportTemplate(int $kurikulumId)
     {
-        $this->mkModel->findOrFail($mkId);
-        if (!$this->validate($this->mkModel->validationRules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-        $data = $this->collectMkPost($kuriId);
-        $this->mkModel->update($mkId, $data);
-
-        // Update peta CPL: hapus lama, insert baru
-        $this->mkCplModel->where('mata_kuliah_id', $mkId)->delete();
-        $cplIds = $this->request->getPost('cpl_ids') ?? [];
-        foreach ($cplIds as $cplId) {
-            $this->mkCplModel->insert(['mata_kuliah_id'=>$mkId,'cpl_id'=>(int)$cplId,'bobot'=>1.00]);
-        }
-
-        return redirect()->to(site_url("kurikulum/{$kuriId}#tab-mk"))->with('success', 'Mata Kuliah diperbarui.');
+        $this->excelTemplate(
+            "Template_Import_MK.xlsx",
+            ['Kode MK', 'Nama Mata Kuliah', 'Semester', 'SKS Teori', 'SKS Praktik', 'SKS Lapangan', 'Jenis', 'CPL'],
+            ['MI301', 'Algoritma dan Struktur Data', '1', '2', '1', '0', 'wajib', 'CPL-01; CPL-02'],
+            [
+                ['Kolom Kode & Nama', 'Wajib diisi.'],
+                ['Kolom Semester', 'Angka 1-8. Wajib.'],
+                ['Kolom SKS', 'Isi angka (0-6). Total SKS akan dijumlah otomatis.'],
+                ['Kolom Jenis', 'wajib / pilihan / mbkm.'],
+                ['Kolom CPL', 'Daftar kode CPL yang didukung, pisahkan dengan koma atau titik koma (;). CPL harus sudah ada di sistem.']
+            ]
+        );
     }
 
-    public function mkDelete(int $kuriId, int $mkId)
+    public function mkImportStore(int $kurikulumId)
     {
-        $this->mkModel->findOrFail($mkId);
-        $this->mkModel->delete($mkId);
-        return redirect()->to(site_url("kurikulum/{$kuriId}#tab-mk"))->with('success', 'Mata Kuliah dihapus.');
-    }
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        if (!$kuri) return redirect()->to('kurikulum')->with('error', 'Akses ditolak.');
 
-    // ══════════════════════════════════════════════════════
-    // PETA CPL (matrix simpan bulk)
-    // ══════════════════════════════════════════════════════
+        $upload = $this->readUpload(['kode_mk' => 'kode', 'nama_mata_kuliah' => 'nama', 'sks_praktik' => 'sks_praktek']);
+        if (is_string($upload)) return redirect()->back()->with('error', $upload);
+        [$sheet, $colOf, $highestRow] = $upload;
 
-    public function petaSave(int $kuriId)
-    {
-        $this->kuriModel->findOrFail($kuriId);
-
-        // peta[mkId][cplId] dikirim sebagai checkbox peta[mkId][] = cplId
-        $raw = $this->request->getPost('peta') ?? [];
-        $checked = [];
-        foreach ($raw as $mkId => $cplIds) {
-            $checked[(int)$mkId] = array_map('intval', (array)$cplIds);
-        }
-        $this->mkCplModel->savePeta($kuriId, $checked);
-
-        return redirect()->to(site_url("kurikulum/{$kuriId}#tab-peta"))->with('success', 'Peta CPL-MK disimpan.');
-    }
-
-    // ══════════════════════════════════════════════════════
-    // KETERCAPAIAN CPL
-    // ══════════════════════════════════════════════════════
-
-    public function ketercapaianForm(int $kuriId): string
-    {
-        $kuri   = $this->kuriModel->findOrFail($kuriId);
-        $db     = Database::connect();
-        $taList = $db->table('tahun_akademik')->orderBy('tahun_mulai DESC')->get()->getResultArray();
-        $taId   = (int)($this->request->getGet('ta_id') ?: ($db->table('tahun_akademik')->where('is_ts',1)->get()->getRowArray()['id'] ?? 0));
-
-        // Ambil semua MK yang punya CPL di kurikulum ini
-        $db2 = Database::connect();
-        $rows = $db2->query("
-            SELECT mk.id AS mk_id, mk.kode AS mk_kode, mk.nama AS mk_nama, mk.semester,
-                   c.id AS cpl_id, c.kode AS cpl_kode,
-                   ck.persen_tercapai, ck.jumlah_mhs
-            FROM mata_kuliah mk
-            JOIN mk_cpl mc ON mc.mata_kuliah_id = mk.id
-            JOIN cpl c ON c.id = mc.cpl_id
-            LEFT JOIN cpl_ketercapaian ck ON ck.mata_kuliah_id = mk.id AND ck.cpl_id = c.id AND ck.tahun_akademik_id = ?
-            WHERE mk.kurikulum_id = ?
-            ORDER BY mk.semester, mk.kode, c.kode
-        ", [$taId, $kuriId])->getResultArray();
-
-        return view('kurikulum/ketercapaian_form', compact('kuri','rows','taList','taId'));
-    }
-
-    public function ketercapaianSave(int $kuriId)
-    {
-        $this->kuriModel->findOrFail($kuriId);
-        $taId = (int)$this->request->getPost('tahun_akademik_id');
-
-        // data[mkId_cplId] = ['pct'=>..,'mhs'=>..]
-        $data = $this->request->getPost('ket') ?? [];
-        foreach ($data as $key => $val) {
-            [$mkId, $cplId] = explode('_', $key);
-            $pct = isset($val['pct']) && $val['pct'] !== '' ? (float)$val['pct'] : null;
-            $mhs = isset($val['mhs']) && $val['mhs'] !== '' ? (int)$val['mhs'] : 0;
-            if ($pct !== null) {
-                $this->ketModel->upsert((int)$mkId, (int)$cplId, $taId, $pct, $mhs);
-            }
+        if (empty($colOf['kode']) || empty($colOf['nama']) || empty($colOf['semester'])) {
+            return redirect()->back()->with('error', 'Format kolom tidak sesuai. Wajib ada: Kode MK, Nama Mata Kuliah, Semester.');
         }
 
-        return redirect()->to(site_url("kurikulum/{$kuriId}?ta_id={$taId}#tab-ket"))->with('success', 'Ketercapaian CPL disimpan.');
-    }
-
-    // ══════════════════════════════════════════════════════
-    // helpers
-    // ══════════════════════════════════════════════════════
-
-    private function getProdiList(): array
-    {
-        return Database::connect()->table('prodi')->where('status','aktif')->orderBy('nama')->get()->getResultArray();
-    }
-
-    private function collectMkPost(int $kuriId): array
-    {
-        $data = $this->request->getPost(['kode','nama','sks_teori','sks_praktek','sks_lapangan','semester','jenis','rps_path']);
-        $data['kurikulum_id'] = $kuriId;
-        foreach (['sks_teori','sks_praktek','sks_lapangan'] as $f) {
-            $data[$f] = (int)($data[$f] ?? 0);
-        }
-        return $data;
-    }
-
-    // ══════════════════════════════════════════════════════
-    // IMPORT EXCEL — CPL
-    // ══════════════════════════════════════════════════════
-
-    public function cplImportForm(int $kuriId): string
-    {
-        return view('kurikulum/cpl_import', ['kuri' => $this->kuriModel->findOrFail($kuriId)]);
-    }
-
-    public function cplImportTemplate(int $kuriId)
-    {
-        $this->kuriModel->findOrFail($kuriId);
-        $contoh = ['CPL-01', 'pengetahuan', 'Mampu menerapkan konsep teoritis bidang informatika.'];
-        $petunjuk = [
-            ['Kolom wajib', 'kode, aspek, deskripsi'],
-            ['aspek', 'sikap | pengetahuan | keterampilan_umum | keterampilan_khusus'],
-            ['kode', 'unik per kurikulum; jika sudah ada akan diperbarui'],
-        ];
-        return $this->excelTemplate('Template_Import_CPL.xlsx', ['kode', 'aspek', 'deskripsi'], $contoh, $petunjuk);
-    }
-
-    public function cplImportStore(int $kuriId)
-    {
-        $this->kuriModel->findOrFail($kuriId);
-        $load = $this->readUpload();
-        if (is_string($load)) return redirect()->back()->with('error', $load);
-        [$sheet, $colOf, $highestRow] = $load;
-        if (!isset($colOf['kode']) || !isset($colOf['deskripsi'])) {
-            return redirect()->back()->with('error', 'Header "kode" dan "deskripsi" wajib ada. Gunakan template.');
-        }
-
-        $aspekValid = ['sikap', 'pengetahuan', 'keterampilan_umum', 'keterampilan_khusus'];
         $inserted = 0; $updated = 0; $errors = []; $warnings = [];
-
-        for ($r = 2; $r <= $highestRow; $r++) {
-            $val  = fn(string $k) => isset($colOf[$k]) ? trim((string) $sheet->getCell([$colOf[$k], $r])->getValue()) : '';
-            $kode = $val('kode');
-            $desk = $val('deskripsi');
-            if ($kode === '' && $desk === '') continue;
-            if ($kode === '' || $desk === '') { $errors[] = "Baris {$r}: kode dan deskripsi wajib."; continue; }
-
-            $aspek = strtolower(str_replace([' ', '-'], '_', $val('aspek')));
-            if (!in_array($aspek, $aspekValid, true)) {
-                $errors[] = "Baris {$r}: aspek \"{$val('aspek')}\" tidak valid (sikap/pengetahuan/keterampilan_umum/keterampilan_khusus)."; continue;
-            }
-
-            $data = ['kurikulum_id' => $kuriId, 'kode' => $kode, 'aspek' => $aspek, 'deskripsi' => $desk];
-            $existing = $this->cplModel->where(['kurikulum_id' => $kuriId, 'kode' => $kode])->first();
-            if ($existing) {
-                $this->cplModel->update($existing['id'], $data) ? $updated++ : $errors[] = "Baris {$r}: " . implode('; ', $this->cplModel->errors());
-            } else {
-                $this->cplModel->insert($data, false) ? $inserted++ : $errors[] = "Baris {$r}: " . implode('; ', $this->cplModel->errors());
-            }
-        }
-
-        return redirect()->to(site_url("kurikulum/{$kuriId}/cpl/import"))->with('importResult', compact('inserted', 'updated', 'errors', 'warnings'));
-    }
-
-    // ══════════════════════════════════════════════════════
-    // IMPORT EXCEL — MATA KULIAH
-    // ══════════════════════════════════════════════════════
-
-    public function mkImportForm(int $kuriId): string
-    {
-        return view('kurikulum/mk_import', ['kuri' => $this->kuriModel->findOrFail($kuriId)]);
-    }
-
-    public function mkImportTemplate(int $kuriId)
-    {
-        $this->kuriModel->findOrFail($kuriId);
-        $cols = ['kode', 'nama', 'sks_teori', 'sks_praktek', 'sks_lapangan', 'semester', 'jenis', 'cpl'];
-        $contoh = ['IF101', 'Algoritma & Pemrograman', '2', '1', '0', '1', 'wajib', 'CPL-01; CPL-03'];
-        $petunjuk = [
-            ['Kolom wajib', 'kode, nama, semester'],
-            ['jenis', 'wajib | pilihan | mbkm (kosong = wajib)'],
-            ['sks_teori/praktek/lapangan', 'angka SKS (kosong = 0)'],
-            ['cpl', 'daftar kode CPL yang didukung, dipisah ; atau , (mis. CPL-01; CPL-03)'],
-            ['kode', 'unik per kurikulum; jika sudah ada akan diperbarui'],
-        ];
-        return $this->excelTemplate('Template_Import_MataKuliah.xlsx', $cols, $contoh, $petunjuk);
-    }
-
-    public function mkImportStore(int $kuriId)
-    {
-        $this->kuriModel->findOrFail($kuriId);
-        $load = $this->readUpload();
-        if (is_string($load)) return redirect()->back()->with('error', $load);
-        [$sheet, $colOf, $highestRow] = $load;
-        if (!isset($colOf['kode']) || !isset($colOf['nama'])) {
-            return redirect()->back()->with('error', 'Header "kode" dan "nama" wajib ada. Gunakan template.');
-        }
-
-        // Peta kode CPL -> id untuk kurikulum ini
+        
+        // Ambil pemetaan CPL untuk lookup
+        $cplRows = $db->table('cpl')->where('kurikulum_id', $kurikulumId)->get()->getResultArray();
         $cplMap = [];
-        foreach ($this->cplModel->where('kurikulum_id', $kuriId)->findAll() as $c) {
-            $cplMap[strtolower(trim($c['kode']))] = (int) $c['id'];
-        }
+        foreach ($cplRows as $c) $cplMap[strtolower($c['kode'])] = $c['id'];
 
-        $jenisValid = ['wajib', 'pilihan', 'mbkm'];
-        $inserted = 0; $updated = 0; $errors = []; $warnings = [];
+        $db->transStart();
 
         for ($r = 2; $r <= $highestRow; $r++) {
-            $val  = fn(string $k) => isset($colOf[$k]) ? trim((string) $sheet->getCell([$colOf[$k], $r])->getValue()) : '';
-            $kode = $val('kode');
-            $nama = $val('nama');
-            if ($kode === '' && $nama === '') continue;
-            if ($kode === '' || $nama === '') { $errors[] = "Baris {$r}: kode dan nama wajib."; continue; }
+            $kode = trim((string) $sheet->getCell([$colOf['kode'], $r])->getValue());
+            if ($kode === '') continue;
 
-            $sem = $val('semester');
-            if ($sem === '' || !is_numeric($sem) || (int) $sem < 1) { $errors[] = "Baris {$r}: semester wajib angka >= 1."; continue; }
+            $nama = trim((string) $sheet->getCell([$colOf['nama'], $r])->getValue());
+            $sem  = (int) $sheet->getCell([$colOf['semester'], $r])->getValue();
+            
+            $teori    = !empty($colOf['sks_teori']) ? (int) $sheet->getCell([$colOf['sks_teori'], $r])->getValue() : 0;
+            $praktek  = !empty($colOf['sks_praktek']) ? (int) $sheet->getCell([$colOf['sks_praktek'], $r])->getValue() : 0;
+            $lapangan = !empty($colOf['sks_lapangan']) ? (int) $sheet->getCell([$colOf['sks_lapangan'], $r])->getValue() : 0;
+            $jenis    = !empty($colOf['jenis']) ? strtolower(trim((string) $sheet->getCell([$colOf['jenis'], $r])->getValue())) : 'wajib';
+            
+            if (!in_array($jenis, ['wajib', 'pilihan', 'mbkm'])) $jenis = 'wajib';
 
-            $jenis = strtolower($val('jenis')) ?: 'wajib';
-            if (!in_array($jenis, $jenisValid, true)) $jenis = 'wajib';
+            if ($nama === '' || $sem < 1) {
+                $errors[] = "Baris $r: Nama MK atau Semester tidak valid untuk $kode.";
+                continue;
+            }
 
-            $intval = fn(string $k) => is_numeric($val($k)) ? (int) $val($k) : 0;
             $data = [
-                'kurikulum_id' => $kuriId,
+                'kurikulum_id' => $kurikulumId,
                 'kode'         => $kode,
                 'nama'         => $nama,
-                'sks_teori'    => $intval('sks_teori'),
-                'sks_praktek'  => $intval('sks_praktek'),
-                'sks_lapangan' => $intval('sks_lapangan'),
-                'semester'     => (int) $sem,
+                'sks_teori'    => $teori,
+                'sks_praktek'  => $praktek,
+                'sks_lapangan' => $lapangan,
+                'semester'     => $sem,
                 'jenis'        => $jenis,
             ];
 
-            $existing = $this->mkModel->where(['kurikulum_id' => $kuriId, 'kode' => $kode])->first();
+            $existing = $db->table('mata_kuliah')->where(['kurikulum_id' => $kurikulumId, 'kode' => $kode])->get()->getRowArray();
             if ($existing) {
-                if ($this->mkModel->update($existing['id'], $data)) { $mkId = (int) $existing['id']; $updated++; }
-                else { $errors[] = "Baris {$r}: " . implode('; ', $this->mkModel->errors()); continue; }
+                $mkId = $existing['id'];
+                $db->table('mata_kuliah')->where('id', $mkId)->update($data);
+                $updated++;
             } else {
-                $mkId = $this->mkModel->insert($data, true);
-                if (!$mkId) { $errors[] = "Baris {$r}: " . implode('; ', $this->mkModel->errors()); continue; }
+                $db->table('mata_kuliah')->insert($data);
+                $mkId = $db->insertID();
                 $inserted++;
             }
 
-            // Set peta CPL (ganti yang lama)
-            $cplCol = $val('cpl');
-            if ($cplCol !== '') {
-                $this->mkCplModel->where('mata_kuliah_id', $mkId)->delete();
-                foreach (preg_split('/[;,]/', $cplCol) as $kk) {
-                    $kk = strtolower(trim($kk));
-                    if ($kk === '') continue;
-                    if (isset($cplMap[$kk])) {
-                        $this->mkCplModel->insert(['mata_kuliah_id' => $mkId, 'cpl_id' => $cplMap[$kk], 'bobot' => 1.00]);
-                    } else {
-                        $warnings[] = "Baris {$r}: CPL \"{$kk}\" tidak ditemukan di kurikulum ini, dilewati.";
+            // Auto-map CPL jika diisi pada Excel
+            if (!empty($colOf['cpl'])) {
+                $cplRaw = trim((string) $sheet->getCell([$colOf['cpl'], $r])->getValue());
+                if ($cplRaw !== '') {
+                    $cplKodes = preg_split('/[,;]/', $cplRaw);
+                    $mappedCplIds = [];
+                    foreach ($cplKodes as $ck) {
+                        $ckClean = strtolower(trim($ck));
+                        if ($ckClean === '') continue;
+                        if (isset($cplMap[$ckClean])) {
+                            $mappedCplIds[] = $cplMap[$ckClean];
+                        } else {
+                            $warnings[] = "Baris $r: CPL '$ck' tidak terdaftar di kurikulum ini, dilewati.";
+                        }
+                    }
+                    
+                    if (!empty($mappedCplIds)) {
+                        $db->table('mk_cpl')->where('mata_kuliah_id', $mkId)->delete();
+                        $insertPeta = [];
+                        foreach (array_unique($mappedCplIds) as $cid) {
+                            $insertPeta[] = ['mata_kuliah_id' => $mkId, 'cpl_id' => $cid];
+                        }
+                        $db->table('mk_cpl')->insertBatch($insertPeta);
                     }
                 }
             }
         }
 
-        return redirect()->to(site_url("kurikulum/{$kuriId}/mk/import"))->with('importResult', compact('inserted', 'updated', 'errors', 'warnings'));
+        $db->transComplete();
+        session()->setFlashdata('importResult', ['inserted' => $inserted, 'updated' => $updated, 'errors' => $errors, 'warnings' => array_unique($warnings)]);
+        return redirect()->to(site_url("kurikulum/{$kurikulumId}/mk/import"));
+    }
+
+    public function mkCreate(int $kurikulumId)
+    {
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        if (!$kuri) return redirect()->to('kurikulum')->with('error', 'Akses ditolak.');
+
+        $cpl = $db->table('cpl')->where('kurikulum_id', $kurikulumId)->orderBy('kode', 'ASC')->get()->getResultArray();
+
+        return view('kurikulum/mk_form', [
+            'kuri'    => $kuri,
+            'mk'      => null,
+            'cpl'     => $cpl,
+            'checked' => [],
+            'action'  => site_url("kurikulum/{$kurikulumId}/mk/store")
+        ]);
+    }
+
+    public function mkStore(int $kurikulumId)
+    {
+        $db = Database::connect();
+        $post = $this->request->getPost();
+
+        $db->transStart();
+        $db->table('mata_kuliah')->insert([
+            'kurikulum_id' => $kurikulumId,
+            'kode'         => $post['kode'],
+            'nama'         => $post['nama'],
+            'sks_teori'    => (int)($post['sks_teori'] ?? 0),
+            'sks_praktek'  => (int)($post['sks_praktek'] ?? 0),
+            'sks_lapangan' => (int)($post['sks_lapangan'] ?? 0),
+            'semester'     => $post['semester'],
+            'jenis'        => $post['jenis'] ?? 'wajib',
+            'rps_path'     => $post['rps_path'] ?? null,
+        ]);
+        
+        $mkId = $db->insertID();
+        $cplIds = $post['cpl_ids'] ?? [];
+        if (!empty($cplIds)) {
+            $insertPeta = array_map(fn($cId) => ['mata_kuliah_id' => $mkId, 'cpl_id' => $cId], $cplIds);
+            $db->table('mk_cpl')->insertBatch($insertPeta);
+        }
+        $db->transComplete();
+
+        return redirect()->to("kurikulum/{$kurikulumId}#tab-mk")->with('success', 'Mata Kuliah berhasil ditambahkan.');
+    }
+
+    public function mkEdit(int $kurikulumId, int $mkId)
+    {
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        $mk   = $db->table('mata_kuliah')->where('id', $mkId)->get()->getRowArray();
+
+        if (!$kuri || !$mk) return redirect()->to("kurikulum/{$kurikulumId}")->with('error', 'Data tidak ditemukan.');
+
+        $cpl = $db->table('cpl')->where('kurikulum_id', $kurikulumId)->orderBy('kode', 'ASC')->get()->getResultArray();
+        $peta = $db->table('mk_cpl')->where('mata_kuliah_id', $mkId)->get()->getResultArray();
+
+        return view('kurikulum/mk_form', [
+            'kuri'    => $kuri,
+            'mk'      => $mk,
+            'cpl'     => $cpl,
+            'checked' => array_column($peta, 'cpl_id'),
+            'action'  => site_url("kurikulum/{$kurikulumId}/mk/{$mkId}/update")
+        ]);
+    }
+
+    public function mkUpdate(int $kurikulumId, int $mkId)
+    {
+        $db = Database::connect();
+        $post = $this->request->getPost();
+
+        $db->transStart();
+        $db->table('mata_kuliah')->where('id', $mkId)->update([
+            'kode'         => $post['kode'],
+            'nama'         => $post['nama'],
+            'sks_teori'    => (int)($post['sks_teori'] ?? 0),
+            'sks_praktek'  => (int)($post['sks_praktek'] ?? 0),
+            'sks_lapangan' => (int)($post['sks_lapangan'] ?? 0),
+            'semester'     => $post['semester'],
+            'jenis'        => $post['jenis'] ?? 'wajib',
+            'rps_path'     => $post['rps_path'] ?? null,
+        ]);
+
+        $db->table('mk_cpl')->where('mata_kuliah_id', $mkId)->delete();
+        $cplIds = $post['cpl_ids'] ?? [];
+        if (!empty($cplIds)) {
+            $insertPeta = array_map(fn($cId) => ['mata_kuliah_id' => $mkId, 'cpl_id' => $cId], $cplIds);
+            $db->table('mk_cpl')->insertBatch($insertPeta);
+        }
+        $db->transComplete();
+
+        return redirect()->to("kurikulum/{$kurikulumId}#tab-mk")->with('success', 'Mata Kuliah berhasil diperbarui.');
+    }
+
+    public function mkDelete(int $kurikulumId, int $mkId)
+    {
+        Database::connect()->table('mata_kuliah')->where('id', $mkId)->delete();
+        return redirect()->to("kurikulum/{$kurikulumId}#tab-mk")->with('success', 'Mata Kuliah berhasil dihapus.');
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Fitur Ketercapaian CPL
+    // ────────────────────────────────────────────────────────────────────────
+
+    public function ketercapaianForm(int $kurikulumId)
+    {
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        if (!$kuri) return redirect()->to('kurikulum')->with('error', 'Akses ditolak.');
+
+        $taId = (int) ($this->request->getGet('ta_id') ?: $db->table('tahun_akademik')->orderBy('is_ts', 'DESC')->orderBy('kode', 'DESC')->get()->getRow('id'));
+        $taList = $db->table('tahun_akademik')->orderBy('kode', 'DESC')->get()->getResultArray();
+
+        $rows = $db->query("
+            SELECT p.mata_kuliah_id AS mk_id, mk.kode AS mk_kode, mk.nama AS mk_nama, mk.semester,
+                   p.cpl_id, c.kode AS cpl_kode, k.persen_tercapai, k.jumlah_mhs
+            FROM mk_cpl p
+            JOIN mata_kuliah mk ON mk.id = p.mata_kuliah_id
+            JOIN cpl c ON c.id = p.cpl_id
+            LEFT JOIN cpl_ketercapaian k ON k.mata_kuliah_id = p.mata_kuliah_id AND k.cpl_id = p.cpl_id AND k.tahun_akademik_id = ?
+            WHERE mk.kurikulum_id = ?
+            ORDER BY mk.semester ASC, mk.kode ASC, c.kode ASC
+        ", [$taId, $kurikulumId])->getResultArray();
+
+        return view('kurikulum/ketercapaian_form', [
+            'kuri' => $kuri, 'taId' => $taId, 'taList' => $taList, 'rows' => $rows
+        ]);
+    }
+
+    public function ketercapaianSave(int $kurikulumId)
+    {
+        $db = Database::connect();
+        $kuri = $db->table('kurikulum')->where(['id' => $kurikulumId, 'prodi_id' => $this->prodiId()])->get()->getRowArray();
+        if (!$kuri) return redirect()->to('kurikulum')->with('error', 'Akses ditolak.');
+
+        $post = $this->request->getPost();
+        $taId = (int) ($post['tahun_akademik_id'] ?? 0);
+        $ketData = $post['ket'] ?? []; // Format: ket[mk_id_cpl_id][pct] dan ket[mk_id_cpl_id][mhs]
+
+        if (!$taId) {
+            return redirect()->back()->with('error', 'Tahun Akademik tidak valid.');
+        }
+
+        $mkRows = $db->table('mata_kuliah')->select('id')->where('kurikulum_id', $kurikulumId)->get()->getResultArray();
+        $mkIds  = array_column($mkRows, 'id');
+
+        if (!empty($mkIds)) {
+            $db->transStart();
+            
+            // 1. Bersihkan data ketercapaian lama khusus untuk Tahun Akademik ini & MK pada Kurikulum ini
+            $db->table('cpl_ketercapaian')->where('tahun_akademik_id', $taId)->whereIn('mata_kuliah_id', $mkIds)->delete();
+
+            // 2. Siapkan data baru untuk di-insert
+            $insertData = [];
+            foreach ($ketData as $key => $val) {
+                $parts = explode('_', $key); // misal "15_3" menjadi [15, 3]
+                if (count($parts) !== 2) continue;
+
+                $pct = $val['pct'] !== '' ? (float) $val['pct'] : null;
+                $mhs = $val['mhs'] !== '' ? (int) $val['mhs'] : null;
+
+                // Hanya simpan jika persen tercapai atau jumlah mhs diisi (mencegah insert data kosong)
+                if ($pct !== null || $mhs !== null) {
+                    $insertData[] = ['tahun_akademik_id' => $taId, 'mata_kuliah_id' => (int)$parts[0], 'cpl_id' => (int)$parts[1], 'persen_tercapai' => $pct, 'jumlah_mhs' => $mhs];
+                }
+            }
+
+            if (!empty($insertData)) $db->table('cpl_ketercapaian')->insertBatch($insertData);
+            $db->transComplete();
+        }
+
+        return redirect()->to("kurikulum/{$kurikulumId}#tab-ket")->with('success', 'Ketercapaian CPL per Mata Kuliah berhasil disimpan.');
     }
 }

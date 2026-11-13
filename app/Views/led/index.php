@@ -1,213 +1,132 @@
 <?= $this->extend('layouts/main') ?>
+
+<?= $this->section('title') ?>Generator LED & AI<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
-
-<?php $canGenerate = auth()->user()->can('led.generate') ?>
-
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h4 class="mb-0"><i class="bi bi-file-earmark-word"></i> Generator LED</h4>
-        <?php if ($instrumen): ?>
-        <small class="text-muted"><?= esc($instrumen['nama']) ?></small>
-        <?php endif ?>
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-dark">
+            <i class="bi bi-file-earmark-word text-primary me-2"></i> Laporan Evaluasi Diri (LED)
+        </h1>
     </div>
-    <?php if ($canGenerate && $instrumen): ?>
-    <form method="post" action="<?= site_url('led/generate') ?>" class="d-flex gap-2 align-items-center">
-        <?= csrf_field() ?>
-        <select name="tahun_akademik_id" class="form-select form-select-sm" style="width:160px">
-            <option value="">— Semua TS —</option>
-            <?php foreach ($taList as $ta): ?>
-            <option value="<?= $ta['id'] ?>"><?= esc($ta['kode']) ?></option>
-            <?php endforeach ?>
-        </select>
-        <button type="submit" class="btn btn-primary btn-sm">
-            <i class="bi bi-download"></i> Generate LED (.docx)
-        </button>
-    </form>
-    <?php endif ?>
-</div>
 
-<?php if (session('success')): ?>
-<div class="alert alert-success alert-dismissible fade show"><?= esc(session('success')) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-<?php endif ?>
-<?php if (session('error')): ?>
-<div class="alert alert-danger alert-dismissible fade show"><?= esc(session('error')) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-<?php endif ?>
+    <?php if (session()->has('error')): ?>
+        <div class="alert alert-danger shadow-sm border-0"><i class="bi bi-exclamation-triangle-fill me-2"></i> <?= session('error') ?></div>
+    <?php endif; ?>
+    <?php if (session()->has('success')): ?>
+        <div class="alert alert-success shadow-sm border-0"><i class="bi bi-check-circle-fill me-2"></i> <?= session('success') ?></div>
+    <?php endif; ?>
 
-<?php if (!$groqEnabled): ?>
-<div class="alert alert-secondary py-2 small"><i class="bi bi-robot"></i> Fitur Groq AI tidak aktif. Set <code>groq.apiKey</code> di file <code>.env</code> untuk mengaktifkan generate narasi otomatis.</div>
-<?php endif ?>
-
-<?php if (!$instrumen): ?>
-<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Prodi belum memiliki instrumen LAM yang aktif.</div>
-<?= $this->endSection() ?>
-<?php return ?>
-<?php endif ?>
-
-<div class="row g-3">
-    <div class="col-lg-8">
-
-        <?php
-        $sectionOrder = ['pendahuluan' => 'Pendahuluan', 'C1' => 'C1', 'C2' => 'C2', 'C3' => 'C3', 'C4' => 'C4', 'C5' => 'C5', 'C6' => 'C6', 'penutup' => 'Penutup'];
-        $bagianColors = ['pendahuluan' => 'secondary', 'C1' => 'primary', 'C2' => 'success', 'C3' => 'info', 'C4' => 'warning', 'C5' => 'danger', 'C6' => 'dark', 'penutup' => 'secondary'];
-        ?>
-
-        <?php foreach ($sectionOrder as $sectionKey => $sectionLabel): ?>
-        <?php if (empty($byBagian[$sectionKey])): continue; endif ?>
-        <?php $tabels = $byBagian[$sectionKey] ?>
-
-        <div class="card mb-3">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="badge bg-<?= $bagianColors[$sectionKey] ?? 'secondary' ?>"><?= esc($sectionLabel) ?></span>
-                    <?php if (!in_array($sectionKey, ['pendahuluan','penutup'])): ?>
-                    <strong class="ms-1"><?= esc($tabels[0]['kriteria_nama'] ?? '') ?></strong>
-                    <?php else: ?>
-                    <strong class="ms-1"><?= esc($sectionLabel) ?></strong>
-                    <?php endif ?>
+    <div class="row">
+        <!-- Panel Kiri: Daftar Paragraf Narasi -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-primary"><i class="bi bi-pencil-square me-1"></i> Editor Narasi LED</h6>
+                    <span class="badge bg-light text-dark border">Groq AI Llama-3 Terintegrasi</span>
                 </div>
-                <?php
-                $filled = count(array_filter($tabels, fn($t) => !empty($t['narasi'])));
-                $total  = count($tabels);
-                $pct    = $total > 0 ? round($filled / $total * 100) : 0;
-                ?>
-                <small class="text-muted"><?= $filled ?>/<?= $total ?> terisi</small>
-            </div>
-            <div class="card-body p-0">
-                <div class="accordion accordion-flush" id="accordion-<?= $sectionKey ?>">
-                <?php foreach ($tabels as $t): ?>
-                    <?php $acId = 'led-' . $t['id'] ?>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $acId ?>">
-                                <span class="me-2 badge bg-light text-dark"><?= esc(ucfirst($t['sub_bagian'] ?? $t['bagian'])) ?></span>
-                                <?php if (!empty($t['narasi'])): ?>
-                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
-                                <?php else: ?>
-                                    <i class="bi bi-circle text-muted me-1"></i>
-                                <?php endif ?>
-                                <?= esc($t['judul']) ?>
-                                <?php if ($t['generated_by_ai']): ?>
-                                    <span class="badge bg-info ms-2 fw-normal" style="font-size:.65rem"><i class="bi bi-robot"></i> AI</span>
-                                <?php endif ?>
-                            </button>
-                        </h2>
-                        <div id="<?= $acId ?>" class="accordion-collapse collapse">
-                            <div class="accordion-body">
-                                <?php if ($canGenerate && $groqEnabled): ?>
-                                <div class="d-flex justify-content-end mb-2">
-                                    <button class="btn btn-xs btn-outline-info py-0 px-2 btn-groq"
-                                            data-id="<?= $t['id'] ?>"
-                                            data-target="narasi-<?= $t['id'] ?>">
-                                        <i class="bi bi-robot"></i> Generate AI
+                <div class="card-body">
+                    <div class="accordion" id="accordionLed">
+                        <?php $i = 0; foreach ($grouped as $kriteria => $templates): ?>
+                            <div class="accordion-item mb-2 border rounded">
+                                <h2 class="accordion-header" id="heading<?= $i ?>">
+                                    <button class="accordion-button <?= $i === 0 ? '' : 'collapsed' ?> bg-light text-dark fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $i ?>">
+                                        <?= esc($kriteria) ?>
                                     </button>
-                                    <span class="spinner-border spinner-border-sm ms-2 d-none text-info" id="spin-<?= $t['id'] ?>"></span>
+                                </h2>
+                                <div id="collapse<?= $i ?>" class="accordion-collapse collapse <?= $i === 0 ? 'show' : '' ?>" data-bs-parent="#accordionLed">
+                                    <div class="accordion-body bg-white">
+                                        <?php foreach ($templates as $t): ?>
+                                            <div class="mb-4 pb-4 <?= $t !== end($templates) ? 'border-bottom' : '' ?>">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="fw-bold mb-0 text-dark"><?= esc($t['judul']) ?></h6>
+                                                    <?php if ($t['generated_by_ai']): ?>
+                                                        <span class="badge bg-info text-dark shadow-sm"><i class="bi bi-robot"></i> AI Generated</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                
+                                                <form action="<?= site_url('led/narasi/'.$t['id'].'/save') ?>" method="POST" class="mb-2">
+                                                    <?= csrf_field() ?>
+                                                    <textarea name="isi" class="form-control mb-2" rows="6" placeholder="Ketik narasi di sini atau biarkan AI yang menulis..."><?= esc($t['narasi'] ?? '') ?></textarea>
+                                                    <button type="submit" class="btn btn-sm btn-primary px-4 shadow-sm"><i class="bi bi-save"></i> Simpan Manual</button>
+                                                </form>
+
+                                                <form action="<?= site_url('led/groq/'.$t['id']) ?>" method="POST" onsubmit="showLoading(this)">
+                                                    <?= csrf_field() ?>
+                                                    <button type="submit" class="btn btn-sm btn-outline-dark fw-semibold ai-btn w-100 mt-2">
+                                                        <i class="bi bi-magic text-warning me-1"></i> Buat Narasi Otomatis dengan AI
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
-                                <?php endif ?>
-
-                                <form method="post" action="<?= site_url('led/narasi/' . $t['id'] . '/save') ?>">
-                                    <?= csrf_field() ?>
-                                    <textarea name="isi" id="narasi-<?= $t['id'] ?>"
-                                        class="form-control form-control-sm mb-2"
-                                        rows="8"
-                                        placeholder="Tulis narasi di sini, atau gunakan Generate AI…"
-                                        <?= $canGenerate ? '' : 'readonly' ?>
-                                    ><?= esc($t['narasi'] ?? $t['template_isi'] ?? '') ?></textarea>
-                                    <?php if ($canGenerate): ?>
-                                    <button type="submit" class="btn btn-sm btn-success">
-                                        <i class="bi bi-floppy"></i> Simpan
-                                    </button>
-                                    <?php endif ?>
-                                </form>
                             </div>
-                        </div>
+                        <?php $i++; endforeach; ?>
                     </div>
-                <?php endforeach ?>
                 </div>
             </div>
         </div>
-        <?php endforeach ?>
 
-        <?php if (empty($templates)): ?>
-        <div class="alert alert-info">Belum ada template LED. Jalankan seeder <code>LamInfokomD3Seeder</code> terlebih dahulu.</div>
-        <?php endif ?>
-    </div>
-
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header py-2"><strong><i class="bi bi-clock-history"></i> File LED Terbaru</strong></div>
-            <div class="card-body p-0">
-                <?php if (empty($files)): ?>
-                <div class="text-muted text-center p-3 small">Belum ada file ter-generate.</div>
-                <?php else: ?>
-                <ul class="list-group list-group-flush">
-                    <?php foreach ($files as $f): ?>
-                    <li class="list-group-item p-2 small">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="text-truncate" style="max-width:220px" title="<?= esc($f['name']) ?>">
-                                <i class="bi bi-file-earmark-word text-primary"></i>
-                                <?= esc($f['name']) ?>
-                            </div>
-                            <a href="<?= site_url('led/download/' . urlencode($f['name'])) ?>" class="btn btn-xs btn-outline-primary py-0 px-1">
-                                <i class="bi bi-download"></i>
-                            </a>
-                        </div>
-                        <div class="text-muted" style="font-size:.72rem">
-                            <?= number_format($f['size'] / 1024, 1) ?> KB &middot;
-                            <?= date('d-m-Y H:i', $f['mtime']) ?>
-                        </div>
-                    </li>
-                    <?php endforeach ?>
-                </ul>
-                <?php endif ?>
+        <!-- Panel Kanan: Render & Download -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4 border-start border-4 border-primary">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-gear-fill me-1"></i> Render ke Word</h6>
+                    <p class="text-muted small">
+                        Sistem akan menyusun seluruh narasi di atas menjadi dokumen Word <code>.docx</code> lengkap dengan halaman cover.
+                    </p>
+                    <form action="<?= site_url('led/generate') ?>" method="POST">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                            <i class="bi bi-file-word"></i> Generate Dokumen LED
+                        </button>
+                    </form>
+                </div>
             </div>
-        </div>
 
-        <div class="card mt-3">
-            <div class="card-header py-2"><strong><i class="bi bi-info-circle"></i> Panduan</strong></div>
-            <div class="card-body small">
-                <ul class="mb-0 ps-3">
-                    <li>Isi narasi PPEPP tiap kriteria secara manual atau klik <strong>Generate AI</strong> (perlu Groq API key).</li>
-                    <li>Narasi AI otomatis diberi tanda <span class="badge bg-info fw-normal" style="font-size:.65rem"><i class="bi bi-robot"></i> AI</span> — wajib ditinjau ulang.</li>
-                    <li>Klik <strong>Generate LED (.docx)</strong> untuk ekspor dokumen Word lengkap.</li>
-                    <li>Untuk mengaktifkan AI, set <code>groq.apiKey = gsk_xxx</code> di <code>.env</code>.</li>
-                </ul>
+            <!-- Daftar Riwayat Download -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 fw-bold"><i class="bi bi-clock-history me-1"></i> Riwayat Render</h6>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <?php if (empty($files)): ?>
+                            <li class="list-group-item text-muted text-center py-4 small">Belum ada dokumen dirender.</li>
+                        <?php else: ?>
+                            <?php foreach ($files as $f): ?>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="text-truncate me-2" style="max-width: 200px;">
+                                        <i class="bi bi-file-earmark-word text-primary me-2"></i>
+                                        <a href="<?= site_url('led/download/' . rawurlencode($f['name'])) ?>" class="text-decoration-none fw-semibold small" target="_blank" title="Unduh">
+                                            <?= esc($f['name']) ?>
+                                        </a>
+                                        <br><small class="text-muted" style="font-size: 0.7rem;"><?= date('d M Y, H:i', $f['mtime']) ?></small>
+                                    </div>
+                                    <span class="badge bg-light text-dark border"><?= round($f['size'] / 1024) ?> KB</span>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<?php if ($canGenerate && $groqEnabled): ?>
 <script>
-document.querySelectorAll('.btn-groq').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        const id     = btn.dataset.id;
-        const target = btn.dataset.target;
-        const spin   = document.getElementById('spin-' + id);
-
-        btn.disabled = true;
-        if (spin) spin.classList.remove('d-none');
-
-        try {
-            const resp = await fetch('<?= site_url('led/groq') ?>/' + id, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
-                body: JSON.stringify({<?= csrf_token() ?>: '<?= csrf_hash() ?>'}),
-            });
-            const json = await resp.json();
-            if (json.success) {
-                document.getElementById(target).value = json.narasi;
-            } else {
-                alert('Error: ' + (json.error || 'Tidak diketahui'));
-            }
-        } catch (e) {
-            alert('Gagal menghubungi server.');
-        } finally {
-            btn.disabled = false;
-            if (spin) spin.classList.add('d-none');
-        }
-    });
-});
+function showLoading(form) {
+    const btn = form.querySelector('.ai-btn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span><span class="fst-italic text-muted">AI sedang berpikir (± 15 detik)...</span>';
+    
+    // Timeout failsafe reset
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }, 30000);
+}
 </script>
-<?php endif ?>
-
 <?= $this->endSection() ?>

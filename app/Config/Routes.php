@@ -226,6 +226,14 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
         $routes->get('users/(:num)/edit',  'Admin\UserManagement::edit/$1');
         $routes->post('users/(:num)/update','Admin\UserManagement::update/$1');
         $routes->post('users/(:num)/delete','Admin\UserManagement::delete/$1');
+
+        // Manajemen Asesor Eksternal
+        $routes->get('asesor',               'Admin\AsesorController::index');
+        $routes->get('asesor/create',        'Admin\AsesorController::create');
+        $routes->post('asesor',              'Admin\AsesorController::store');
+        $routes->get('asesor/(:num)/edit',   'Admin\AsesorController::edit/$1');
+        $routes->post('asesor/(:num)/update','Admin\AsesorController::update/$1');
+        $routes->post('asesor/(:num)/delete','Admin\AsesorController::delete/$1');
     });
 
     // Kurikulum OBE + CPL
@@ -290,10 +298,8 @@ $routes->group('', ['filter' => ['session', 'prodiScope']], function ($routes) {
 
     // LKPS Generator
     $routes->group('lkps', ['filter' => 'permission:lkps.generate'], function ($routes) {
-        $routes->get('/',                   'Lkps\LkpsController::index');
-        $routes->post('generate-all',       'Lkps\LkpsController::generateAll');
-        $routes->post('generate/(:any)',    'Lkps\LkpsController::generateSingle/$1');
-        $routes->get('download/(:any)',     'Lkps\LkpsController::download/$1');
+        $routes->get('/',          'LkpsController::index');
+        $routes->get('download',   'LkpsController::download');
     });
 
     // Dashboard Kesiapan Akreditasi
